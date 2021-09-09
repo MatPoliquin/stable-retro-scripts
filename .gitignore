@@ -1,0 +1,4 @@
+*.zip
+*.code-workspace
+__pycache__
+
