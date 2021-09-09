@@ -1,4 +1,4 @@
-# Model VS Model
+# Model vs Model
 
 Train and pit two models against each other on PvP retro games such as Mortal Kombat or WWF Wrestlemania: The Arcade Game
 
