@@ -10,7 +10,7 @@ Requires:
 *   stable-retro (fork of gym-retro)
 
 ```
-pip3 install opencv-python anyrl gym joblib atari-py tensorflow-gpu==1.14 stable-baselines stable-retro
+pip3 install opencv-python anyrl gym joblib atari-py tensorflow-gpu==1.14 stable-baselines stable-retro pygame
 ```
 
 ## Install roms
@@ -39,10 +39,21 @@ Train Shawn Micheals Model:
 python3 trainer.py --env=WWFArcade-Genesis --state=VeryHard_ShawnMichealsVsBrettHart.state --num_timesteps=5000000 --play
 ```
 
-The models should reside in the output directory (by default in the /home directory zip files)
+The models (zip files) should reside in the output directory (by default in the /home directory)
 
 
 ### Pit your two models against each other
 ```
 python3 multiplayer.py --env=WWFArcade-Genesis --load_p1_model=~/yokozuna.zip --load_p2_model=~/shawn_micheals.zip
+```
+
+### Game specific training script to beat WWF (Continental mode)
+```
+python3 wwf_trainer.py --play
+```
+
+
+### Play pre-trained model
+```
+python3 singleplayer.py --env=WWFArcade-Genesis --state=VeryHard_YokozunaVsShawnMicheals --load_p1_model=~/yokozuna.zip
 ```

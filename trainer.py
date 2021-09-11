@@ -1,3 +1,7 @@
+"""
+Train a Model on a retro env
+"""
+
 import os
 import sys
 import retro
@@ -19,9 +23,10 @@ def parse_cmdline(argv):
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='1')
     parser.add_argument('--num_env', type=int, default=24)
-    parser.add_argument('--num_timesteps', type=int, default=2000000)
+    parser.add_argument('--num_timesteps', type=int, default=100000)
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_p1_model', type=str, default='')
+    parser.add_argument('--alg_verbose', default=True, action='store_true')
     parser.add_argument('--play', default=False, action='store_true')
 
     print(argv)
@@ -32,34 +37,59 @@ def parse_cmdline(argv):
 
     return args
 
+class ModelTrainer:
+    def __init__(self, args):
+        logger.log('========= Init =============')
+        self.args = args
+
+        self.output_fullpath = create_output_dir(args)
+        model_savefile_name = get_model_file_name(args)
+        self.model_savepath = os.path.join(self.output_fullpath, model_savefile_name)
+
+        self.env = init_env(self.output_fullpath, args.num_env, args.state, 1, args)
+        self.p1_model = init_model(None, args.load_p1_model, args.alg, args, self.env)
+
+        logger.log('OUTPUT PATH:   %s' % self.output_fullpath)
+        logger.log('ENV:           %s' % args.env)
+        logger.log('STATE:         %s' % args.state)
+        logger.log('NN:            %s' % args.nn)
+        logger.log('ALGO:          %s' % args.alg)
+        logger.log('NUM TIMESTEPS: %s' % args.num_timesteps)
+        logger.log('NUM ENV:       %s' % args.num_env)
+        logger.log('NUM PLAYERS:   %s' % args.num_players)
+
+    def train(self):
+        logger.log('========= Start Training ==========')
+        self.p1_model.learn(total_timesteps=self.args.num_timesteps)
+        logger.log('========= End Training ==========')
+
+        self.p1_model.save(self.model_savepath )
+        logger.log('Mode saved too:%s' % self.model_savepath)
+
+        return self.model_savepath
+
+    def play(self):
+        logger.log('========= Start Play Loop ==========')
+        state = self.env.reset()
+        while True:
+            self.env.render()
+
+            p1_actions = self.p1_model.predict(state)
+            
+            state, reward, done, info = self.env.step(p1_actions[0])
+
+
+
 def main(argv):
     
-    logger.log('========= Init =============')
     args = parse_cmdline(argv[1:])
-    output_fullpath = create_output_dir(args)
-    model_savefile_name = get_model_file_name(args)
+    
+    trainer = ModelTrainer(args)
 
-    env = init_env(output_fullpath, args.num_env, args.state, 1, args)
-    p1_model = init_model(None, args.load_p1_model, args.alg, args, env)
-
-    logger.log('========= Start Training ==========')
-    p1_model.learn(total_timesteps=args.num_timesteps)
-    logger.log('========= End Training ==========')
-    p1_model.save(os.path.join(output_fullpath, model_savefile_name))
-    logger.log('Mode saved too:%s' % model_savefile_name)
+    trainer.train()
     
     if args.play:
-        logger.log('========= Start Play Loop ==========')
-        state = env.reset()
-        while True:
-            env.render()
-
-            p1_actions = p1_model.predict(state)
-            
-            state, reward, done, info = env.step(p1_actions[0])
-
-            #if done:
-            #    state = play_env.reset()
+        trainer.play()
 
 
 if __name__ == '__main__':

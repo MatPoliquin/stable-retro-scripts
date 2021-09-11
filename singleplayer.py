@@ -1,3 +1,7 @@
+"""
+Play a pre-trained model on a retro env
+"""
+
 import os
 import sys
 import retro

@@ -1,3 +1,7 @@
+"""
+Pit two models together on a pvp retro env
+"""
+
 import os
 import sys
 import retro

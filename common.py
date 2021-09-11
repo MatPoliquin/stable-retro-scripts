@@ -1,10 +1,14 @@
+"""
+Common utils
+"""
+
 import os, datetime
 import argparse
 import retro
 import gym
 import numpy as np
 import pygame
-from stable_baselines import PPO2
+from stable_baselines import PPO2, A2C
 from stable_baselines.common.policies import CnnPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines.common.atari_wrappers import WarpFrame, ClipRewardEnv, FrameStack
@@ -55,6 +59,7 @@ def make_retro(*, game, state=None, num_players, max_episode_steps=4500, **kwarg
 def init_env(output_path, num_env, state, num_players, args):
     #if wrapper_kwargs is None:
     wrapper_kwargs = {}
+    #wrapper_kwargs['scenario'] = 'test'
 
     seed = 0
     start_index = 0
@@ -100,7 +105,7 @@ def init_play_env(args):
 def init_model(output_path, player_model, player_alg, args, env):
     if player_alg == 'ppo2':
         if player_model == '':
-            model = PPO2(policy=args.nn, env=env, verbose=1, tensorboard_log=output_path)
+            model = PPO2(policy=args.nn, env=env, verbose=args.alg_verbose, tensorboard_log=output_path)
         else:
             model = PPO2.load(os.path.expanduser(player_model), env=env, policy=CnnPolicy)
     elif player_alg == 'a2c':
