@@ -18,7 +18,7 @@ from stable_baselines.bench import Monitor
 from stable_baselines import logger
 from baselines.common.retro_wrappers import StochasticFrameSkip
 
-# GameDisplay is work in progress, not functional
+# GameDisplay
 class GameDisplay:
     def __init__(self, args):
         # Init Window
@@ -30,17 +30,17 @@ class GameDisplay:
 
 
     def draw_frame(self, frame_img):
-        main_surf.fill((0, 0, 0))
-        emu_screen = np.transpose(emu_screen, (1,0,2))
+        self.main_surf.fill((0, 0, 0))
+        emu_screen = np.transpose(frame_img, (1,0,2))
         #print(emu_screen.shape)
         #surf.fill((0,0,0))
         surf = pygame.surfarray.make_surface(emu_screen)
 
-        main_surf.blit(pygame.transform.scale(surf,(1920,1080)), (0, 0))
+        self.main_surf.blit(pygame.transform.scale(surf,(1920,1080)), (0, 0))
         #print(main_surf.get_colorkey())
-        main_surf.set_colorkey(None)
+        self.main_surf.set_colorkey(None)
         #main_surf.convert()
-        screen.blit(pygame.transform.smoothscale(main_surf,(960,540)), (0, 0))
+        self.screen.blit(pygame.transform.smoothscale(self.main_surf,(960,540)), (0, 0))
         #screen.blit(surf, (0, 0))
  
 
@@ -96,8 +96,7 @@ def init_play_env(args):
 
     env = WarpFrame(env)
     env = FrameStack(env, 4)
-
-    print(env.action_space)
+    env = StochasticFrameSkip(env, n=4, stickprob=0.25)
 
     return env
 

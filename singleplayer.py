@@ -18,7 +18,7 @@ def parse_cmdline(argv):
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--p1_alg', type=str, default='ppo2')
-    parser.add_argument('--env', type=str, default='MortalKombatII-Genesis')
+    parser.add_argument('--env', type=str, default='WWFArcade-Genesis')
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='1')
     parser.add_argument('--num_env', type=int, default=1)
@@ -27,7 +27,6 @@ def parse_cmdline(argv):
     parser.add_argument('--load_p1_model', type=str, default='')
     parser.add_argument('--noserver', default=False, action='store_true')
 
-    print(argv)
     args = parser.parse_args(argv)
 
     logger.log("=========== Params ===========")
@@ -41,13 +40,16 @@ def main(argv):
     args = parse_cmdline(argv[1:])
 
     play_env = init_play_env(args)
-    p1_env = init_env(None, 1, None, 1, args)
+    p1_env = init_env(None, 1, args.state, 1, args)
     p1_model = init_model(None, args.load_p1_model, args.p1_alg, args, p1_env)
+
+    display = GameDisplay(args) 
 
     logger.log('========= Start Game Loop ==========')
     state = play_env.reset()
     while True:
-        play_env.render()
+        framebuffer = play_env.render(mode='rgb_array')
+        display.draw_frame(framebuffer)
 
         p1_actions = p1_model.predict(state)
             

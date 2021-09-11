@@ -30,8 +30,6 @@ def parse_cmdline(argv):
     parser.add_argument('--load_p1_model', type=str, default='')
     parser.add_argument('--load_p2_model', type=str, default='')
 
-
-    print(argv)
     args = parser.parse_args(argv)
 
     logger.log("=========== Params ===========")
