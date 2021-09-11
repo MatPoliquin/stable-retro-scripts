@@ -43,8 +43,12 @@ class GameDisplay:
         self.screen.blit(pygame.transform.smoothscale(self.main_surf,(960,540)), (0, 0))
         #screen.blit(surf, (0, 0))
  
-
         pygame.display.flip()
+
+    def GetInput(self):
+        pygame.event.pump()
+        keystate = pygame.key.get_pressed()
+        return keystate
 
 def make_retro(*, game, state=None, num_players, max_episode_steps=4500, **kwargs):
     import retro

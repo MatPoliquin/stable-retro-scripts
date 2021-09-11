@@ -10,6 +10,7 @@ import joblib
 import argparse
 import logging
 import numpy as np
+import pygame
 from stable_baselines import logger
 
 from common import init_env, init_model, init_play_env, get_model_file_name, GameDisplay
@@ -45,7 +46,8 @@ def main(argv):
 
     display = GameDisplay(args) 
 
-    logger.log('========= Start Game Loop ==========')
+    logger.log('========= Start of Game Loop ==========')
+    logger.log('Press ESC or Q to quit')
     state = play_env.reset()
     while True:
         framebuffer = play_env.render(mode='rgb_array')
@@ -57,6 +59,12 @@ def main(argv):
 
         if done:
             state = play_env.reset()
+
+
+        keystate = display.GetInput()
+        if keystate[pygame.K_q] or keystate[pygame.K_ESCAPE]:
+            logger.log('Exiting...')
+            break
 
 if __name__ == '__main__':
     main(sys.argv)
