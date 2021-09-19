@@ -2,12 +2,13 @@
 Common utils
 """
 
+import warnings
+warnings.filterwarnings("ignore")
 import os, datetime
 import argparse
 import retro
 import gym
 import numpy as np
-import pygame
 from stable_baselines import PPO2, A2C
 from stable_baselines.common.policies import CnnPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
@@ -18,37 +19,6 @@ from stable_baselines.bench import Monitor
 from stable_baselines import logger
 from baselines.common.retro_wrappers import StochasticFrameSkip
 
-# GameDisplay
-class GameDisplay:
-    def __init__(self, args):
-        # Init Window
-        pygame.init()
-        #screen = pygame.display.set_mode((1920, 1080))
-        self.screen = pygame.display.set_mode((960, 540))
-        self.main_surf = pygame.Surface((1920, 1080))
-        self.main_surf.set_colorkey((0,0,0))
-
-
-    def draw_frame(self, frame_img):
-        self.main_surf.fill((0, 0, 0))
-        emu_screen = np.transpose(frame_img, (1,0,2))
-        #print(emu_screen.shape)
-        #surf.fill((0,0,0))
-        surf = pygame.surfarray.make_surface(emu_screen)
-
-        self.main_surf.blit(pygame.transform.scale(surf,(1920,1080)), (0, 0))
-        #print(main_surf.get_colorkey())
-        self.main_surf.set_colorkey(None)
-        #main_surf.convert()
-        self.screen.blit(pygame.transform.smoothscale(self.main_surf,(960,540)), (0, 0))
-        #screen.blit(surf, (0, 0))
- 
-        pygame.display.flip()
-
-    def GetInput(self):
-        pygame.event.pump()
-        keystate = pygame.key.get_pressed()
-        return keystate
 
 def make_retro(*, game, state=None, num_players, max_episode_steps=4500, **kwargs):
     import retro
@@ -91,7 +61,7 @@ def init_env(output_path, num_env, state, num_players, args):
 
     env = VecFrameStack(env, n_stack=4)
 
-    print(env.action_space)
+    #print(env.action_space)
 
     return env
 
