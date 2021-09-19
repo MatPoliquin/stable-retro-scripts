@@ -10,7 +10,16 @@ Requires:
 *   stable-retro (fork of gym-retro)
 
 ```
-pip3 install opencv-python anyrl gym joblib atari-py tensorflow-gpu==1.14 stable-baselines stable-retro pygame
+sudo apt-get update
+sudo apt-get install cmake python3 python3-pip git zlib1g-dev libopenmpi-dev ffmpeg
+```
+
+```
+pip3 install opencv-python anyrl gym joblib atari-py tensorflow-gpu==1.14 stable-baselines pygame
+
+git clone https://github.com/MatPoliquin/stable-retro.git
+cd stable-retro
+pip3 install -e .
 ```
 
 ## Install roms
