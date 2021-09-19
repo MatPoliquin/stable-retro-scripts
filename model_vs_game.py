@@ -13,7 +13,7 @@ import numpy as np
 import pygame
 from stable_baselines import logger
 
-from common import init_env, init_model, init_play_env, get_model_file_name
+from common import init_env, init_model, init_play_env, get_model_file_name, print_model_info
 from display import GameDisplay
 
 def parse_cmdline(argv):
@@ -27,7 +27,8 @@ def parse_cmdline(argv):
     parser.add_argument('--num_timesteps', type=int, default=0)
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_p1_model', type=str, default='')
-    parser.add_argument('--noserver', default=False, action='store_true')
+    parser.add_argument('--display_width', type=int, default='1440')
+    parser.add_argument('--display_height', type=int, default='810')
 
     args = parser.parse_args(argv)
 
@@ -44,7 +45,8 @@ class ModelVsGame:
         self.need_display = need_display
 
         if need_display:
-            self.display = GameDisplay(args) 
+            total_params = print_model_info()
+            self.display = GameDisplay(args, total_params) 
 
     def play(self, continuous=True, need_reset=True):
         #logger.log('========= Start of Game Loop ==========')
@@ -87,7 +89,7 @@ def main(argv):
 
     player = ModelVsGame(args)
 
-    player.play()
+    player.play(need_reset=False)
 
 if __name__ == '__main__':
     main(sys.argv)

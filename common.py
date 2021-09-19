@@ -4,6 +4,7 @@ Common utils
 
 import warnings
 warnings.filterwarnings("ignore")
+import tensorflow as tf
 import os, datetime
 import argparse
 import retro
@@ -101,3 +102,18 @@ def create_output_dir(args):
 def get_model_file_name(args):
     return args.env + '-' + args.alg + '-' + args.nn + '-' + str(args.num_timesteps)
 
+
+def print_model_info():
+    logger.log("========= Model Info =========")
+    total_params = 0
+    for v in tf.trainable_variables():
+        #print(v)
+        shape = v.get_shape()
+        count = 1
+        for dim in shape:
+            count *= dim.value
+            total_params += count
+    logger.log("Total trainable parameters:%d" % total_params)
+    logger.log("=========            =========")
+
+    return total_params
