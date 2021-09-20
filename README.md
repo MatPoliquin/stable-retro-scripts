@@ -1,6 +1,8 @@
-# Model vs Model
+# Retro Scripts
 
-Train and pit two models against each other on PvP retro games such as Mortal Kombat or WWF Wrestlemania: The Arcade Game
+* Train models on retro games
+* Pit two models against each other on PvP retro games such as Mortal Kombat or WWF Wrestlemania: The Arcade Game
+* Pygame based display to make videos
 
 ## Install dependencies
 
