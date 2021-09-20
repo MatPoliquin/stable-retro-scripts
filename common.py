@@ -71,7 +71,8 @@ def init_play_env(args):
 
     env = WarpFrame(env)
     env = FrameStack(env, 4)
-    env = StochasticFrameSkip(env, n=4, stickprob=-1.0)
+    if args.num_players == 1:
+        env = StochasticFrameSkip(env, n=4, stickprob=-1.0)
 
     return env
 

@@ -13,7 +13,7 @@ import numpy as np
 from stable_baselines import logger
 
 from common import init_env, init_model, init_play_env
-
+from display import PvPGameDisplay
 
 def parse_cmdline(argv):
     parser = argparse.ArgumentParser()
@@ -21,7 +21,7 @@ def parse_cmdline(argv):
     parser.add_argument('--p1_alg', type=str, default='ppo2')
     parser.add_argument('--p2_alg', type=str, default='ppo2')
     parser.add_argument('--nn', type=str, default='CnnPolicy')
-    parser.add_argument('--env', type=str, default='MortalKombatII-Genesis')
+    parser.add_argument('--env', type=str, default='WWFArcade-Genesis')
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='2')
     parser.add_argument('--num_env', type=int, default=1)
@@ -29,6 +29,9 @@ def parse_cmdline(argv):
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_p1_model', type=str, default='')
     parser.add_argument('--load_p2_model', type=str, default='')
+    parser.add_argument('--display_width', type=int, default='1440')
+    parser.add_argument('--display_height', type=int, default='810')
+    parser.add_argument('--deterministic', default=True, action='store_true')
 
     args = parser.parse_args(argv)
 
@@ -51,15 +54,24 @@ def main(argv):
     p2_model = init_model(None, args.load_p2_model, args.p2_alg, args, p2_env)
 
 
+    display = PvPGameDisplay(args, 0, 'CNN', play_env.unwrapped.buttons) 
     logger.log('========= Start Play Loop ==========')
 
     state = play_env.reset()
 
+    p1_actions = []
+    p2_actions = []
+    skip_frames = 0
     while True:
-        play_env.render()
+        #play_env.render(mode='human')
 
-        p1_actions = p1_model.predict(state)
-        p2_actions = p2_model.predict(state)
+        framebuffer = play_env.render(mode='rgb_array')
+        display.draw_frame(framebuffer, p1_model.action_probability(state), p2_model.action_probability(state))
+
+        if skip_frames == 0:
+            p1_actions = p1_model.predict(state)
+            p2_actions = p2_model.predict(state)
+
             
         actions2 = np.append(p1_actions[0], p2_actions[0])
         #actions2 = play_env.action_space.sample()
@@ -68,6 +80,10 @@ def main(argv):
 
         if done:
             state = play_env.reset()
+
+        skip_frames += 1
+        if skip_frames == 4:
+            skip_frames = 0
 
 
 if __name__ == '__main__':
