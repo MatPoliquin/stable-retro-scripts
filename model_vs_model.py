@@ -61,7 +61,7 @@ def main(argv):
         p1_actions = p1_model.predict(state)
         p2_actions = p2_model.predict(state)
             
-        #actions2 = np.append(p1_actions[0], p2_actions[0])
+        actions2 = np.append(p1_actions[0], p2_actions[0])
         #actions2 = play_env.action_space.sample()
         #print(actions2)   
         state, reward, done, info = play_env.step(actions2)
