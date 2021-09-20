@@ -14,16 +14,17 @@ import pygame.freetype
 
 FB_WIDTH = 1920
 FB_HEIGHT = 1080
-GAME_WIDTH = 320 * 4
-GAME_HEIGHT = 240 * 4
-BASIC_INFO_X = 0
-BASIC_INFO_Y = GAME_HEIGHT + 10
-AP_X = GAME_WIDTH + 100
-AP_Y = 200
+
 
 # GameDisplay
 class GameDisplay:
     def __init__(self, args, total_params, nn_type, button_names):
+        self.GAME_WIDTH = 320 * 4
+        self.GAME_HEIGHT = 240 * 4
+        self.BASIC_INFO_X = 0
+        self.BASIC_INFO_Y = self.GAME_HEIGHT + 10
+        self.AP_X = self.GAME_WIDTH + 100
+        self.AP_Y = 200
         # Init Window
         pygame.init()
         self.screen = pygame.display.set_mode((args.display_width, args.display_height))
@@ -48,20 +49,20 @@ class GameDisplay:
 
     def draw_action_probabilties(self, action_probabilities):
 
-        y = AP_Y + 10
+        y = self.AP_Y + 10
         for button in self.button_names:
-            self.draw_string(self.font, button, (AP_X, y), (255, 255, 255))
+            self.draw_string(self.font, button, (self.AP_X, y), (255, 255, 255))
             y += 30
 
-        y = AP_Y + 10
+        y = self.AP_Y + 10
         for prob in action_probabilities:
-            self.draw_string(self.font, ('%f' % prob), (AP_X + 150, y), (255, 255, 255))
+            self.draw_string(self.font, ('%f' % prob), (self.AP_X + 150, y), (255, 255, 255))
             y += 30
 
     def draw_basic_info(self):
-        bottom_y = self.draw_string(self.font, ('ENV: %s' % self.args.env), (BASIC_INFO_X, BASIC_INFO_Y), (255, 255, 255))
-        bottom_y = self.draw_string(self.font, ('MODEL: %s' % self.nn_type), (BASIC_INFO_X, bottom_y + 5), (255, 255, 255))
-        bottom_y = self.draw_string(self.font, ('NUM PARAMS:%d' % self.num_params), (BASIC_INFO_X, bottom_y + 5), (255, 255, 255))
+        bottom_y = self.draw_string(self.font, ('ENV: %s' % self.args.env), (self.BASIC_INFO_X, self.BASIC_INFO_Y), (255, 255, 255))
+        bottom_y = self.draw_string(self.font, ('MODEL: %s' % self.nn_type), (self.BASIC_INFO_X, bottom_y + 5), (255, 255, 255))
+        bottom_y = self.draw_string(self.font, ('NUM PARAMS:%d' % self.num_params), (self.BASIC_INFO_X, bottom_y + 5), (255, 255, 255))
 
     def draw_frame(self, frame_img, action_probabilities, input_state):
         self.main_surf.fill((0, 0, 0))
@@ -75,7 +76,7 @@ class GameDisplay:
         #TODO draw input state
         #input_state_surf = pygame.surfarray.make_surface(input_state)
 
-        self.main_surf.blit(pygame.transform.scale(surf,(GAME_WIDTH, GAME_HEIGHT)), (0, 0))
+        self.main_surf.blit(pygame.transform.scale(surf,(self.GAME_WIDTH, self.GAME_HEIGHT)), (0, 0))
 
         self.draw_contact_info()
         self.draw_basic_info()

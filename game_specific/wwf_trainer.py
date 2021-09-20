@@ -22,6 +22,9 @@ from common import init_env, init_model, init_play_env, get_model_file_name, cre
 from model_trainer import ModelTrainer
 from model_vs_game import ModelVsGame
 
+
+NUM_TEST_MATCHS = 1
+
 def parse_cmdline(argv):
     parser = argparse.ArgumentParser()
 
@@ -31,7 +34,7 @@ def parse_cmdline(argv):
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='1')
     parser.add_argument('--num_env', type=int, default=24)
-    parser.add_argument('--num_timesteps', type=int, default=10000)
+    parser.add_argument('--num_timesteps', type=int, default=100000)
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_p1_model', type=str, default='')
     parser.add_argument('--alg_verbose', default=True, action='store_false')
@@ -106,7 +109,7 @@ def main(argv):
         p1_model_path = trainer.train()
 
         # Test model performance
-        num_test_matchs = 10
+        num_test_matchs = NUM_TEST_MATCHS
         new_args = args
         new_args.load_p1_model = p1_model_path
         logger.log('    TESTING MODEL ON %d matchs...' % num_test_matchs)
@@ -119,11 +122,11 @@ def main(argv):
     # Test performance of model on each state
     logger.log('====== TESTING MODEL ======')
     for state in game_states:
-        num_test_matchs = 10
+        num_test_matchs = NUM_TEST_MATCHS
         new_args = args
         won_matchs, total_reward = test_model(new_args, num_test_matchs)
         percentage = won_matchs / num_test_matchs
-        logger.log('STATE:%s...WON MATCHS:%d/%d TOTAL REWARDS:%d' % (state, won_matchs, num_test_matchs, total_reward))
+        logger.log('STATE:%s... WON MATCHS:%d/%d TOTAL REWARDS:%d' % (state, won_matchs, num_test_matchs, total_reward))
 
     if args.play:
         args.state = 'VeryEasy_Yokozuna-01'
