@@ -71,7 +71,7 @@ def init_play_env(args):
 
     env = WarpFrame(env)
     env = FrameStack(env, 4)
-    env = StochasticFrameSkip(env, n=4, stickprob=0.25)
+    env = StochasticFrameSkip(env, n=4, stickprob=-1.0)
 
     return env
 
@@ -103,11 +103,10 @@ def get_model_file_name(args):
     return args.env + '-' + args.alg + '-' + args.nn + '-' + str(args.num_timesteps)
 
 
-def print_model_info():
-    logger.log("========= Model Info =========")
+def print_model_info(model):
     total_params = 0
-    for v in tf.trainable_variables():
-        #print(v)
+    for v in model.get_parameter_list():
+        logger.log(v)
         shape = v.get_shape()
         count = 1
         for dim in shape:
@@ -115,5 +114,16 @@ def print_model_info():
             total_params += count
     logger.log("Total trainable parameters:%d" % total_params)
     logger.log("=========            =========")
+
+    return total_params
+
+def get_num_parameters(model):
+    total_params = 0
+    for v in model.get_parameter_list():
+        shape = v.get_shape()
+        count = 1
+        for dim in shape:
+            count *= dim.value
+            total_params += count
 
     return total_params

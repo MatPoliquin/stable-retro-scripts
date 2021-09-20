@@ -31,7 +31,7 @@ def parse_cmdline(argv):
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='1')
     parser.add_argument('--num_env', type=int, default=24)
-    parser.add_argument('--num_timesteps', type=int, default=1000000)
+    parser.add_argument('--num_timesteps', type=int, default=10000)
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_p1_model', type=str, default='')
     parser.add_argument('--alg_verbose', default=True, action='store_false')
@@ -39,6 +39,7 @@ def parse_cmdline(argv):
     parser.add_argument('--display_width', type=int, default='1440')
     parser.add_argument('--display_height', type=int, default='810')
     parser.add_argument('--play', default=False, action='store_true')
+    parser.add_argument('--deterministic', default=True, action='store_true')
 
     args = parser.parse_args(argv)
 
@@ -87,16 +88,15 @@ def main(argv):
     
     args = parse_cmdline(argv[1:])
     
-    # Loop through all states
-
-    logger.log('WWF trainer')
+    logger.log('================ WWF trainer ================')
     logger.log('These states will be trained on:')
     logger.log(game_states)
 
-
     # turn off verbose
     args.alg_verbose = False
-
+    
+    
+    # Train model on each state
     p1_model_path = args.load_p1_model
     for state in game_states:
         logger.log('TRAINING ON STATE:%s - %d timesteps' % (state, args.num_timesteps))
@@ -113,9 +113,18 @@ def main(argv):
         won_matchs, total_reward = test_model(new_args, num_test_matchs)
         percentage = won_matchs / num_test_matchs
         logger.log('    WON MATCHS:%d/%d - ratio:%f' % (won_matchs, num_test_matchs, percentage))
-        logger.log('    TOTAL REWARDS:%d\n' % won_matchs)
+        logger.log('    TOTAL REWARDS:%d\n' %  total_reward)
 
     
+    # Test performance of model on each state
+    logger.log('====== TESTING MODEL ======')
+    for state in game_states:
+        num_test_matchs = 10
+        new_args = args
+        won_matchs, total_reward = test_model(new_args, num_test_matchs)
+        percentage = won_matchs / num_test_matchs
+        logger.log('STATE:%s...WON MATCHS:%d/%d TOTAL REWARDS:%d' % (state, won_matchs, num_test_matchs, total_reward))
+
     if args.play:
         args.state = 'VeryEasy_Yokozuna-01'
         args.load_p1_model = p1_model_path
@@ -124,10 +133,6 @@ def main(argv):
         player = ModelVsGame(args)
 
         player.play(continuous=True, need_reset=False)
-        
-        #trainer = ModelTrainer(args)
-        #trainer.train()
-        #trainer.play(continuous=False)
 
 
 if __name__ == '__main__':

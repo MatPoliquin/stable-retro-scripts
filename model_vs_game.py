@@ -13,7 +13,7 @@ import numpy as np
 import pygame
 from stable_baselines import logger
 
-from common import init_env, init_model, init_play_env, get_model_file_name, print_model_info
+from common import init_env, init_model, init_play_env, get_model_file_name, print_model_info, get_num_parameters
 from display import GameDisplay
 
 def parse_cmdline(argv):
@@ -29,6 +29,7 @@ def parse_cmdline(argv):
     parser.add_argument('--load_p1_model', type=str, default='')
     parser.add_argument('--display_width', type=int, default='1440')
     parser.add_argument('--display_height', type=int, default='810')
+    parser.add_argument('--deterministic', default=True, action='store_true')
 
     args = parser.parse_args(argv)
 
@@ -43,23 +44,23 @@ class ModelVsGame:
         self.p1_env = init_env(None, 1, args.state, 1, args)
         self.p1_model = init_model(None, args.load_p1_model, args.alg, args, self.p1_env)
         self.need_display = need_display
+        self.args = args
 
         if need_display:
-            total_params = print_model_info()
-            self.display = GameDisplay(args, total_params) 
+            total_params = get_num_parameters(self.p1_model)
+            
+            self.display = GameDisplay(args, total_params, 'CNN', self.play_env.unwrapped.buttons) 
 
     def play(self, continuous=True, need_reset=True):
-        #logger.log('========= Start of Game Loop ==========')
-        #logger.log('Press ESC or Q to quit')
         state = self.play_env.reset()
+        print()
         total_rewards = 0
         while True:
             if self.need_display:
                 framebuffer = self.play_env.render(mode='rgb_array')
-                self.display.draw_frame(framebuffer)
+                self.display.draw_frame(framebuffer, self.p1_model.action_probability(state), np.array(state))
 
-            #p1_actions = self.p1_model.predict(state, deterministic=True)
-            p1_actions = self.p1_model.predict(state, deterministic=False)
+            p1_actions = self.p1_model.predict(state, deterministic=self.args.deterministic)
 
             #print(p1_actions[0])
             #print(p1_model.action_probability(state))
@@ -83,12 +84,13 @@ class ModelVsGame:
 
 
 def main(argv):
-
     logger.log('========= Init =============')
     args = parse_cmdline(argv[1:])
 
     player = ModelVsGame(args)
 
+    logger.log('========= Start of Game Loop ==========')
+    logger.log('Press ESC or Q to quit')
     player.play(need_reset=False)
 
 if __name__ == '__main__':
