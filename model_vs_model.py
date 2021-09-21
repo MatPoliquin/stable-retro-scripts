@@ -12,7 +12,7 @@ import logging
 import numpy as np
 from stable_baselines import logger
 
-from common import init_env, init_model, init_play_env
+from common import init_env, init_model, init_play_env, get_num_parameters
 from display import PvPGameDisplay
 
 def parse_cmdline(argv):
@@ -20,7 +20,9 @@ def parse_cmdline(argv):
 
     parser.add_argument('--p1_alg', type=str, default='ppo2')
     parser.add_argument('--p2_alg', type=str, default='ppo2')
-    parser.add_argument('--nn', type=str, default='CnnPolicy')
+    #parser.add_argument('--nn', type=str, default='CnnPolicy')
+    parser.add_argument('--model1_desc', type=str, default='CNN')
+    parser.add_argument('--model2_desc', type=str, default='CNN')
     parser.add_argument('--env', type=str, default='WWFArcade-Genesis')
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='2')
@@ -53,8 +55,9 @@ def main(argv):
     p1_model = init_model(None, args.load_p1_model, args.p1_alg, args, p1_env)
     p2_model = init_model(None, args.load_p2_model, args.p2_alg, args, p2_env)
 
-
-    display = PvPGameDisplay(args, 0, 'CNN', play_env.unwrapped.buttons) 
+    p1_params = get_num_parameters(p1_model)
+    p2_params = get_num_parameters(p2_model)
+    display = PvPGameDisplay(args, args.model1_desc, args.model2_desc, p1_params, p2_params, play_env.unwrapped.buttons) 
     logger.log('========= Start Play Loop ==========')
 
     state = play_env.reset()

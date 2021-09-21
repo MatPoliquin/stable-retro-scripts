@@ -16,23 +16,39 @@ FB_WIDTH = 1920
 FB_HEIGHT = 1080
 
 class PvPGameDisplay:
-    def __init__(self, args, total_params, nn_type, button_names):
+    def __init__(self, args, model1_desc, model2_desc, model1_params, model2_params, button_names):
         self.GAME_WIDTH = 320 * 4
         self.GAME_HEIGHT = 240 * 4
         self.BASIC_INFO_X = (FB_WIDTH >> 1) - 50
         self.BASIC_INFO_Y = self.GAME_HEIGHT + 10
         self.AP_X = self.GAME_WIDTH + 100
         self.AP_Y = 200
+        self.MODELDESC1_X = (FB_WIDTH - self.GAME_WIDTH) >> 1
+        self.MODELDESC1_Y = FB_HEIGHT - 20
+        self.NUM_PARAMS1_X = self.MODELDESC1_X + 200
+        self.NUM_PARAMS1_Y = FB_HEIGHT - 20
+        self.MODELDESC2_X = FB_WIDTH - ((FB_WIDTH - self.GAME_WIDTH) >> 1) - 50
+        self.MODELDESC2_Y = FB_HEIGHT - 20
+        self.NUM_PARAMS2_X = self.MODELDESC2_X - 350
+        self.NUM_PARAMS2_Y = FB_HEIGHT - 20
+        self.VS_X = (FB_WIDTH >> 1) - 50
+        self.VS_Y = FB_HEIGHT - 100
+
         # Init Window
         pygame.init()
         self.screen = pygame.display.set_mode((args.display_width, args.display_height))
         self.main_surf = pygame.Surface((FB_WIDTH, FB_HEIGHT))
         self.main_surf.set_colorkey((0,0,0))
         self.font = pygame.freetype.SysFont('symbol', 30)
+        self.info_font = pygame.freetype.SysFont('symbol', 20)
+        self.info_font_big = pygame.freetype.SysFont('symbol', 50)
+        self.vs_font = pygame.freetype.SysFont('symbol', 80)
         self.args = args
-        self.num_params = total_params
-        self.nn_type = nn_type
         self.button_names = button_names
+        self.model1_desc = model1_desc
+        self.model2_desc = model2_desc
+        self.model1_params = model1_params
+        self.model2_params = model2_params
 
     def draw_string(self, font, str, pos, color):
         text_rect = font.get_rect(str)
@@ -58,9 +74,24 @@ class PvPGameDisplay:
             y += 30
 
     def draw_basic_info(self):
-        bottom_y = self.draw_string(self.font, ('ENV: %s' % self.args.env), (self.BASIC_INFO_X, self.BASIC_INFO_Y), (255, 255, 255))
-        #bottom_y = self.draw_string(self.font, ('MODEL: %s' % self.nn_type), (self.BASIC_INFO_X, bottom_y + 5), (255, 255, 255))
-        #bottom_y = self.draw_string(self.font, ('NUM PARAMS:%d' % self.num_params), (self.BASIC_INFO_X, bottom_y + 5), (255, 255, 255))
+        bottom_y = self.draw_string(self.vs_font, 'VS', (self.VS_X, self.VS_Y), (0, 255, 0))
+        bottom_y = self.draw_string(self.font, self.args.env, (self.VS_X - 100, FB_HEIGHT - 30), (255, 255, 255))
+
+        # Model 1
+        self.draw_string(self.info_font, 'MODEL', (self.MODELDESC1_X, self.MODELDESC1_Y), (0, 255, 0))
+        self.draw_string(self.info_font, 'NUM PARAMETERS', (self.NUM_PARAMS1_X, self.NUM_PARAMS1_Y), (0, 255, 0))
+
+        self.draw_string(self.info_font_big, self.model1_desc, (self.MODELDESC1_X, self.MODELDESC1_Y - 60), (255, 255, 255))
+        self.draw_string(self.info_font_big, ('%d' % self.model1_params), (self.NUM_PARAMS1_X, self.NUM_PARAMS1_Y - 60), (255, 255, 255))
+
+        # Model 2
+        self.draw_string(self.info_font, 'MODEL', (self.MODELDESC2_X, self.MODELDESC2_Y), (0, 255, 0))
+        self.draw_string(self.info_font, 'NUM PARAMETERS', (self.NUM_PARAMS2_X, self.NUM_PARAMS2_Y), (0, 255, 0))
+
+        self.draw_string(self.info_font_big, self.model2_desc, (self.MODELDESC2_X, self.MODELDESC2_Y - 60), (255, 255, 255))
+        self.draw_string(self.info_font_big, ('%d' % self.model2_params), (self.NUM_PARAMS2_X, self.NUM_PARAMS2_Y - 60), (255, 255, 255))
+
+       
 
     def draw_frame(self, frame_img, p1_action_probabilities, p2_action_probabilities):
         self.main_surf.fill((0, 0, 0))
@@ -108,6 +139,7 @@ class GameDisplay:
         self.NUM_PARAMS_Y = FB_HEIGHT - 20
         self.AP_X = self.GAME_WIDTH + 100
         self.AP_Y = 200
+
         # Init Window
         pygame.init()
         self.screen = pygame.display.set_mode((args.display_width, args.display_height))
