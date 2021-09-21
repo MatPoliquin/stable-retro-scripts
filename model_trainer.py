@@ -56,7 +56,7 @@ class ModelTrainer:
         self.model_savepath = os.path.join(self.output_fullpath, model_savefile_name)
 
         self.env = init_env(self.output_fullpath, args.num_env, args.state, 1, args)
-        self.p1_model = init_model(None, args.load_p1_model, args.alg, args, self.env)
+        self.p1_model = init_model(self.output_fullpath, args.load_p1_model, args.alg, args, self.env)
       
         if self.args.alg_verbose:
             logger.log('OUTPUT PATH:   %s' % self.output_fullpath)
@@ -77,7 +77,7 @@ class ModelTrainer:
 
         self.p1_model.save(self.model_savepath )
         if self.args.alg_verbose:
-            logger.log('Mode saved too:%s' % self.model_savepath)
+            logger.log('Model saved to:%s' % self.model_savepath)
 
         return self.model_savepath
 
