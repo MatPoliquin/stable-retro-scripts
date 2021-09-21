@@ -30,6 +30,7 @@ def parse_cmdline(argv):
 
     parser.add_argument('--alg', type=str, default='ppo2')
     parser.add_argument('--nn', type=str, default='CnnPolicy')
+    parser.add_argument('--model_desc', type=str, default='CNN')
     parser.add_argument('--env', type=str, default='WWFArcade-Genesis')
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='1')
@@ -41,8 +42,9 @@ def parse_cmdline(argv):
     parser.add_argument('--info_verbose', default=True, action='store_false')
     parser.add_argument('--display_width', type=int, default='1440')
     parser.add_argument('--display_height', type=int, default='810')
-    parser.add_argument('--play', default=False, action='store_true')
     parser.add_argument('--deterministic', default=True, action='store_true')
+    parser.add_argument('--test_only', default=False, action='store_true')
+    parser.add_argument('--play', default=False, action='store_true')
 
     args = parser.parse_args(argv)
 
@@ -98,25 +100,26 @@ def main(argv):
     # turn off verbose
     args.alg_verbose = False
     
-    
-    # Train model on each state
     p1_model_path = args.load_p1_model
-    for state in game_states:
-        logger.log('TRAINING ON STATE:%s - %d timesteps' % (state, args.num_timesteps))
-        args.state = state
-        args.load_p1_model = p1_model_path
-        trainer = ModelTrainer(args)
-        p1_model_path = trainer.train()
 
-        # Test model performance
-        num_test_matchs = NUM_TEST_MATCHS
-        new_args = args
-        new_args.load_p1_model = p1_model_path
-        logger.log('    TESTING MODEL ON %d matchs...' % num_test_matchs)
-        won_matchs, total_reward = test_model(new_args, num_test_matchs)
-        percentage = won_matchs / num_test_matchs
-        logger.log('    WON MATCHS:%d/%d - ratio:%f' % (won_matchs, num_test_matchs, percentage))
-        logger.log('    TOTAL REWARDS:%d\n' %  total_reward)
+    # Train model on each state
+    if not args.test_only:    
+        for state in game_states:
+            logger.log('TRAINING ON STATE:%s - %d timesteps' % (state, args.num_timesteps))
+            args.state = state
+            args.load_p1_model = p1_model_path
+            trainer = ModelTrainer(args)
+            p1_model_path = trainer.train()
+
+            # Test model performance
+            num_test_matchs = NUM_TEST_MATCHS
+            new_args = args
+            new_args.load_p1_model = p1_model_path
+            logger.log('    TESTING MODEL ON %d matchs...' % num_test_matchs)
+            won_matchs, total_reward = test_model(new_args, num_test_matchs)
+            percentage = won_matchs / num_test_matchs
+            logger.log('    WON MATCHS:%d/%d - ratio:%f' % (won_matchs, num_test_matchs, percentage))
+            logger.log('    TOTAL REWARDS:%d\n' %  total_reward)
 
     
     # Test performance of model on each state
