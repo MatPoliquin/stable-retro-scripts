@@ -18,7 +18,6 @@ from stable_baselines import logger
 
 sys.path.append('.')
 
-from common import init_env, init_model, init_play_env, get_model_file_name, create_output_dir
 from model_trainer import ModelTrainer
 from model_vs_game import ModelVsGame
 
@@ -67,6 +66,17 @@ game_states = [
     'VeryEasy_Yokozuna-06',
     'VeryEasy_Yokozuna-07'
 ]
+
+game_states_veryhard = [
+    'VeryHard_Yokozuna-01',
+    'VeryHard_Yokozuna-02',
+    'VeryHard_Yokozuna-03',
+    'VeryHard_Yokozuna-04',
+    'VeryHard_Yokozuna-05',
+    'VeryHard_Yokozuna-06',
+    'VeryHard_Yokozuna-07'
+]
+
 
 #game_states = [
 #    'VeryEasy_Yokozuna-01'
