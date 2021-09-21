@@ -20,6 +20,7 @@ def parse_cmdline(argv):
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--alg', type=str, default='ppo2')
+    parser.add_argument('--model_desc', type=str, default='CNN')
     parser.add_argument('--env', type=str, default='WWFArcade-Genesis')
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='1')
@@ -49,7 +50,7 @@ class ModelVsGame:
         if need_display:
             total_params = get_num_parameters(self.p1_model)
             
-            self.display = GameDisplay(args, total_params, 'CNN', self.play_env.unwrapped.buttons) 
+            self.display = GameDisplay(args, total_params, args.model_desc, self.play_env.unwrapped.buttons) 
 
     def play(self, continuous=True, need_reset=True):
         state = self.play_env.reset()

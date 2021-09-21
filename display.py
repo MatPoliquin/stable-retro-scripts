@@ -100,6 +100,12 @@ class GameDisplay:
         self.GAME_HEIGHT = 240 * 4
         self.BASIC_INFO_X = 0
         self.BASIC_INFO_Y = self.GAME_HEIGHT + 10
+        self.ENV_X = 100
+        self.ENV_Y = FB_HEIGHT - 20
+        self.MODELDESC_X = 600
+        self.MODELDESC_Y = FB_HEIGHT - 20
+        self.NUM_PARAMS_X = 1100
+        self.NUM_PARAMS_Y = FB_HEIGHT - 20
         self.AP_X = self.GAME_WIDTH + 100
         self.AP_Y = 200
         # Init Window
@@ -108,6 +114,8 @@ class GameDisplay:
         self.main_surf = pygame.Surface((FB_WIDTH, FB_HEIGHT))
         self.main_surf.set_colorkey((0,0,0))
         self.font = pygame.freetype.SysFont('symbol', 30)
+        self.info_font = pygame.freetype.SysFont('symbol', 20)
+        self.info_font_big = pygame.freetype.SysFont('symbol', 50)
         self.args = args
         self.num_params = total_params
         self.nn_type = nn_type
@@ -137,9 +145,18 @@ class GameDisplay:
             y += 30
 
     def draw_basic_info(self):
-        bottom_y = self.draw_string(self.font, ('ENV: %s' % self.args.env), (self.BASIC_INFO_X, self.BASIC_INFO_Y), (255, 255, 255))
-        bottom_y = self.draw_string(self.font, ('MODEL: %s' % self.nn_type), (self.BASIC_INFO_X, bottom_y + 5), (255, 255, 255))
-        bottom_y = self.draw_string(self.font, ('NUM PARAMS:%d' % self.num_params), (self.BASIC_INFO_X, bottom_y + 5), (255, 255, 255))
+        #bottom_y = self.draw_string(self.info_font, ('ENV: %s' % self.args.env), (self.BASIC_INFO_X, self.BASIC_INFO_Y), (255, 255, 255))
+        #bottom_y = self.draw_string(self.info_font, ('MODEL: %s' % self.nn_type), (self.BASIC_INFO_X, bottom_y + 5), (255, 255, 255))
+        #bottom_y = self.draw_string(self.info_font, ('NUM PARAMS:%d' % self.num_params), (self.BASIC_INFO_X, bottom_y + 5), (255, 255, 255))
+
+
+        self.draw_string(self.info_font, 'ENV', (self.ENV_X, self.ENV_Y), (0, 255, 0))
+        self.draw_string(self.info_font, 'MODEL', (self.MODELDESC_X, self.MODELDESC_Y), (0, 255, 0))
+        self.draw_string(self.info_font, 'NUM PARAMETERS', (self.NUM_PARAMS_X, self.NUM_PARAMS_Y), (0, 255, 0))
+
+        self.draw_string(self.font, self.args.env, (self.ENV_X - 100, self.ENV_Y - 70), (255, 255, 255))
+        self.draw_string(self.info_font_big, self.nn_type, (self.MODELDESC_X, self.MODELDESC_Y - 70), (255, 255, 255))
+        self.draw_string(self.info_font_big, ('%d' % self.num_params), (self.NUM_PARAMS_X, self.NUM_PARAMS_Y - 70), (255, 255, 255))
 
     def draw_frame(self, frame_img, action_probabilities, input_state):
         self.main_surf.fill((0, 0, 0))
