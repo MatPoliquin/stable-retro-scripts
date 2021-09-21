@@ -47,7 +47,7 @@ python3 model_trainer.py --env=WWFArcade-Genesis --state=VeryHard_YokozunaVsShaw
 
 Train Shawn Micheals Model:
 ```
-python3 model_trainer.py --env=WWFArcade-Genesis --state=VeryHard_ShawnMichealsVsBrettHart.state --num_timesteps=5000000 --play
+python3 model_trainer.py --env=WWFArcade-Genesis --state=VeryHard_ShawnMichealsVsYokozuna --num_timesteps=5000000 --play
 ```
 
 The models (zip files) should reside in the output directory (by default in the /home directory)
