@@ -82,7 +82,7 @@ def init_model(output_path, player_model, player_alg, args, env):
         if player_model == '':
             model = PPO2(policy=args.nn, env=env, verbose=args.alg_verbose, tensorboard_log=output_path)
         else:
-            model = PPO2.load(os.path.expanduser(player_model), env=env, policy=CnnPolicy)
+            model = PPO2.load(os.path.expanduser(player_model), env=env)
     elif player_alg == 'a2c':
         if player_model == '':
             model = A2C(policy=args.nn, env=env, verbose=1, tensorboard_log=output_path)

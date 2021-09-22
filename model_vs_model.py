@@ -2,14 +2,12 @@
 Pit two models together on a pvp retro env
 """
 
-import os
-import sys
 import retro
-import datetime
-import joblib
+import sys
 import argparse
 import logging
 import numpy as np
+import pygame
 from stable_baselines import logger
 
 from common import init_env, init_model, init_play_env, get_num_parameters
@@ -22,7 +20,7 @@ def parse_cmdline(argv):
     parser.add_argument('--p2_alg', type=str, default='ppo2')
     #parser.add_argument('--nn', type=str, default='CnnPolicy')
     parser.add_argument('--model1_desc', type=str, default='CNN')
-    parser.add_argument('--model2_desc', type=str, default='CNN')
+    parser.add_argument('--model2_desc', type=str, default='MLP')
     parser.add_argument('--env', type=str, default='WWFArcade-Genesis')
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='2')
@@ -88,6 +86,10 @@ def main(argv):
         if skip_frames == 4:
             skip_frames = 0
 
+        keystate = display.get_input()
+        if keystate[pygame.K_q] or keystate[pygame.K_ESCAPE]:
+            logger.log('Exiting...')
+            break
 
 if __name__ == '__main__':
     main(sys.argv)
