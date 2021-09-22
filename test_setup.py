@@ -36,7 +36,7 @@ def main():
 
         actions = model.predict(state)
 
-        state, reward, done, info = env.step(actions)
+        state, reward, done, info = env.step(actions[0])
 
         if done:
             env.reset()
