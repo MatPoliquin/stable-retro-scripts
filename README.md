@@ -4,6 +4,9 @@
 * Pit two models against each other on PvP retro games such as Mortal Kombat or WWF Wrestlemania: The Arcade Game
 * Pygame based display to make videos
 
+![wwf vs](./vs_screenshot.png)
+
+
 ## Install dependencies
 
 Requires:
