@@ -37,7 +37,7 @@ def main():
     env.close()
 
     # Create 2 player env
-    env_2p = retro.make(game=GAME_ENV, state=STATE_2P) # Creates the env that contains the genesis emulator
+    env_2p = retro.make(game=GAME_ENV, state=STATE_2P, players=2) # Creates the env that contains the genesis emulator
     apply_wrappers(env_2p)
 
     # Test the trained model
