@@ -18,6 +18,7 @@ from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv, VecFrame
 from stable_baselines.common.misc_util import set_global_seeds
 from stable_baselines.bench import Monitor
 from stable_baselines import logger
+from display import GameDisplayEnv, FullScreenDisplayEnv
 from baselines.common.retro_wrappers import StochasticFrameSkip
 
 
@@ -31,7 +32,8 @@ def make_retro(*, game, state=None, num_players, max_episode_steps=4500, **kwarg
     return env
 
 
-def init_env(output_path, num_env, state, num_players, args):
+
+def init_env(output_path, num_env, state, num_players, args, use_frameskip=True, use_display=False):
     #if wrapper_kwargs is None:
     wrapper_kwargs = {}
     #wrapper_kwargs['scenario'] = 'test'
@@ -40,6 +42,7 @@ def init_env(output_path, num_env, state, num_players, args):
     start_index = 0
     start_method=None
     allow_early_resets=True
+    
 
     def make_env(rank):
         def _thunk():
@@ -49,9 +52,15 @@ def init_env(output_path, num_env, state, num_players, args):
             #print(logger.get_dir())
             env = Monitor(env, output_path and os.path.join(output_path, str(rank)), allow_early_resets=allow_early_resets)
 
+
+            if use_display:
+                env = GameDisplayEnv(env, args, 17, 'CNN', None)
+            
+            if use_frameskip:
+                env = StochasticFrameSkip(env, n=4, stickprob=0.25)
+
             env = WarpFrame(env)
             env = ClipRewardEnv(env)
-            env = StochasticFrameSkip(env, n=4, stickprob=0.25)
 
             return env
         return _thunk
@@ -69,12 +78,18 @@ def init_env(output_path, num_env, state, num_players, args):
 def init_play_env(args):
     env = retro.make(game=args.env, state=args.state, use_restricted_actions=retro.Actions.FILTERED, players=args.num_players)
 
+    display_env = env = GameDisplayEnv(env, args, 0, args.model_desc, None)
+    #env = FullScreenDisplayEnv(env, args)
+    
+
+    if args.num_players == 1:
+        env = StochasticFrameSkip(env, n=4, stickprob=0.0)
+
     env = WarpFrame(env)
     env = FrameStack(env, 4)
-    if args.num_players == 1:
-        env = StochasticFrameSkip(env, n=4, stickprob=-1.0)
+    
 
-    return env
+    return env, display_env
 
 
 def init_model(output_path, player_model, player_alg, args, env):
