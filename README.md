@@ -9,6 +9,10 @@
 
 ## Install dependencies
 
+
+Video on how to setup on Ubuntu and Windows:
+https://youtu.be/LRgGSQGNZeE
+
 Requires:
 *   Tensorflow 1.X, 1.14 recommended
 *   stable-baselines 2.10 (fork of baselines)
