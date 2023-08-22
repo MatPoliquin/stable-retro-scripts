@@ -1,27 +1,28 @@
 """
-Play a pre-trained model on a retro env
+Play a pre-trained model on NHL 94
 """
 
 import os
 import sys
 import retro
 import datetime
-import joblib
 import argparse
 import logging
 import numpy as np
 import pygame
-from stable_baselines import logger
+from common import get_model_file_name, com_print, init_logger
+from models import print_model_info, get_num_parameters, get_model_probabilities
+from envs import init_env, init_play_env
 
-from common import init_env, init_model, init_play_env, get_model_file_name, print_model_info, get_num_parameters
-from display import GameDisplay
+import game_wrappers_mgr as games
 
 def parse_cmdline(argv):
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--alg', type=str, default='ppo2')
-    parser.add_argument('--model_desc', type=str, default='CNN')
-    parser.add_argument('--env', type=str, default='SuperMarioBros3-Nes')
+    parser.add_argument('--model1_desc', type=str, default='CNN')
+    parser.add_argument('--nn', type=str, default='CnnPolicy')
+    parser.add_argument('--env', type=str, default='NHL941on1-Genesis')
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='1')
     parser.add_argument('--num_env', type=int, default=1)
@@ -35,21 +36,22 @@ def parse_cmdline(argv):
 
     args = parser.parse_args(argv)
 
-    logger.log("=========== Params ===========")
-    logger.log(argv[1:])
-
     return args
 
 class ModelVsGame:
-    def __init__(self, args, need_display=True):
+    def __init__(self, args, logger, need_display=True):
 
         self.p1_env = init_env(None, 1, args.state, 1, args, True)
-        self.display_env, self.uw_display_env = init_play_env(args)
-        self.p1_model = init_model(None, args.load_p1_model, args.alg, args, self.p1_env)
+        self.display_env = init_play_env(args, 1)
+
+        self.ai_sys = games.wrappers.ai_sys(args, self.p1_env, logger)
+        #self.p1_model = init_model(None, args.load_p1_model, args.alg, args, self.p1_env)
         self.need_display = need_display
         self.args = args
 
-        self.uw_display_env.num_params = get_num_parameters(self.p1_model)
+        if self.ai_sys.p1_model is not None:
+            self.display_env.num_params = get_num_parameters(self.ai_sys.p1_model)
+            self.display_env.num_params = -1
 
     def play(self, continuous=True, need_reset=True):
         state = self.display_env.reset()
@@ -57,15 +59,19 @@ class ModelVsGame:
         total_rewards = 0
         skip_frames = 0
         p1_actions = []
+        info = None
 
         while True:
-            p1_actions = self.p1_model.predict(state, deterministic=self.args.deterministic)
-
-            self.uw_display_env.action_probabilities = self.p1_model.action_probability(state)
+            #p1_actions = self.p1_model.predict(state, deterministic=self.args.deterministic)
+            p1_actions = self.ai_sys.predict(state, info=info, deterministic=self.args.deterministic)
+            if self.ai_sys.p1_model is not None:
+                self.display_env.action_probabilities = get_model_probabilities(self.ai_sys.p1_model, state)[0]
+            else:
+                self.display_env.action_probabilities = []
 
             #print(self.p1_model.action_probability(state))
             
-            state, reward, done, info = self.display_env.step(p1_actions[0])
+            state, reward, done, info = self.display_env.step(p1_actions)
             total_rewards += reward
 
             if done:
@@ -78,13 +84,16 @@ class ModelVsGame:
 
 
 def main(argv):
-    logger.log('========= Init =============')
     args = parse_cmdline(argv[1:])
 
-    player = ModelVsGame(args)
+    logger = init_logger(args)
 
-    logger.log('========= Start of Game Loop ==========')
-    logger.log('Press ESC or Q to quit')
+    games.wrappers.init(args)
+
+    player = ModelVsGame(args, logger)
+
+    com_print('========= Start of Game Loop ==========')
+    com_print('Press ESC or Q to quit')
     player.play(need_reset=False)
 
 if __name__ == '__main__':

@@ -1,51 +1,49 @@
-# Retro Scripts
+# stable-retro scripts
+
+WORK IN PROGRESS
+
+Note: Migrated to pytorch and stable-baselines3. The old tensorflow + oringal stable-baselines is now in TF1 branch.
+There is still some display issues but everything should be functional
+
 
 * Train models on retro games
-* Pit two models against each other on PvP retro games such as Mortal Kombat or WWF Wrestlemania: The Arcade Game
-* Pygame based display to make videos
+* Pit two models against each other on PvP retro games such as NHL94, Mortal Kombat or WWF Wrestlemania: The Arcade Game
+* Play an improved AI opponent
 
+
+![screenshot 01](./screenshot01.png)
 ![wwf vs](./vs_screenshot.png)
 
+## Installation
 
-## Install dependencies
-
-
-Video on how to setup on Ubuntu and Windows:
-https://youtu.be/LRgGSQGNZeE
+Tested on Ubuntu 22.04 and Wimdows 11 WSL2 (Ubuntu 22.04 VM)
 
 Requires:
-*   Tensorflow 1.X, 1.14 recommended
-*   stable-baselines 2.10 (fork of baselines)
-*   stable-retro (fork of gym-retro)
+*   Pytorch 1.10 and up
+*   stable-baselines3 with gymnasium support
+*   stable-retro with gymnasium support (fork of gym-retro)
+
 
 ```
-sudo apt-get update
-sudo apt-get install cmake python3 python3-pip git zlib1g-dev libopenmpi-dev ffmpeg
-```
+sudo apt update
+sudo apt-get install python3 python3-pip git zlib1g-dev libopenmpi-dev ffmpeg pygame
 
-```
-pip3 install opencv-python anyrl gym joblib atari-py tensorflow-gpu==1.14 baselines stable-baselines pygame
+pip3 install git+https://github.com/Farama-Foundation/stable-retro.git
 
-git clone https://github.com/MatPoliquin/stable-retro.git
-cd stable-retro
-pip3 install -e .
+pip3 install "stable_baselines3[extra]"
 ```
 
 ## Install roms
-You need to provide your own roms
+You need to provide your own NHL 94 - Sega Genesis rom
 
 In your rom directory exec this command, it will import the roms into stable-retro
 ```
 python3 -m retro.import .
 ```
 
-If your game is not integrated you need to use OpenAI's integration tool to specify the reward function and other info useful for the algo:
+Currently there is two NHL 94 env in stable-retro: The original game and the '1 on 1' rom hack which as the name implies is for 1 on 1 matches instead of full teams
 
-[More details can be found here on how to import existing games or integrate new ones](https://www.videogames.ai/2019/01/29/Setup-OpenAI-baselines-retro.html)
-
-## Example Usage
-
-### Train your Models
+## Examples
 
 Train Yokozuna Model:
 ```
@@ -75,3 +73,12 @@ python3 wwf_trainer.py --play
 ```
 python3 model_vs_game.py --env=WWFArcade-Genesis --state=VeryHard_YokozunaVsShawnMicheals --load_p1_model=~/yokozuna.zip
 ```
+
+
+## Devlog
+
+For NHL94:
+https://youtube.com/playlist?list=PLmwlWbdWpZVtH6NXqWbrnWOf6SWv9nJBY
+
+NHL94 Discord (with a subgroup dedicated for AI):
+https://discord.gg/SDnKEXujDs

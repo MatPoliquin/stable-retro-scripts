@@ -1,5 +1,5 @@
 """
-Train a Model on a retro env
+Train a Model on NHL 94
 """
 
 import warnings
@@ -9,24 +9,26 @@ import os
 import sys
 import retro
 import datetime
-import joblib
 import argparse
 import logging
 import numpy as np
-from stable_baselines import logger
 
-from common import init_env, init_model, init_play_env, get_model_file_name, create_output_dir
+from common import get_model_file_name, com_print, init_logger, create_output_dir
+from models import init_model, print_model_info, get_num_parameters
+from envs import init_env, init_play_env
+
 
 def parse_cmdline(argv):
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--alg', type=str, default='ppo2')
     parser.add_argument('--nn', type=str, default='CnnPolicy')
-    parser.add_argument('--env', type=str, default='NHL94-Genesis')
+    parser.add_argument('--nnsize', type=int, default='256')
+    parser.add_argument('--env', type=str, default='NHL941on1-Genesis')
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='1')
     parser.add_argument('--num_env', type=int, default=24)
-    parser.add_argument('--num_timesteps', type=int, default=30000000)
+    parser.add_argument('--num_timesteps', type=int, default=6000000)
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_p1_model', type=str, default='')
     parser.add_argument('--display_width', type=int, default='1440')
@@ -38,57 +40,57 @@ def parse_cmdline(argv):
     print(argv)
     args = parser.parse_args(argv)
 
-    if args.info_verbose is False:
-        logger.set_level(logger.DISABLED)
-
-    logger.log("=========== Params ===========")
-    logger.log(argv[1:])
+    #if args.info_verbose is False:
+    #    logger.set_level(logger.DISABLED)
 
     return args
 
 class ModelTrainer:
-    def __init__(self, args):
+    def __init__(self, args, logger):
         self.args = args
 
-        if self.args.alg_verbose:
-            logger.log('========= Init =============')
+        #if self.args.alg_verbose:
+        #    logger.log('========= Init =============')
         
         self.output_fullpath = create_output_dir(args)
         model_savefile_name = get_model_file_name(args)
         self.model_savepath = os.path.join(self.output_fullpath, model_savefile_name)
 
         self.env = init_env(self.output_fullpath, args.num_env, args.state, 1, args)
-        self.p1_model = init_model(self.output_fullpath, args.load_p1_model, args.alg, args, self.env)
+        
+        self.p1_model = init_model(self.output_fullpath, args.load_p1_model, args.alg, args, self.env, logger)
       
-        if self.args.alg_verbose:
-            logger.log('OUTPUT PATH:   %s' % self.output_fullpath)
-            logger.log('ENV:           %s' % args.env)
-            logger.log('STATE:         %s' % args.state)
-            logger.log('NN:            %s' % args.nn)
-            logger.log('ALGO:          %s' % args.alg)
-            logger.log('NUM TIMESTEPS: %s' % args.num_timesteps)
-            logger.log('NUM ENV:       %s' % args.num_env)
-            logger.log('NUM PLAYERS:   %s' % args.num_players)
+        #if self.args.alg_verbose:
+        com_print('OUTPUT PATH:   %s' % self.output_fullpath)
+        com_print('ENV:           %s' % args.env)
+        com_print('STATE:         %s' % args.state)
+        com_print('NN:            %s' % args.nn)
+        com_print('ALGO:          %s' % args.alg)
+        com_print('NUM TIMESTEPS: %s' % args.num_timesteps)
+        com_print('NUM ENV:       %s' % args.num_env)
+        com_print('NUM PLAYERS:   %s' % args.num_players)
+
+        print(self.env.observation_space)
 
     def train(self):
-        if self.args.alg_verbose:
-            logger.log('========= Start Training ==========')
+        #if self.args.alg_verbose:
+        com_print('========= Start Training ==========')
         self.p1_model.learn(total_timesteps=self.args.num_timesteps)
-        if self.args.alg_verbose:
-            logger.log('========= End Training ==========')
+        #if self.args.alg_verbose:
+        com_print('========= End Training ==========')
 
         self.p1_model.save(self.model_savepath )
-        if self.args.alg_verbose:
-            logger.log('Model saved to:%s' % self.model_savepath)
+        #if self.args.alg_verbose:
+        com_print('Model saved to:%s' % self.model_savepath)
 
         return self.model_savepath
 
     def play(self, continuous=True):
-        if self.args.alg_verbose:
-            logger.log('========= Start Play Loop ==========')
+        #if self.args.alg_verbose:
+        com_print('========= Start Play Loop ==========')
         state = self.env.reset()
         while True:
-            self.env.render()
+            self.env.render(mode='human')
 
             p1_actions = self.p1_model.predict(state)
             
@@ -102,8 +104,12 @@ class ModelTrainer:
 def main(argv):
     
     args = parse_cmdline(argv[1:])
+
+    logger = init_logger(args)
+    com_print("=========== Params ===========")
+    com_print(args)
     
-    trainer = ModelTrainer(args)
+    trainer = ModelTrainer(args, logger)
 
     trainer.train()
     
