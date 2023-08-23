@@ -1,14 +1,11 @@
 # stable-retro scripts
 
-WORK IN PROGRESS
-
 Note: Migrated to pytorch and stable-baselines3. The old tensorflow + oringal stable-baselines is now in TF1 branch.
 There is still some display issues but everything should be functional
 
-
 * Train models on retro games
 * Pit two models against each other on PvP retro games such as NHL94, Mortal Kombat or WWF Wrestlemania: The Arcade Game
-* Play an improved AI opponent
+* Play against an improved AI opponent
 
 
 ![screenshot 01](./screenshot01.png)
@@ -22,7 +19,6 @@ Requires:
 *   Pytorch 1.10 and up
 *   stable-baselines3 with gymnasium support
 *   stable-retro with gymnasium support (fork of gym-retro)
-
 
 ```
 sudo apt update
