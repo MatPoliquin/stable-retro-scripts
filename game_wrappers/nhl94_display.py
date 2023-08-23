@@ -56,8 +56,6 @@ class NHL94PvPGameDisplayEnv(gym.Wrapper):
         self.p1_action_probabilities = [0] * 12
         self.p2_action_probabilities = [0] * 12
 
-        print('================== INIT==================')
-
     def draw_string(self, font, str, pos, color):
         text_rect = font.get_rect(str)
         text_rect.topleft = pos

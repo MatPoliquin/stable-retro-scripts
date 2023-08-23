@@ -22,16 +22,12 @@ class GameWrapperManager(object):
             self.pvp_display_env = NHL94PvPGameDisplayEnv
             self.sp_display_env = GameDisplayEnv
             self.ai_sys = NHL94AISystem
-            print("========= NHL941on1-Genesis")
-            print(self.obs_env)
         elif args.env == 'Pong-Atari2600':
             
             self.obs_env = PongObservationEnv
             self.pvp_display_env = PvPGameDisplayEnv
             self.sp_display_env = GameDisplayEnv
             self.ai_sys = AISys
-            print("=========== Pong-Atari2600")
-            print(self.obs_env)
         else:
             self.obs_env = None
             self.pvp_display_env = PvPGameDisplayEnv
