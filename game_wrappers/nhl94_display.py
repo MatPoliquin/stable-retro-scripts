@@ -104,9 +104,6 @@ class NHL94PvPGameDisplayEnv(gym.Wrapper):
         self.main_surf.fill((0, 0, 0))
         emu_screen = np.transpose(frame_img, (1,0,2))
 
-        #print(input_state)
-        #print(emu_screen.shape)
-        #surf.fill((0,0,0))
         surf = pygame.surfarray.make_surface(emu_screen)
 
         #TODO draw input state
@@ -119,11 +116,8 @@ class NHL94PvPGameDisplayEnv(gym.Wrapper):
         self.draw_basic_info()
         self.draw_action_probabilties(0, 100, self.p1_action_probabilities)
         self.draw_action_probabilties(self.GAME_WIDTH + game_x, 100, self.p2_action_probabilities)
-        #print(main_surf.get_colorkey())
         self.main_surf.set_colorkey(None)
-        #main_surf.convert()
         self.screen.blit(pygame.transform.smoothscale(self.main_surf,(self.args.display_width,self.args.display_height)), (0, 0))
-        #screen.blit(surf, (0, 0))
  
         pygame.display.flip()
     
@@ -141,12 +135,7 @@ class NHL94PvPGameDisplayEnv(gym.Wrapper):
 
         framebuffer = self.render()
 
-        #print(framebuffer)
-
-        #print('TEST')
-        #self.action_probabilities = ac
         self.draw_frame(framebuffer)
-
 
         self.get_input()
 
@@ -188,7 +177,6 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.STATS_X = self.GAME_WIDTH + 10
         self.STATS_Y = 600
 
-
         # Init Window
         pygame.init()
         self.screen = pygame.display.set_mode((args.display_width, args.display_height))
@@ -205,24 +193,16 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.action_probabilities = None
         self.player_actions = [0] * 12
 
-
         self.best_dist = 0
 
-
     def reset(self, **kwargs):
-        #print(**kwargs)
         return self.env.reset(**kwargs)
-        #return self.env.reset()
 
     def step(self, ac):
         ob, rew, done, info = self.env.step(ac)
 
         framebuffer = self.render()
 
-        #print(framebuffer)
-
-        #print('TEST')
-        #self.action_probabilities = ac
         self.draw_frame(framebuffer, None, ob, info)
        
         return ob, rew, done, info
@@ -245,7 +225,6 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.draw_string(self.info_font, 'OUTPUT', (self.AP_TITLE_X, self.AP_TITLE_Y), (0, 255, 0))
         self.draw_string(self.info_font, 'Action          Confidence', (self.AP_TITLE_X, self.AP_TITLE_Y + 20), (0, 255, 255))
 
-
         if action_probabilities is None:
             return
 
@@ -260,11 +239,6 @@ class NHL94GameDisplayEnv(gym.Wrapper):
             y += 30
 
     def draw_basic_info(self):
-        #bottom_y = self.draw_string(self.info_font, ('ENV: %s' % self.args.env), (self.BASIC_INFO_X, self.BASIC_INFO_Y), (255, 255, 255))
-        #bottom_y = self.draw_string(self.info_font, ('MODEL: %s' % self.nn_type), (self.BASIC_INFO_X, bottom_y + 5), (255, 255, 255))
-        #bottom_y = self.draw_string(self.info_font, ('NUM PARAMS:%d' % self.num_params), (self.BASIC_INFO_X, bottom_y + 5), (255, 255, 255))
-
-
         self.draw_string(self.info_font, 'ENV', (self.ENV_X, self.ENV_Y), (0, 255, 0))
         self.draw_string(self.info_font, 'MODEL', (self.MODELDESC_X, self.MODELDESC_Y), (0, 255, 0))
         self.draw_string(self.info_font, 'NUM PARAMETERS', (self.NUM_PARAMS_X, self.NUM_PARAMS_Y), (0, 255, 0))
@@ -277,9 +251,6 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.draw_string(self.info_font, 'INPUT2', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y), (0, 255, 0))
         self.draw_string(self.info_font, '84x84 pixels', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 20), (0, 255, 255))
         self.draw_string(self.info_font, 'last 4 frames', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 40), (0, 255, 255))
-
-
-        #print(input_state)
 
         img = np.array(input_state[0])
 
@@ -303,7 +274,6 @@ class NHL94GameDisplayEnv(gym.Wrapper):
 
         if distance > self.best_dist:
             self.best_dist = distance
-            #print(self.best_dist)
 
         self.draw_string(self.info_font, 'GAME STATS', (self.STATS_X, self.STATS_Y), (0, 255, 0))
 
@@ -322,9 +292,6 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.main_surf.fill((30, 30, 30))
         emu_screen = np.transpose(frame_img, (1,0,2))
 
-        #print(input_state)
-        #print(emu_screen.shape)
-        #surf.fill((0,0,0))
         surf = pygame.surfarray.make_surface(emu_screen)
 
         #TODO draw input state
@@ -336,13 +303,10 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.draw_basic_info()
         self.draw_input(input_state)
         self.draw_action_probabilties(self.action_probabilities)
-        #self.draw_game_stats(info)
-        #print(main_surf.get_colorkey())
         self.main_surf.set_colorkey(None)
-        #main_surf.convert()
+
         self.screen.blit(pygame.transform.smoothscale(self.main_surf,(self.args.display_width,self.args.display_height)), (0, 0))
-        #screen.blit(surf, (0, 0))
- 
+
         pygame.display.flip()
 
         self.get_input()
@@ -354,10 +318,7 @@ class NHL94GameDisplayEnv(gym.Wrapper):
     def ProcessKeyState(self, keystate):
 
         if keystate[pygame.K_q] or keystate[pygame.K_ESCAPE]:
-            #logger.log('Exiting...')
             exit()
-
-        #if keystate[pygame.K_UP]:
 
         self.player_actions[0] = 1 if keystate[pygame.K_x] else 0
         self.player_actions[1] = 1 if keystate[pygame.K_z] else 0
@@ -371,10 +332,6 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.player_actions[9] = 1 if keystate[pygame.K_a] else 0
         self.player_actions[10] = 1 if keystate[pygame.K_s] else 0
         self.player_actions[11] = 1 if keystate[pygame.K_d] else 0
-
-        #if keystate[pygame.K_DOWN]:
-        #    print("HELLOOOOOOOO")
-
 
     def get_input(self):
         pygame.event.pump()
