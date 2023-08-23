@@ -38,13 +38,9 @@ def create_output_dir(args):
 
 def init_logger(args):
     tmp_path = create_output_dir(args)
-    #tmp_path = "/tmp/sb3_log/"
     # set up logger
     global logger
     logger = configure(tmp_path, ["stdout", "csv", "tensorboard"])
-    logger.log("TEST!!!!!!!!!!!!!!!!!!!!!")
-
-    print(logger)
 
     return logger
 
