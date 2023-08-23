@@ -82,17 +82,17 @@ class NHL94AISystem():
             self.GotoTarget(p1_actions, pp_vec)
             print('FIND PUCK')
 
-        return p1_actions
+        return [p1_actions]
 
     def predict(self, state, info, deterministic):
         if self.use_model:
             p1_actions = self.p1_model.predict(state, deterministic=deterministic)[0]
         else:            
             if info is not None:
-                p1_actions = self.Think(info)
+                p1_actions = [self.Think(info)[0]]
             else:
-                p1_actions = [0] * GameConsts.INPUT_MAX
+                p1_actions = [[0] * GameConsts.INPUT_MAX]
 
-        return [p1_actions]
+        return p1_actions
 
     

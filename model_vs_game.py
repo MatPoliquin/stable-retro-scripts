@@ -62,14 +62,11 @@ class ModelVsGame:
         info = None
 
         while True:
-            #p1_actions = self.p1_model.predict(state, deterministic=self.args.deterministic)
             p1_actions = self.ai_sys.predict(state, info=info, deterministic=self.args.deterministic)
             if self.ai_sys.p1_model is not None:
                 self.display_env.action_probabilities = get_model_probabilities(self.ai_sys.p1_model, state)[0]
             else:
                 self.display_env.action_probabilities = []
-
-            #print(self.p1_model.action_probability(state))
             
             state, reward, done, info = self.display_env.step(p1_actions)
             total_rewards += reward
