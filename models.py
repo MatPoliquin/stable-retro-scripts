@@ -20,31 +20,20 @@ from torchsummary import summary
 
 from stable_baselines3.common.logger import configure
 
-
+# Warning: input size is hardcoded for now
 def print_model_info(model):
-    total_params = 0
-    for v in model.get_parameter_list():
-        logger.log(v)
-        shape = v.get_shape()
-        count = 1
-        for dim in shape:
-            count *= dim.value
-            total_params += count
-    logger.log("Total trainable parameters:%d" % total_params)
-    logger.log("=========            =========")
+
+    if args.nn == 'CnnPolicy':
+        summary(model.policy, (4, 84, 84))
+    elif args.nn == 'MlpPolicy':
+        summary(model.policy, (1, 6))
 
     return total_params
 
 def get_num_parameters(model):
-    #total_params = 0
-    #for v in model.get_parameters():
-    #    shape = v.get_shape()
-    #    count = 1
-    #    for dim in shape:
-    #        count *= dim.value
-    #        total_params += count
+    
+    total_params = sum(p.numel() for p in model.policy.parameters() if p.requires_grad)
 
-    total_params = 100000000
     return total_params
 
 def get_model_probabilities(model, state):
@@ -80,11 +69,6 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
 
     model.set_logger(logger)
 
-
-    print(model.policy)
-    
-    # TODO Get model input size
-    #if args.nn == 'MlpPolicy':
-    #    summary(model.policy, (1, 6))
+    #print_model_info(model)
 
     return model
