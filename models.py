@@ -1,19 +1,7 @@
 import warnings
-warnings.filterwarnings("ignore")
 import os, datetime
-import argparse
-import retro
-import gymnasium as gym
 import numpy as np
 from stable_baselines3 import PPO, A2C
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
-from stable_baselines3.common.atari_wrappers import WarpFrame, ClipRewardEnv
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecFrameStack, VecTransposeImage
-from stable_baselines3.common.utils import set_random_seed
-from stable_baselines3.common.monitor import Monitor
-
-from gymnasium.wrappers import FrameStack
-
 
 import torch as th
 from torchsummary import summary

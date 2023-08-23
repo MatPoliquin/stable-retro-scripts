@@ -4,7 +4,6 @@ import argparse
 import numpy as np
 
 from stable_baselines3 import PPO, A2C
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common.atari_wrappers import WarpFrame, ClipRewardEnv
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecFrameStack, VecTransposeImage
 from stable_baselines3.common.utils import set_random_seed
@@ -67,21 +66,16 @@ def make_retro(*, game, state=None, num_players, max_episode_steps=4500, **kwarg
     #    env = TimeLimit(env, max_episode_steps=max_episode_steps)
     return env
 
-
-
 def init_env(output_path, num_env, state, num_players, args, use_frameskip=True, use_display=False):
     #if wrapper_kwargs is None:
     wrapper_kwargs = {}
     #wrapper_kwargs['scenario'] = 'test'
-
-    
 
     seed = 0
     start_index = 0
     start_method=None
     allow_early_resets=True
     
-
     def make_env(rank):
         def _thunk():
             games.wrappers.init(args)

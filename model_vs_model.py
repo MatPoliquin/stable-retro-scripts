@@ -9,7 +9,6 @@ import logging
 import numpy as np
 import pygame
 
-
 from common import com_print, init_logger
 from envs import init_env, init_play_env
 from models import init_model, get_model_probabilities, get_num_parameters
@@ -35,9 +34,6 @@ def parse_cmdline(argv):
     parser.add_argument('--deterministic', default=True, action='store_true')
 
     args = parser.parse_args(argv)
-
-    #com_print("=========== Params ===========")
-    #com_print(argv[1:])
 
     return args
 
@@ -72,11 +68,8 @@ def main(argv):
 
         play_env.p1_action_probabilities = get_model_probabilities(p1_model, state)[0]
         play_env.p2_action_probabilities = get_model_probabilities(p2_model, state)[0]
-
-            
+    
         actions2 = np.append(p1_actions[0], p2_actions[0])
-        #actions2 = [p1_actions[0], p2_actions[1]]
-        #print(actions2)
 
         state, reward, done, info = play_env.step([actions2])
 

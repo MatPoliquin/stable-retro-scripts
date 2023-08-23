@@ -37,15 +37,7 @@ def parse_cmdline(argv):
 
     args = parser.parse_args(argv)
 
-    #logger.log("=========== Params ===========")
-    #logger.log(argv[1:])
-
     return args
-
-
-
-
-
 
 def main(argv):
 
@@ -76,17 +68,11 @@ def main(argv):
         p1_actions = model.predict(state)[0]
         p2_actions = play_env.player_actions
 
-        #print(p2_actions)
-
         action_probabilities = get_model_probabilities(model, state)
-        #print(action_probabilities[0])
+
         play_env.action_probabilities = action_probabilities[0]
 
-        #uw_display_env.action_probabilities = model.action_probability(state)
-
         actions = np.append(p1_actions, p2_actions)
-
-        #print(actions)
 
         state, reward, done, info = play_env.step([actions])
 

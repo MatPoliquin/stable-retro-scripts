@@ -45,7 +45,7 @@ class ModelVsGame:
         self.display_env = init_play_env(args, 1)
 
         self.ai_sys = games.wrappers.ai_sys(args, self.p1_env, logger)
-        #self.p1_model = init_model(None, args.load_p1_model, args.alg, args, self.p1_env)
+        
         self.need_display = need_display
         self.args = args
 
@@ -55,7 +55,7 @@ class ModelVsGame:
 
     def play(self, continuous=True, need_reset=True):
         state = self.display_env.reset()
-        #print(state)
+
         total_rewards = 0
         skip_frames = 0
         p1_actions = []
