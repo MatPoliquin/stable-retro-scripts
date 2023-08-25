@@ -1,7 +1,6 @@
 # stable-retro scripts
 
-Note: Migrated to pytorch and stable-baselines3. The old tensorflow + oringal stable-baselines is now in TF1 branch.
-There is still some display issues but everything should be functional
+Note: Migrated to pytorch and stable-baselines3. The old tensorflow + original stable-baselines is now in TF1 branch.
 
 * Train models on retro games
 * Pit two models against each other on PvP retro games such as NHL94, Mortal Kombat or WWF Wrestlemania: The Arcade Game
@@ -30,7 +29,7 @@ pip3 install "stable_baselines3[extra]"
 ```
 
 ## Install roms
-You need to provide your own NHL 94 - Sega Genesis rom
+You need to provide your own roms
 
 In your rom directory exec this command, it will import the roms into stable-retro
 ```
