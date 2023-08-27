@@ -15,7 +15,7 @@ class AISys():
         if args.load_p1_model is '':
             self.use_model = False
         else:
-            self.p1_model = init_model(None, args.load_p1_model, args.alg, args, env)
+            self.p1_model = init_model(None, args.load_p1_model, args.alg, args, env, logger)
 
 
     def predict(self, state, info, deterministic):
