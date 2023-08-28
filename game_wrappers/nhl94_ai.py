@@ -48,26 +48,35 @@ class NHL94AISystem():
         g1_y = info[0].get('g1_y')
         puck_x = info[0].get('puck_x')
         puck_y = info[0].get('puck_y')
+        fullstar_x = info[0].get('fullstar_x')
+        fullstar_y = info[0].get('fullstar_y')
 
+        player_haspuck = False
+        goalie_haspuck = False
+
+        if(p1_x == fullstar_x and p1_y == fullstar_y):
+            player_haspuck = True
+        elif(g1_x == fullstar_x and g1_y == fullstar_y):
+            goalie_haspuck = True
 
         pp_vec = [p1_x - puck_x, p1_y - puck_y]
         tmp = (p1_x - puck_x)**2 + (p1_y - puck_y)**2
         pp_dist = math.sqrt(tmp)
 
-        has_puck = True
-        if pp_dist > GameConsts.MAX_PLAYER_PUCK_DIST:
-            if(has_puck): print('PLAYER LOST PUCK')
-            has_puck = False
+        #has_puck = True
+        #if pp_dist > GameConsts.MAX_PLAYER_PUCK_DIST:
+        #    if(has_puck): print('PLAYER LOST PUCK')
+        #    has_puck = False
     
         
-        goalie_has_puck = True
-        dist = self.DistToPos([g1_x, g1_y], [puck_x, puck_y])
-        if dist > GameConsts.MAX_GOALIE_PUCK_DIST:            
-            goalie_has_puck = False
+        #goalie_has_puck = True
+        #dist = self.DistToPos([g1_x, g1_y], [puck_x, puck_y])
+        #if dist > GameConsts.MAX_GOALIE_PUCK_DIST:            
+        #    goalie_has_puck = False
 
-        if(goalie_has_puck): print('GOALIE HAS PUCK')
+        if(goalie_haspuck): print('GOALIE HAS PUCK')
 
-        if has_puck:
+        if player_haspuck:
             dist = self.DistToPos([p1_x, p1_y], [GameConsts.SHOOT_POS_X, GameConsts.SHOOT_POS_Y])
 
             if dist < 60:
@@ -75,7 +84,7 @@ class NHL94AISystem():
             else:
                 self.GotoTarget(p1_actions, [p1_x - GameConsts.SHOOT_POS_X, p1_y - GameConsts.SHOOT_POS_Y])
                 print('GOTO SHOOT POSITION')
-        elif goalie_has_puck:
+        elif goalie_haspuck:
             p1_actions[GameConsts.INPUT_B] = 1
             print('GOALIE PASS')
         else:
