@@ -63,17 +63,6 @@ class NHL94AISystem():
         tmp = (p1_x - puck_x)**2 + (p1_y - puck_y)**2
         pp_dist = math.sqrt(tmp)
 
-        #has_puck = True
-        #if pp_dist > GameConsts.MAX_PLAYER_PUCK_DIST:
-        #    if(has_puck): print('PLAYER LOST PUCK')
-        #    has_puck = False
-    
-        
-        #goalie_has_puck = True
-        #dist = self.DistToPos([g1_x, g1_y], [puck_x, puck_y])
-        #if dist > GameConsts.MAX_GOALIE_PUCK_DIST:            
-        #    goalie_has_puck = False
-
         if(goalie_haspuck): print('GOALIE HAS PUCK')
 
         if player_haspuck:

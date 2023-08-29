@@ -93,6 +93,20 @@ class NHL94ObservationEnv(gym.Wrapper):
         
         #print(p1_x, p1_y, p2_x, p2_y)
 
+        fullstar_x = info.get('fullstar_x')
+        fullstar_y = info.get('fullstar_y')
+
+        #print()
+        
+        player_haspuck = False
+        goalie_haspuck = False
+
+        if(p1_x == fullstar_x and p1_y == fullstar_y):
+            player_haspuck = True
+        elif(g1_x == fullstar_x and g1_y == fullstar_y):
+            goalie_haspuck = True
+
+
 
         isGoodShot = True
         hasPuck = False
@@ -106,8 +120,7 @@ class NHL94ObservationEnv(gym.Wrapper):
         distToPuck = self.Distance((p1_x, p1_y), (puck_x, puck_y))
 
 
-        if distToPuck < 4:
-            hasPuck = True
+
         
 
 
@@ -116,29 +129,36 @@ class NHL94ObservationEnv(gym.Wrapper):
 
         
         
-        if hasPuck == False:
-            if distToPuck > 100:
-                rew = 0
+        if player_haspuck == False:
+            if distToPuck < self.last_dist:
+                rew = 0.3
             else:
-                rew = (110 - distToPuck) / 100
+                rew = -1
+
+            #if distToPuck > 150:
+            #    rew = 0
+            #else:
+            #    rew = (160 - distToPuck) / 100
+            #    if rew > 0.2: rew = 0.2
 
             if p1_bodychecks > self.last_p1_bodychecks:
-                rew = 1.0
+                rew = 0.5
         else:
+            rew = 1.0
             #check if player is in the offensive zone
-            if p1_y > 120:
-                if p1_shots > self.last_p1_shots:
-                    rew = 1.0
-            else:
-                distToOffZone = 120 - p1_y
-                if distToOffZone > 100:
-                    rew = 0
-                else:
-                    rew = (110 - distToOffZone) / 100
+        #    if p1_y > 120:
+        #        if p1_shots > self.last_p1_shots:
+        #            rew = 1.0
+        #    else:
+        #        distToOffZone = 120 - p1_y
+        #        if distToOffZone > 100:
+        #            rew = 0
+        #        else:
+        #            rew = (110 - distToOffZone) / 100
 
 
-                if p1_shots > self.last_p1_shots:
-                    rew = -1.0
+        #        if p1_shots > self.last_p1_shots:
+        #            rew = -1.0
 
 
         if p1_faceoffwon > self.last_p1_faceoffwon:
@@ -212,8 +232,8 @@ class NHL94ObservationEnv(gym.Wrapper):
         #if time == self.last_time:
         #    rew = 0
 
-        if abs(g1_x - puck_x) <= 6 and abs(g1_y - puck_y) <= 6:
-            rew = -1
+        #if abs(g1_x - puck_x) <= 6 and abs(g1_y - puck_y) <= 6:
+        #    rew = -1
 
         return rew
 

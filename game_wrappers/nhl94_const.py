@@ -28,5 +28,5 @@ class GameConsts():
     MAX_PLAYER_PUCK_DIST = 27
     MAX_GOALIE_PUCK_DIST = 30
 
-    SHOOT_POS_X = -50
+    SHOOT_POS_X = 0
     SHOOT_POS_Y = 120
