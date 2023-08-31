@@ -36,7 +36,7 @@ def parse_cmdline(argv):
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='1')
     parser.add_argument('--num_env', type=int, default=12)
-    parser.add_argument('--num_timesteps', type=int, default=10000)
+    parser.add_argument('--num_timesteps', type=int, default=3000000)
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_p1_model', type=str, default='')
     parser.add_argument('--alg_verbose', default=True, action='store_false')
