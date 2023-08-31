@@ -122,11 +122,14 @@ def get_button_names(args):
     print(env.buttons)
     return env.buttons
 
-def init_play_env(args, num_players, is_pvp_display=False):
+def init_play_env(args, num_players, is_pvp_display=False, need_display=True):
     
     button_names = get_button_names(args)
 
     env = init_env(None, 1, args.state, num_players, args, use_frameskip=True, use_display=False)
+
+    if not need_display:
+        return env
 
     games.wrappers.init(args)
 

@@ -42,7 +42,7 @@ class ModelVsGame:
     def __init__(self, args, logger, need_display=True):
 
         self.p1_env = init_env(None, 1, args.state, 1, args, True)
-        self.display_env = init_play_env(args, 1)
+        self.display_env = init_play_env(args, 1, False, need_display)
 
         self.ai_sys = games.wrappers.ai_sys(args, self.p1_env, logger)
         

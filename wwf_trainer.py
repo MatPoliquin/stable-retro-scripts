@@ -22,6 +22,8 @@ from model_vs_game import ModelVsGame
 
 from common import get_model_file_name, com_print, init_logger, create_output_dir
 
+import game_wrappers_mgr as games
+
 NUM_TEST_MATCHS = 10
 
 def parse_cmdline(argv):
@@ -33,8 +35,8 @@ def parse_cmdline(argv):
     parser.add_argument('--env', type=str, default='WWFArcade-Genesis')
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='1')
-    parser.add_argument('--num_env', type=int, default=24)
-    parser.add_argument('--num_timesteps', type=int, default=3000000)
+    parser.add_argument('--num_env', type=int, default=12)
+    parser.add_argument('--num_timesteps', type=int, default=10000)
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_p1_model', type=str, default='')
     parser.add_argument('--alg_verbose', default=True, action='store_false')
@@ -104,6 +106,8 @@ def main(argv):
     args = parse_cmdline(argv[1:])
 
     logger = init_logger(args)
+
+    games.wrappers.init(args)
     
     com_print('================ WWF trainer ================')
     com_print('These states will be trained on:')
