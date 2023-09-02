@@ -58,6 +58,8 @@ class NHL94ObservationEnv(gym.Wrapper):
         self.last_p1_passing = 0
         self.last_dist = 0
         self.counter = 0
+        self.lastshot_time = -1
+        self.time = 0
 
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
@@ -112,63 +114,35 @@ class NHL94ObservationEnv(gym.Wrapper):
         hasPuck = False
         rew = 0
 
-        #if p1_x > 70 or p1_x < -70:
-        #    isGoodShot = False
-        #if p1_y > 200 or p1_y < 100:
-        #     isGoodShot = False
-
         distToPuck = self.Distance((p1_x, p1_y), (puck_x, puck_y))
 
 
-
-        
-
-
-        #if dist < 5:
-        #    print(dist)
-
-        
-        
         if player_haspuck == False:
-            if distToPuck < self.last_dist:
+            if p1_y > 120 and p1_shots > self.last_p1_shots:
+                self.lastshot_time = self.time
+                rew = 1.0
+            elif distToPuck < self.last_dist:
                 rew = 0.3
             else:
                 rew = -1
-
-            #if distToPuck > 150:
-            #    rew = 0
-            #else:
-            #    rew = (160 - distToPuck) / 100
-            #    if rew > 0.2: rew = 0.2
 
             if p1_bodychecks > self.last_p1_bodychecks:
                 rew = 0.5
         else:
             rew = 1.0
-            #check if player is in the offensive zone
-        #    if p1_y > 120:
-        #        if p1_shots > self.last_p1_shots:
-        #            rew = 1.0
-        #    else:
-        #        distToOffZone = 120 - p1_y
-        #        if distToOffZone > 100:
-        #            rew = 0
-        #        else:
-        #            rew = (110 - distToOffZone) / 100
 
-
-        #        if p1_shots > self.last_p1_shots:
-        #            rew = -1.0
-
+            if p1_y > 120: rew = 0.0
 
         if p1_faceoffwon > self.last_p1_faceoffwon:
             rew = 1.0
                 
-                
-
-
-
-
+        
+        if self.lastshot_time != -1:
+            if (self.time - self.lastshot_time > 60):
+                self.lastshot_time = -1
+            else:
+                rew = 1.0
+        
 
 
      
@@ -241,6 +215,9 @@ class NHL94ObservationEnv(gym.Wrapper):
     def step(self, ac):
         ob, rew, terminated, truncated, info = self.env.step(ac)
 
+
+        
+
         #rew = 1000
 
         #print(rew)
@@ -300,6 +277,8 @@ class NHL94ObservationEnv(gym.Wrapper):
         #print(ob)
 
         #print(rew)
+
+        self.time += 1
 
         return ob, rew, terminated, truncated, info
 
