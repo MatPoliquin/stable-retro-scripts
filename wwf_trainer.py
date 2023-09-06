@@ -15,8 +15,6 @@ import argparse
 import logging
 import numpy as np
 
-sys.path.append('../stable-retro-scripts')
-
 from model_trainer import ModelTrainer
 from model_vs_game import ModelVsGame
 
@@ -49,13 +47,6 @@ def parse_cmdline(argv):
 
     args = parser.parse_args(argv)
 
-
-    #if args.info_verbose is False:
-    #    logger.set_level(logger.DISABLED)
-
-    #logger.log("=========== Params ===========")
-    #logger.log(argv[1:])
-
     return args
 
 
@@ -78,11 +69,6 @@ game_states_veryhard = [
     'VeryHard_Yokozuna-06',
     'VeryHard_Yokozuna-07'
 ]
-
-
-#game_states = [
-#    'VeryEasy_Yokozuna-01'
-#]
 
 def test_model(args, num_matchs, logger):
     game = ModelVsGame(args, logger, need_display=False)
@@ -148,7 +134,7 @@ def main(argv):
         com_print('STATE:%s... WON MATCHS:%d/%d TOTAL REWARDS:%d' % (state, won_matchs, num_test_matchs, total_reward))
 
     if args.play:
-        args.state = 'VeryEasy_Yokozuna-01'
+        args.state = 'VeryEasy_Yokozuna-07'
         args.load_p1_model = p1_model_path
         args.num_timesteps = 0
 
