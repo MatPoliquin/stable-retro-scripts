@@ -39,8 +39,8 @@ class NHL94ObservationEnv(gym.Wrapper):
     def __init__(self, env):
         gym.Wrapper.__init__(self, env)
 
-        low = np.array([-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], dtype=np.float32)
-        high = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=np.float32)
+        low = np.array([-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], dtype=np.float32)
+        high = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=np.float32)
         self.observation_space = spaces.Box(low, high, dtype=np.float32)
 
         self.last_p1_score = 0
@@ -56,7 +56,8 @@ class NHL94ObservationEnv(gym.Wrapper):
         self.last_puck_pos = (0,0)
         self.last_time = 0
         self.last_p1_passing = 0
-        self.last_dist = 0
+        self.last_dist = -1
+        self.last_dist_az = -1
         self.counter = 0
         self.lastshot_time = -1
         self.time = 0
@@ -64,7 +65,7 @@ class NHL94ObservationEnv(gym.Wrapper):
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
 
-        self.state = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        self.state = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
         return self.state, info
 
@@ -97,8 +98,6 @@ class NHL94ObservationEnv(gym.Wrapper):
 
         fullstar_x = info.get('fullstar_x')
         fullstar_y = info.get('fullstar_y')
-
-        #print()
         
         player_haspuck = False
         goalie_haspuck = False
@@ -111,39 +110,45 @@ class NHL94ObservationEnv(gym.Wrapper):
 
 
         isGoodShot = True
-        hasPuck = False
         rew = 0
 
         distToPuck = self.Distance((p1_x, p1_y), (puck_x, puck_y))
+        distToAttackZone = 120 - p1_y 
+
+        if player_haspuck == False:
+            if p1_y > 120 and p1_shots > self.last_p1_shots:
+                self.lastshot_time = self.time
+                rew = 1.0
+            elif self.last_dist != -1:
+                if distToPuck < self.last_dist:
+                    rew = 0.3
+                else:
+                    rew = -1
+        else:
+            if p1_y < 120 and self.last_dist_az != -1:
+                if distToAttackZone < self.last_dist_az:
+                    rew = 0.3
+                else:
+                    rew = -1
 
 
-        # if player_haspuck == False:
-        #     if p1_y > 120 and p1_shots > self.last_p1_shots:
-        #         self.lastshot_time = self.time
-        #         rew = 1.0
-        #     elif distToPuck < self.last_dist:
-        #         rew = 0.3
-        #     else:
-        #         rew = -1
-
-        #if p1_bodychecks > self.last_p1_bodychecks:
-        #    rew = 0.5
-        # else:
-        #     rew = 1.0
+        if p1_bodychecks > self.last_p1_bodychecks:
+            rew = 0.5
 
         #     if p1_y > 120: rew = 0.0
 
         #if p1_faceoffwon > self.last_p1_faceoffwon:
-        #     rew = 1.0
+        #     rew = 0.5
                 
         
-        # if self.lastshot_time != -1:
-        #     if (self.time - self.lastshot_time > 60):
-        #         self.lastshot_time = -1
-        #     else:
-        #         rew = 1.0
+        if self.lastshot_time != -1:
+             if (self.time - self.lastshot_time > 60):
+                 self.lastshot_time = -1
+             else:
+                 rew = 1.0
         
-
+        if goalie_haspuck:
+            rew = -1
         
 
         #if p1_attackzone > self.last_p1_attackzone and p1_shots > self.last_p1_shots:
@@ -152,18 +157,18 @@ class NHL94ObservationEnv(gym.Wrapper):
         if p1_score > self.last_p1_score:
             rew = 1.0
 
-        if p1_shots > self.last_p1_shots:
-            rew = 0.1
+        #if p1_shots > self.last_p1_shots:
+        #    rew = 0.1
      
 
         #if p2_attackzone > self.last_p2_attackzone:
         #   rew = -0.2
             
-        #if p2_score > self.last_p2_score:
-        #    rew = -1.0
+        if p2_score > self.last_p2_score:
+            rew = -1.0
 
-        #if p2_shots > self.last_p2_shots:
-        #    rew = -1.0
+        if p2_shots > self.last_p2_shots:
+            rew = -1.0
 
 
         self.last_p1_score = p1_score
@@ -177,6 +182,7 @@ class NHL94ObservationEnv(gym.Wrapper):
         self.last_time = time
         self.last_p1_passing = p1_passing
         self.last_dist = distToPuck
+        self.last_dist_az = distToAttackZone
 
         #last_p2_pos
 
@@ -230,6 +236,11 @@ class NHL94ObservationEnv(gym.Wrapper):
         puck_x = info.get('puck_x') / 120
         puck_y = info.get('puck_y') / 300
 
+        g1_x = info.get('g1_x')
+        g1_y = info.get('g1_y')
+        fullstar_x = info.get('fullstar_x')
+        fullstar_y = info.get('fullstar_y')
+
 
         p1_velx = (self.last_p1_pos[0] - info.get('p1_x')) / 80
         p1_vely = (self.last_p1_pos[1] - info.get('p2_y')) / 80
@@ -246,6 +257,14 @@ class NHL94ObservationEnv(gym.Wrapper):
         #print((self.last_p2_pos[1], info.get('p2_y')))
         #print((p2_vely))
 
+        player_haspuck = 0.0
+        goalie_haspuck = 0.0
+
+        if(p1_x == fullstar_x and p1_y == fullstar_y):
+            player_haspuck = 1.0
+        elif(g1_x == fullstar_x and g1_y == fullstar_y):
+            goalie_haspuck = 1.0
+
 
         self.state = (p1_x, p1_y, \
                      p1_velx, p1_vely, \
@@ -253,7 +272,8 @@ class NHL94ObservationEnv(gym.Wrapper):
                      p2_velx, p2_vely, \
                      puck_x, puck_y, \
                      puck_velx, puck_vely, \
-                     g2_x, g2_y)
+                     g2_x, g2_y, \
+                     player_haspuck, goalie_haspuck)
 
         self.counter += 1
         if self.counter == 10:
