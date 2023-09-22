@@ -149,6 +149,9 @@ class NHL94ObservationEnv(gym.Wrapper):
         
         if goalie_haspuck:
             rew = -1
+
+        if p1_passing > self.last_p1_passing:
+            rew = 0.5
         
 
         #if p1_attackzone > self.last_p1_attackzone and p1_shots > self.last_p1_shots:
@@ -196,8 +199,8 @@ class NHL94ObservationEnv(gym.Wrapper):
 
 
         # Don't give rewards when clock is not running
-        #if time == self.last_time:
-        #    rew = 0
+        if puck_x == 0 and puck_y == 0:
+            rew = 0
 
         #if abs(g1_x - puck_x) <= 6 and abs(g1_y - puck_y) <= 6:
         #    rew = -1
