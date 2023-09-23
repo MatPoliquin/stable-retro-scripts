@@ -15,7 +15,7 @@ Note: Migrated to pytorch and stable-baselines3. The old tensorflow + original s
 Tested on Ubuntu 22.04 and Wimdows 11 WSL2 (Ubuntu 22.04 VM)
 
 Requires:
-*   Pytorch 3.7 and up
+*   Python 3.7 and up
 *   stable-baselines3 with gymnasium support
 *   stable-retro with gymnasium support (fork of gym-retro)
 
