@@ -53,7 +53,7 @@ def main(argv):
         exit()
 
 
-    env = init_env(None, 1, None, 1, args)
+    env = init_env(None, 1, None, 1, args, use_sticky_action=False)
     model = init_model(None, args.load_model, args.p1_alg, args, env, logger)
 
     play_env.num_params = get_num_parameters(model)

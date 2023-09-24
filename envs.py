@@ -9,6 +9,9 @@ from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecFram
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.monitor import Monitor
 
+# StickyActionEnv doesn't work with filtered actions in retro/stable-retro
+# from stable_baselines3.common.atari_wrappers import StickyActionEnv, MaxAndSkipEnv
+
 import gymnasium as gym
 from gymnasium.wrappers import FrameStack
 
@@ -66,7 +69,7 @@ def make_retro(*, game, state=None, num_players, max_episode_steps=4500, **kwarg
     #    env = TimeLimit(env, max_episode_steps=max_episode_steps)
     return env
 
-def init_env(output_path, num_env, state, num_players, args, use_frameskip=True, use_display=False):
+def init_env(output_path, num_env, state, num_players, args, use_sticky_action=True, use_display=False):
     #if wrapper_kwargs is None:
     wrapper_kwargs = {}
     #wrapper_kwargs['scenario'] = 'test'
@@ -89,13 +92,14 @@ def init_env(output_path, num_env, state, num_players, args, use_frameskip=True,
 
             env = Monitor(env, output_path and os.path.join(output_path, str(rank)), allow_early_resets=allow_early_resets)
 
-
             if use_display:
                 env = GameDisplayEnv(env, args, 17, 'CNN', None)
             
-            if use_frameskip:
+            if use_sticky_action:
+                env = StochasticFrameSkip(env, n=4, stickprob=0.25)
+            else:
                 env = StochasticFrameSkip(env, n=4, stickprob=-1)
-
+            
             if args.nn != 'MlpPolicy':
                 env = WarpFrame(env)
             
@@ -126,7 +130,7 @@ def init_play_env(args, num_players, is_pvp_display=False, need_display=True):
     
     button_names = get_button_names(args)
 
-    env = init_env(None, 1, args.state, num_players, args, use_frameskip=True, use_display=False)
+    env = init_env(None, 1, args.state, num_players, args, use_sticky_action=False, use_display=False)
 
     if not need_display:
         return env

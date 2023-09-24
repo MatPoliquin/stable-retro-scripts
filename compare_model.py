@@ -50,8 +50,8 @@ def main(argv):
     
     com_print('========= Init =============')
     #play_env = init_play_env(args, 2, True)
-    p1_env = init_env(None, 1, None, 1, args)
-    p2_env = init_env(None, 1, None, 1, args)
+    p1_env = init_env(None, 1, None, 1, args, use_sticky_action=False)
+    p2_env = init_env(None, 1, None, 1, args, use_sticky_action=False)
     
     p1_model = init_model(None, args.load_p1_model, args.p1_alg, args, p1_env, logger)
     p2_model = init_model(None, args.load_p2_model, args.p2_alg, args, p2_env, logger)

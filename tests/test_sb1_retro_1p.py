@@ -74,7 +74,7 @@ def make_retro(*, game, state=None, num_players, max_episode_steps=4500, **kwarg
     return env
 
 
-def init_env(output_path, num_env, state, num_players, envid, use_frameskip=True, use_display=False):
+def init_env(output_path, num_env, state, num_players, envid, use_sticky_action=True, use_display=False):
 
     wrapper_kwargs = {}
 
@@ -91,7 +91,7 @@ def init_env(output_path, num_env, state, num_players, envid, use_frameskip=True
 
             env = Monitor(env, output_path and os.path.join(output_path, str(rank)), allow_early_resets=allow_early_resets)
 
-            if use_frameskip:
+            if use_sticky_action:
                 env = StochasticFrameSkip(env, n=4, stickprob=-1)
 
             env = WarpFrame(env)
