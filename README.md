@@ -15,17 +15,19 @@ Note: Migrated to pytorch and stable-baselines3. The old tensorflow + original s
 Tested on Ubuntu 22.04 and Wimdows 11 WSL2 (Ubuntu 22.04 VM)
 
 Requires:
-*   Pytorch 3.7 and up
+*   Python 3.7 and up
 *   stable-baselines3 with gymnasium support
 *   stable-retro with gymnasium support (fork of gym-retro)
 
 ```
 sudo apt update
-sudo apt-get install python3 python3-pip git zlib1g-dev libopenmpi-dev ffmpeg pygame
+sudo apt-get install python3 python3-pip git zlib1g-dev libopenmpi-dev ffmpeg cmake
 
 pip3 install git+https://github.com/Farama-Foundation/stable-retro.git
+pip3 install "stable_baselines3[extra]" pygame torchsummary
 
-pip3 install "stable_baselines3[extra]"
+git clone https://github.com/MatPoliquin/stable-retro-scripts.git
+cd stable-retro-scripts
 ```
 
 ## Install roms
