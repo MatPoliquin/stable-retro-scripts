@@ -35,7 +35,7 @@ def parse_cmdline(argv):
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='1')
     parser.add_argument('--num_env', type=int, default=16)
-    parser.add_argument('--num_timesteps', type=int, default=10_000_000)
+    parser.add_argument('--num_timesteps', type=int, default=15_000_000)
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_p1_model', type=str, default='')
     parser.add_argument('--alg_verbose', default=True, action='store_false')
@@ -51,14 +51,21 @@ def parse_cmdline(argv):
     return args
 
 
-game_states_attackzone = [
+game_states_gotpuck = [
     'PenguinsVsSenators.AttackZone01',
     'PenguinsVsSenators.AttackZone02',
     'PenguinsVsSenators.AttackZone03',
     'PenguinsVsSenators.AttackZone04',
     'PenguinsVsSenators.AttackZone05',
     'PenguinsVsSenators.AttackZone06',
-    'PenguinsVsSenators.AttackZone07'
+    'PenguinsVsSenators.AttackZone07',
+    'PenguinsVsSenators.gotpuck01',
+    'PenguinsVsSenators.gotpuck02',
+    'PenguinsVsSenators.gotpuck03',
+    'PenguinsVsSenators.gotpuck04',
+    'PenguinsVsSenators.gotpuck05',
+    'PenguinsVsSenators.gotpuck06',
+    'PenguinsVsSenators.gotpuck07'
 ]
 
 game_states_losspuck = [
@@ -71,15 +78,7 @@ game_states_losspuck = [
     'PenguinsVsSenators.losspuck07'
 ]
 
-game_states_gotpuck = [
-    'PenguinsVsSenators.gotpuck01',
-    'PenguinsVsSenators.gotpuck02',
-    'PenguinsVsSenators.gotpuck03',
-    'PenguinsVsSenators.gotpuck04',
-    'PenguinsVsSenators.gotpuck05',
-    'PenguinsVsSenators.gotpuck06',
-    'PenguinsVsSenators.gotpuck07'
-]
+
 
 
 
@@ -94,7 +93,7 @@ def main(argv):
     
     com_print('================ NHL94 1 on 1 trainer ================')
     com_print('These states will be trained on:')
-    com_print(game_states_attackzone)
+    com_print(game_states_losspuck)
 
     # turn off verbose
     args.alg_verbose = False
@@ -103,7 +102,7 @@ def main(argv):
 
     # Train model on each state
     if not args.test_only:    
-        for state in game_states_attackzone:
+        for state in game_states_losspuck:
             com_print('TRAINING ON STATE:%s - %d timesteps' % (state, args.num_timesteps))
             args.state = state
             args.load_p1_model = p1_model_path
@@ -131,7 +130,7 @@ def main(argv):
     #    com_print('STATE:%s... WON MATCHS:%d/%d TOTAL REWARDS:%d' % (state, won_matchs, num_test_matchs, total_reward))
 
     if args.play:
-        args.state = 'PenguinsVsSenators.AttackZone07'
+        args.state = 'PenguinsVsSenators.losspuck07'
         args.load_p1_model = p1_model_path
         args.num_timesteps = 0
 
