@@ -42,9 +42,7 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
     if player_alg == 'ppo2':
         if player_model == '':
             batch_size = (128 * args.num_env) // 4
-            print("batch_size:")
-            print(batch_size)
-            batch_size = 64
+            print("batch_size:%d" % batch_size)
             model = PPO(policy=args.nn, env=env, policy_kwargs=policy_kwargs, verbose=1, n_steps = 2048, n_epochs = 4, batch_size = batch_size, learning_rate = 2.5e-4, clip_range = 0.2, vf_coef = 0.5, ent_coef = 0.01,
                  max_grad_norm=0.5, clip_range_vf=None)
         else:
