@@ -29,9 +29,12 @@ def parse_cmdline(argv):
     parser.add_argument('--num_timesteps', type=int, default=0)
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_p1_model', type=str, default='')
+    parser.add_argument('--model_1', type=str, default='')
+    parser.add_argument('--model_2', type=str, default='')
     parser.add_argument('--display_width', type=int, default='1440')
     parser.add_argument('--display_height', type=int, default='810')
     parser.add_argument('--deterministic', default=True, action='store_true')
+    parser.add_argument('--rf', type=str, default='')
     #parser.add_argument('--useframeskip', default=False, action='store_true')
 
     args = parser.parse_args(argv)
@@ -45,6 +48,8 @@ class ModelVsGame:
         self.display_env = init_play_env(args, 1, False, need_display)
 
         self.ai_sys = games.wrappers.ai_sys(args, self.p1_env, logger)
+        if args.model_1 != '':
+            self.ai_sys.SetModels(args.model_1, args.model_2)
         
         self.need_display = need_display
         self.args = args

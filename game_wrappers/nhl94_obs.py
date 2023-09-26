@@ -61,6 +61,9 @@ class NHL94ObservationEnv(gym.Wrapper):
         self.counter = 0
         self.lastshot_time = -1
         self.time = 0
+        self.last_havepuck_time = -1
+
+        self.reward_function = None
 
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
@@ -68,6 +71,10 @@ class NHL94ObservationEnv(gym.Wrapper):
         self.state = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
         return self.state, info
+
+    def set_reward_function(self, rf):
+        self.reward_function = rf
+
 
     def Distance(self, vec1, vec2):
         tmp = (vec1[0] - vec2[0])**2 + (vec1[1] - vec2[1])**2
@@ -207,6 +214,64 @@ class NHL94ObservationEnv(gym.Wrapper):
 
         return rew
     
+    def calc_reward_scoregoal(self, info):
+        p1_score = info.get('p1_score')
+        p2_score = info.get('p2_score')
+        p1_shots = info.get('p1_shots')
+        p2_shots = info.get('p2_shots')
+        p1_bodychecks = info.get('p1_bodychecks')
+        p2_attackzone = info.get('p2_attackzone')
+        p1_attackzone = info.get('p1_attackzone')
+        p1_faceoffwon = info.get('p1_faceoffwon')
+        p1_passing = info.get('p1_passing')
+        p1_x = info.get('p1_x')
+        p1_y = info.get('p1_y')
+        p2_x = info.get('p2_x')
+        p2_y = info.get('p2_y')
+        g1_x = info.get('g1_x')
+        g1_y = info.get('g1_y')
+        time = info.get('time')
+        puck_x = info.get('puck_x')
+        puck_y = info.get('puck_y')
+
+        fullstar_x = info.get('fullstar_x')
+        fullstar_y = info.get('fullstar_y')
+        
+        player_haspuck = False
+        goalie_haspuck = False
+
+        isGoodShot = True
+        rew = 0
+
+        distToPuck = self.Distance((p1_x, p1_y), (puck_x, puck_y))
+        distToAttackZone = 120 - p1_y 
+
+        if p1_y < 120 and self.last_dist_az != -1:
+            if distToAttackZone < self.last_dist_az:
+                rew = 0.1
+            else:
+                rew = -1
+
+        if p1_score > self.last_p1_score:
+            rew = 1.0
+
+        if p1_y < 120 and p1_shots > self.last_p1_shots:
+            rew = 0.3
+
+        self.last_p1_score = p1_score
+        self.last_p1_shots = p1_shots
+        self.last_p1_bodychecks = p1_bodychecks
+        self.last_p2_attackzone = p2_attackzone
+        self.last_p1_attackzone = p1_attackzone
+        self.last_p1_faceoffwon = p1_faceoffwon
+        self.last_p2_shots = p2_shots
+        self.last_p2_score = p2_score
+        self.last_time = time
+        self.last_p1_passing = p1_passing
+        self.last_dist = distToPuck
+        self.last_dist_az = distToAttackZone
+
+        return rew
 
     def calc_reward_getpuck(self, info):
         p1_score = info.get('p1_score')
@@ -241,11 +306,9 @@ class NHL94ObservationEnv(gym.Wrapper):
         elif(g1_x == fullstar_x and g1_y == fullstar_y):
             goalie_haspuck = True
 
-
         rew = 0
 
         distToPuck = self.Distance((p1_x, p1_y), (puck_x, puck_y))
-
 
         if player_haspuck == False:
             if distToPuck < self.last_dist:
@@ -255,30 +318,12 @@ class NHL94ObservationEnv(gym.Wrapper):
         else:
             rew = 1
 
-
         if p1_bodychecks > self.last_p1_bodychecks:
             rew = 0.5
 
         if goalie_haspuck:
             rew = -1
 
-        if p1_passing > self.last_p1_passing:
-            rew = 0.5
-        
-
-        #if p1_attackzone > self.last_p1_attackzone and p1_shots > self.last_p1_shots:
-        #    rew = 0.2
-
-        if p1_score > self.last_p1_score:
-            rew = 1.0
-
-        #if p1_shots > self.last_p1_shots:
-        #    rew = 0.1
-     
-
-        #if p2_attackzone > self.last_p2_attackzone:
-        #   rew = -0.2
-            
         if p2_score > self.last_p2_score:
             rew = -1.0
 
@@ -298,20 +343,14 @@ class NHL94ObservationEnv(gym.Wrapper):
         self.last_p1_passing = p1_passing
         self.last_dist = distToPuck
 
-        # Don't give rewards when clock is not running
-        if puck_x == 0 and puck_y == 0:
-            rew = 0
-
         return rew
 
 
     def step(self, ac):
         ob, rew, terminated, truncated, info = self.env.step(ac)
 
-        #rew = self.calc_reward(info)
-        rew = self.calc_reward_getpuck(info)
-
         time = info.get('time')
+        p1_shots = info.get('p1_shots')
 
         #print(time)
 
@@ -352,7 +391,8 @@ class NHL94ObservationEnv(gym.Wrapper):
 
         if(p1_x == fullstar_x and p1_y == fullstar_y):
             player_haspuck = 1.0
-        elif(g1_x == fullstar_x and g1_y == fullstar_y):
+            self.last_havepuck_time = time
+        if(g1_x == fullstar_x and g1_y == fullstar_y):
             goalie_haspuck = 1.0
 
 
@@ -381,10 +421,22 @@ class NHL94ObservationEnv(gym.Wrapper):
         self.time += 1
 
 
-        if time < 10:
-            terminated = True
+        # Calculate Reward and check if episode is done
+        if self.reward_function == "GetPuck":
+            rew = self.calc_reward_getpuck(info)
+            if player_haspuck > 0.0:
+                terminated = True
+        elif self.reward_function == "ScoreGoal":
+            rew = self.calc_reward_scoregoal(info)
+            if p1_score > self.last_p1_score or p1_shots > self.last_p1_shots:
+                if self.last_havepuck_time != -1 and (time - self.last_havepuck_time > 30):
+                    terminated = True
+        else:
+            rew = self.calc_reward_general(info)
+            if time < 10:
+                terminated = True
 
-
+        
         return ob, rew, terminated, truncated, info
 
     def seed(self, s):

@@ -36,6 +36,7 @@ def parse_cmdline(argv):
     parser.add_argument('--alg_verbose', default=True, action='store_true')
     parser.add_argument('--info_verbose', default=True, action='store_true')
     parser.add_argument('--play', default=False, action='store_true')
+    parser.add_argument('--rf', type=str, default='')
 
     print(argv)
     args = parser.parse_args(argv)
