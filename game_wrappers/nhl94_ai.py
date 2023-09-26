@@ -91,14 +91,14 @@ class NHL94AISystem():
     def Think_testAI(self, info):
         p1_actions = [0] * GameConsts.INPUT_MAX
 
-        p1_x = info[0].get('p1_x')
-        p1_y = info[0].get('p1_y')
-        g1_x = info[0].get('g1_x')
-        g1_y = info[0].get('g1_y')
-        puck_x = info[0].get('puck_x')
-        puck_y = info[0].get('puck_y')
-        fullstar_x = info[0].get('fullstar_x')
-        fullstar_y = info[0].get('fullstar_y')
+        p1_x = info.get('p1_x')
+        p1_y = info.get('p1_y')
+        g1_x = info.get('g1_x')
+        g1_y = info.get('g1_y')
+        puck_x = info.get('puck_x')
+        puck_y = info.get('puck_y')
+        fullstar_x = info.get('fullstar_x')
+        fullstar_y = info.get('fullstar_y')
 
         player_haspuck = False
         goalie_haspuck = False
@@ -142,7 +142,7 @@ class NHL94AISystem():
         elif self.get_puck_model and self.score_goal_model:
             p1_actions = self.Think_TwoModels(info[0], state, deterministic)[0]
         else:          
-            p1_actions = [self.Think_testAI(info)[0]]
+            p1_actions = [self.Think_testAI(info[0])[0]]
 
         return p1_actions
 
