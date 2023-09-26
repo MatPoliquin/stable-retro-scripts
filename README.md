@@ -12,7 +12,7 @@ Note: Migrated to pytorch and stable-baselines3. The old tensorflow + original s
 
 ## Installation
 
-Tested on Ubuntu 22.04 and Wimdows 11 WSL2 (Ubuntu 22.04 VM)
+Tested on Ubuntu 22.04 and Windows 11 WSL2 (Ubuntu 22.04 VM)
 
 Requires:
 *   Python 3.7 and up
