@@ -35,7 +35,7 @@ def parse_cmdline(argv):
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='1')
     parser.add_argument('--num_env', type=int, default=16)
-    parser.add_argument('--num_timesteps', type=int, default=15_000_000)
+    parser.add_argument('--num_timesteps', type=int, default=10_000_000)
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_p1_model', type=str, default='')
     parser.add_argument('--alg_verbose', default=True, action='store_false')
@@ -79,8 +79,15 @@ game_states_losspuck = [
 ]
 
 
-
-
+def TrainStates(states, args, logger, rf):
+    for state in game_states_losspuck:
+        com_print('TRAINING ON STATE:%s - %d timesteps' % (state, args.num_timesteps))
+        args.state = state
+        #args.load_p1_model = p1_model_path
+        args.rf = rf
+        trainer = ModelTrainer(args, logger)
+        p1_model_path = trainer.train()
+        return p1_model_path
 
 
 def main(argv):
@@ -94,45 +101,26 @@ def main(argv):
     com_print('================ NHL94 1 on 1 trainer ================')
     com_print('These states will be trained on:')
     com_print(game_states_losspuck)
+    com_print(game_states_gotpuck)
 
     # turn off verbose
     args.alg_verbose = False
     
-    p1_model_path = args.load_p1_model
 
-    # Train model on each state
-    if not args.test_only:    
-        for state in game_states_losspuck:
-            com_print('TRAINING ON STATE:%s - %d timesteps' % (state, args.num_timesteps))
-            args.state = state
-            args.load_p1_model = p1_model_path
-            trainer = ModelTrainer(args, logger)
-            p1_model_path = trainer.train()
 
-            # Test model performance
-            #num_test_matchs = NUM_TEST_MATCHS
-            #new_args = args
-            #new_args.load_p1_model = p1_model_path
-            #com_print('    TESTING MODEL ON %d matchs...' % num_test_matchs)
-            #won_matchs, total_reward = test_model(new_args, num_test_matchs, logger)
-            #percentage = won_matchs / num_test_matchs
-            #com_print('    WON MATCHS:%d/%d - ratio:%f' % (won_matchs, num_test_matchs, percentage))
-            #com_print('    TOTAL REWARDS:%d\n' %  total_reward)
 
-    
-    # Test performance of model on each state
-    #com_print('====== TESTING MODEL ======')
-    #for state in game_states_attackzone:
-    #    num_test_matchs = NUM_TEST_MATCHS
-    #    new_args = args
-    #    won_matchs, total_reward = test_model(new_args, num_test_matchs, logger)
-    #    percentage = won_matchs / num_test_matchs
-    #    com_print('STATE:%s... WON MATCHS:%d/%d TOTAL REWARDS:%d' % (state, won_matchs, num_test_matchs, total_reward))
+    args.model_1 =  TrainStates(game_states_losspuck, args, logger, "ScoreGoal") 
+    args.model_2 = TrainStates(game_states_gotpuck, args, logger, "GetPuck") 
+   
+    print("----------Trained Models----------")
+    print(args.model_1)
+    print(args.model_2)
+    print("----------------------------------")
 
     if args.play:
-        args.state = 'PenguinsVsSenators.losspuck07'
-        args.load_p1_model = p1_model_path
-        args.num_timesteps = 0
+        args.state = 'PenguinsVsSenators'
+        args.num_timesteps = 1000000
+        args.rf = None
 
         player = ModelVsGame(args, logger)
 
