@@ -13,6 +13,8 @@ import pygame
 import pygame.freetype
 import cv2
 import math
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 FB_WIDTH = 1920
 FB_HEIGHT = 1080
@@ -191,6 +193,10 @@ class GameDisplayEnv(gym.Wrapper):
         self.player_actions = [0] * 12
         self.best_dist = 0
 
+        self.updateRewardGraph = True
+        self.frameRewardList = [0] * 200
+        self.frameListUpdateCount = 0
+
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
 
@@ -199,8 +205,11 @@ class GameDisplayEnv(gym.Wrapper):
 
         framebuffer = self.render()
 
+        self.set_reward(rew[0])
+
         self.draw_frame(framebuffer, None, ob, info)
-       
+
+        
         return ob, rew, done, info
 
     def seed(self, s):
@@ -283,6 +292,72 @@ class GameDisplayEnv(gym.Wrapper):
         self.draw_string(self.info_font, ('PUCK DIST: %f' %  distance), (self.STATS_X + 300, self.STATS_Y + 120), (0, 255, 255))
 
 
+    def set_reward(self, rew):
+        #self.frameListUpdated = True
+        #return
+        self.reward = rew
+        self.frameRewardList.append(rew)
+        self.frameRewardList = self.frameRewardList[1:len(self.frameRewardList)]
+        #if rew != 0:
+        #    print(rew)
+
+        self.frameListUpdated = True
+
+    def DrawFrameRewardHistogram(self, posX, posY, width, height):
+        fig = plt.figure(0)
+
+        #plt.plot(self.frameRewardList, color=(0,1,0))
+        #self.frameRewardList = [1] * 200
+        plt.plot(self.frameRewardList, color=(0,1,0))
+        #plt.hist(self.frameRewardList, bins=1, rwidth=0.8)
+        #plt.bar(self.frameRewardList, 50)
+
+        #plt.title(("Reward Mean: %d" % broadcast.rewardmean), color=(0,1,0))
+
+        fig.set_facecolor('black')
+
+        numYData = len(self.frameRewardList)
+        plt.xlim([0,numYData])
+        plt.ylim([-1,1])
+        plt.tight_layout()
+  
+        plt.grid(True)
+        plt.rc('grid', color='w', linestyle='solid')
+
+
+        fig.set_size_inches(width/80, height/60, forward=True)
+
+        ax = plt.gca()
+        ax.set_facecolor("black")
+
+        ax.tick_params(axis='x', colors='green')
+        ax.tick_params(axis='y', colors='green')
+
+        ax.get_xaxis().set_ticks([])
+
+
+        #draw buffer
+        fig.canvas.draw()
+        width, height = fig.canvas.get_width_height()
+        buffer, size = fig.canvas.print_to_buffer()
+        #print(buffer)
+        image = np.fromstring(buffer, dtype='uint8').reshape(height, width, 4)
+        #self.final[posY:posY+height,posX:posX+width] = image[:,:,0:3]
+
+        #print(image[:,:,0:3])
+        rf_img = np.transpose(image[:,:,0:3], (1,0,2))
+
+        surf = pygame.surfarray.make_surface(rf_img)
+        #surf.fill((1, 1, 1))
+        self.main_surf.blit(surf, (1280, 600))
+
+        plt.close()
+
+        self.draw_string(self.info_font, 'REWARD FUNCTION', (1280, 600), (0, 255, 0))
+
+        self.frameListUpdated = False
+
+
     def draw_frame(self, frame_img, action_probabilities, input_state, info):
         self.main_surf.fill((30, 30, 30))
         emu_screen = np.transpose(frame_img, (1,0,2))
@@ -298,6 +373,13 @@ class GameDisplayEnv(gym.Wrapper):
         self.draw_basic_info()
         self.draw_input(input_state)
         self.draw_action_probabilties(self.action_probabilities)
+        
+        
+        self.DrawFrameRewardHistogram(0, 0, 500, 150)
+        #if self.updateRewardGraph:
+        #    self.DrawFrameRewardHistogram(0, 0, 500, 150)
+        #    self.updateRewardGraph = False
+
         self.main_surf.set_colorkey(None)
         self.screen.blit(pygame.transform.smoothscale(self.main_surf,(self.args.display_width,self.args.display_height)), (0, 0))
  
