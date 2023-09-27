@@ -63,9 +63,9 @@ class PvPGameDisplayEnv(gym.Wrapper):
         return text_rect.bottom
 
     def draw_contact_info(self):
-        text_rect = self.font.get_rect('videogames.ai')
+        text_rect = self.font.get_rect('stable-retro')
         text_rect.topleft = (FB_WIDTH - text_rect.width, FB_HEIGHT - text_rect.height)
-        self.font.render_to(self.main_surf, text_rect.topleft, 'videogames.ai', (255, 255, 255))
+        self.font.render_to(self.main_surf, text_rect.topleft, 'stable-retro', (255, 255, 255))
 
     def draw_action_probabilties(self, pos_x, pos_y, action_probabilities):
 
@@ -213,9 +213,9 @@ class GameDisplayEnv(gym.Wrapper):
         return text_rect.bottom
 
     def draw_contact_info(self):
-        text_rect = self.font.get_rect('videogames.ai')
+        text_rect = self.font.get_rect('stable-retro')
         text_rect.topleft = (FB_WIDTH - text_rect.width, FB_HEIGHT - text_rect.height)
-        self.font.render_to(self.main_surf, text_rect.topleft, 'videogames.ai', (255, 255, 255))
+        self.font.render_to(self.main_surf, text_rect.topleft, 'stable-retro', (255, 255, 255))
 
     def draw_action_probabilties(self, action_probabilities):
         self.draw_string(self.info_font, 'OUTPUT', (self.AP_TITLE_X, self.AP_TITLE_Y), (0, 255, 0))

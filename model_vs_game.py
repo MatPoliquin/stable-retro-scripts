@@ -51,7 +51,6 @@ class ModelVsGame:
 
         if self.ai_sys.p1_model is not None:
             self.display_env.num_params = get_num_parameters(self.ai_sys.p1_model)
-            self.display_env.num_params = -1
 
     def play(self, continuous=True, need_reset=True):
         state = self.display_env.reset()
