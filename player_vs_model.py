@@ -21,6 +21,7 @@ def parse_cmdline(argv):
     parser.add_argument('--p1_alg', type=str, default='ppo2')
     parser.add_argument('--p2_alg', type=str, default='ppo2')
     parser.add_argument('--nn', type=str, default='CnnPolicy')
+    parser.add_argument('--nnsize', type=int, default='256')
     parser.add_argument('--model1_desc', type=str, default='CNN')
     parser.add_argument('--model2_desc', type=str, default='MLP')
     parser.add_argument('--env', type=str, default='NHL941on1-Genesis')
