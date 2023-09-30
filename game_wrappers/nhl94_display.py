@@ -248,18 +248,19 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.draw_string(self.info_font_big, ('%d' % self.num_params), (self.NUM_PARAMS_X, self.NUM_PARAMS_Y - 70), (255, 255, 255))
 
     def draw_input(self, input_state):
-        self.draw_string(self.info_font, 'INPUT2', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y), (0, 255, 0))
-        self.draw_string(self.info_font, '84x84 pixels', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 20), (0, 255, 255))
-        self.draw_string(self.info_font, 'last 4 frames', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 40), (0, 255, 255))
+        # TODO fix input for MLPS
+        # self.draw_string(self.info_font, 'INPUT2', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y), (0, 255, 0))
+        # self.draw_string(self.info_font, '84x84 pixels', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 20), (0, 255, 255))
+        # self.draw_string(self.info_font, 'last 4 frames', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 40), (0, 255, 255))
 
-        img = np.array(input_state[0])
+        # img = np.array(input_state[0])
 
-        frame = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-        frame = cv2.resize(frame, (84, 84), interpolation=cv2.INTER_AREA)
-        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
+        # frame = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+        # frame = cv2.resize(frame, (84, 84), interpolation=cv2.INTER_AREA)
+        # frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
 
-        surf = pygame.surfarray.make_surface(frame)
-        self.main_surf.blit(pygame.transform.rotozoom(surf, -90, 3), (self.INPUT_X, self.INPUT_Y))
+        # surf = pygame.surfarray.make_surface(frame)
+        # self.main_surf.blit(pygame.transform.rotozoom(surf, -90, 3), (self.INPUT_X, self.INPUT_Y))
 
     def draw_game_stats(self, info):
         print(info)

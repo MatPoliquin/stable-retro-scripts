@@ -35,9 +35,11 @@ def parse_cmdline(argv):
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default='1')
     parser.add_argument('--num_env', type=int, default=16)
-    parser.add_argument('--num_timesteps', type=int, default=10_000_000)
+    parser.add_argument('--num_timesteps', type=int, default=20_000_000)
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_p1_model', type=str, default='')
+    parser.add_argument('--model_1', type=str, default='')
+    parser.add_argument('--model_2', type=str, default='')
     parser.add_argument('--alg_verbose', default=True, action='store_false')
     parser.add_argument('--info_verbose', default=True, action='store_false')
     parser.add_argument('--display_width', type=int, default='1440')
@@ -80,7 +82,7 @@ game_states_losspuck = [
 
 
 def TrainStates(states, args, logger, rf):
-    for state in game_states_losspuck:
+    for state in states:
         com_print('TRAINING ON STATE:%s - %d timesteps' % (state, args.num_timesteps))
         args.state = state
         #args.load_p1_model = p1_model_path
@@ -105,16 +107,16 @@ def main(argv):
 
     # turn off verbose
     args.alg_verbose = False
-    
 
+    args.model_1 =  TrainStates(game_states_gotpuck, args, logger, "ScoreGoal") 
+    args.model_2 = TrainStates(game_states_losspuck, args, logger, "GetPuck")
 
-
-    args.model_1 =  TrainStates(game_states_losspuck, args, logger, "ScoreGoal") 
-    args.model_2 = TrainStates(game_states_gotpuck, args, logger, "GetPuck") 
+    #args.load_p1_model = TrainStates(game_states_losspuck, args, logger, "GetPuck")  
    
     print("----------Trained Models----------")
     print(args.model_1)
     print(args.model_2)
+    #print(args.load_p1_model)
     print("----------------------------------")
 
     if args.play:
