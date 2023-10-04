@@ -248,6 +248,7 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.draw_string(self.info_font_big, ('%d' % self.num_params), (self.NUM_PARAMS_X, self.NUM_PARAMS_Y - 70), (255, 255, 255))
 
     def draw_input(self, input_state):
+        return
         # TODO fix input for MLPS
         # self.draw_string(self.info_font, 'INPUT2', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y), (0, 255, 0))
         # self.draw_string(self.info_font, '84x84 pixels', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 20), (0, 255, 255))
