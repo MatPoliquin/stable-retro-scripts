@@ -55,7 +55,7 @@ def main(argv):
         exit()
 
 
-    env = init_env(None, 1, None, 1, args, use_sticky_action=False, False, False)
+    env = init_env(None, 1, None, 1, args, use_sticky_action=False, use_display=False, use_frame_skip=False)
     model = init_model(None, args.load_model, args.p1_alg, args, env, logger)
 
     play_env.num_params = get_num_parameters(model)
@@ -66,6 +66,7 @@ def main(argv):
 
     p1_actions = []
     p2_actions = []
+    total_rewards = 0
     while True:        
         p1_actions = model.predict(state)[0]
         p2_actions = play_env.player_actions
@@ -82,7 +83,6 @@ def main(argv):
 
         if done:
             state = play_env.reset()
-
 
 if __name__ == '__main__':
     main(sys.argv)
