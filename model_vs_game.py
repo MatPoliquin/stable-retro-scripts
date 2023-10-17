@@ -46,7 +46,7 @@ class ModelVsGame:
     def __init__(self, args, logger, need_display=True):
 
         self.p1_env = init_env(None, 1, args.state, 1, args, True)
-        self.display_env = init_play_env(args, 1, False, need_display)
+        self.display_env = init_play_env(args, 1, False, need_display, False)
 
         self.ai_sys = games.wrappers.ai_sys(args, self.p1_env, logger)
         if args.model_1 != '':
@@ -73,8 +73,9 @@ class ModelVsGame:
             else:
                 self.display_env.action_probabilities = []
             
-            state, reward, done, info = self.display_env.step(p1_actions)
-            total_rewards += reward
+            for i in range(4):
+                state, reward, done, info = self.display_env.step(p1_actions)
+                total_rewards += reward
 
             if done:
                 if continuous:

@@ -55,7 +55,7 @@ def main(argv):
         exit()
 
 
-    env = init_env(None, 1, None, 1, args, use_sticky_action=False)
+    env = init_env(None, 1, None, 1, args, use_sticky_action=False, False, False)
     model = init_model(None, args.load_model, args.p1_alg, args, env, logger)
 
     play_env.num_params = get_num_parameters(model)
@@ -76,7 +76,9 @@ def main(argv):
 
         actions = np.append(p1_actions, p2_actions)
 
-        state, reward, done, info = play_env.step([actions])
+        for i in range(4):
+            state, reward, done, info = play_env.step([actions])
+            total_rewards += reward
 
         if done:
             state = play_env.reset()

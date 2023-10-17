@@ -69,7 +69,7 @@ def make_retro(*, game, state=None, num_players, max_episode_steps=4500, **kwarg
     #    env = TimeLimit(env, max_episode_steps=max_episode_steps)
     return env
 
-def init_env(output_path, num_env, state, num_players, args, use_sticky_action=True, use_display=False):
+def init_env(output_path, num_env, state, num_players, args, use_sticky_action=True, use_display=False, use_frame_skip=True):
     #if wrapper_kwargs is None:
     wrapper_kwargs = {}
     #wrapper_kwargs['scenario'] = 'test'
@@ -97,10 +97,11 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
             if use_display:
                 env = GameDisplayEnv(env, args, 17, 'CNN', None)
             
-            if use_sticky_action:
-                env = StochasticFrameSkip(env, n=4, stickprob=0.25)
-            else:
-                env = StochasticFrameSkip(env, n=4, stickprob=-1)
+            if use_frame_skip:
+                if use_sticky_action:
+                    env = StochasticFrameSkip(env, n=4, stickprob=0.25)
+                else:
+                    env = StochasticFrameSkip(env, n=4, stickprob=-1)
             
             if args.nn != 'MlpPolicy':
                 env = WarpFrame(env)
@@ -128,11 +129,11 @@ def get_button_names(args):
     print(env.buttons)
     return env.buttons
 
-def init_play_env(args, num_players, is_pvp_display=False, need_display=True):
+def init_play_env(args, num_players, is_pvp_display=False, need_display=True, use_frame_skip=True):
     
     button_names = get_button_names(args)
 
-    env = init_env(None, 1, args.state, num_players, args, use_sticky_action=False, use_display=False)
+    env = init_env(None, 1, args.state, num_players, args, use_sticky_action=False, use_display=False, use_frame_skip=use_frame_skip)
 
     if not need_display:
         return env
