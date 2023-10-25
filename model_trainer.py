@@ -57,7 +57,7 @@ class ModelTrainer:
         model_savefile_name = get_model_file_name(args)
         self.model_savepath = os.path.join(self.output_fullpath, model_savefile_name)
 
-        self.env = init_env(self.output_fullpath, args.num_env, args.state, 1, args)
+        self.env = init_env(self.output_fullpath, args.num_env, args.state, args.num_players, args)
         
         self.p1_model = init_model(self.output_fullpath, args.load_p1_model, args.alg, args, self.env, logger)
       

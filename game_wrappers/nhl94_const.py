@@ -30,3 +30,6 @@ class GameConsts():
 
     SHOOT_POS_X = 0
     SHOOT_POS_Y = 120
+
+    P2_SHOOT_POS_X = 0
+    P2_SHOOT_POS_Y = -120

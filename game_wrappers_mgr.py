@@ -1,4 +1,5 @@
 from game_wrappers.nhl94_obs import NHL94ObservationEnv, NHL94Discretizer
+from game_wrappers.nhl94_obs_2p import NHL94Observation2PEnv
 from game_wrappers.nhl94_display import NHL94PvPGameDisplayEnv, NHL94GameDisplayEnv
 from game_wrappers.pong_obs import PongObservationEnv
 from game_wrappers.display import PvPGameDisplayEnv, GameDisplayEnv
@@ -13,6 +14,7 @@ class GameWrapperManager(object):
         return cls.instance
     def __init__(self):
         self.obs_env = None
+        self.obs_env_2p = None
         self.pvp_display_env = None
         self.sp_display_env = None
         self.ai_sys = None
@@ -28,6 +30,7 @@ class GameWrapperManager(object):
         # overide with game specific wrappers
         if args.env == 'NHL941on1-Genesis':
             self.obs_env = NHL94ObservationEnv
+            self.obs_env_2p = NHL94Observation2PEnv
             self.pvp_display_env = NHL94PvPGameDisplayEnv
             self.sp_display_env = NHL94GameDisplayEnv
             self.ai_sys = NHL94AISystem
