@@ -415,7 +415,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
     def step(self, ac):
         #print(ac)
         
-        p2_ac = [0,0,0,0,0,0,0,0,0,0,0,0]
+        p2_ac = [0,0,0,0,1,0,0,0,0,0,0,0]
         p1_zero = [0,0,0,0,0,0,0,0,0,0,0,0]
         #p2_ac[GameConsts.INPUT_UP] = 1
         #p1_zero[GameConsts.INPUT_LEFT] = 1
@@ -423,6 +423,10 @@ class NHL94Observation2PEnv(gym.Wrapper):
             p2_ac = self.Think_testAI(self.prev_info)
         
         ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + p2_ac
+        
+        ac2 = np.concatenate([ac, np.array(p2_ac)])
+        #print(ac2)
+        #print(np.array(p2_ac))
         #ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + [0,0,0,0,1,0,0,0,0,0,0,0]
         #ac2 = p1_zero + p1_zero
         #print(ac2)
@@ -504,6 +508,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         # Calculate Reward and check if episode is done
         if self.reward_function == "GetPuck":
+            #print('GetPuck')
             rew = self.calc_reward_getpuck(info)
             if player_haspuck > 0.0:
                 terminated = True
@@ -513,6 +518,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
                 if self.last_havepuck_time != -1 and (time - self.last_havepuck_time > 30):
                     terminated = True
         else:
+            print('error')
             rew = self.calc_reward_general(info)
             if time < 10:
                 terminated = True
