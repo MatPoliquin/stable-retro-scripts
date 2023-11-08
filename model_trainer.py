@@ -97,6 +97,11 @@ class ModelTrainer:
             
             state, reward, done, info = self.env.step(p1_actions[0])
 
+            #print(reward)
+
+            if done[0]:
+                state = self.env.reset()
+
             if not continuous and done is True:
                 return info
 

@@ -318,11 +318,14 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         distToPuck = self.Distance((p1_x, p1_y), (puck_x, puck_y))
 
+        scaled_dist = distToPuck / 200.0
+
         if player_haspuck == False:
             if distToPuck < self.last_dist:
-                rew = 0.3
+                rew = 1.0 / (1.0 + scaled_dist)
+                #print(rew)
             else:
-                rew = -1
+                rew = -1.0
         else:
             rew = 1
 
@@ -337,6 +340,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         if p2_shots > self.last_p2_shots:
             rew = -1.0
+
+        if time < 100:
+            rew = -1
 
 
         self.last_p1_score = p1_score
@@ -415,12 +421,12 @@ class NHL94Observation2PEnv(gym.Wrapper):
     def step(self, ac):
         #print(ac)
         
-        p2_ac = [0,0,0,0,1,0,0,0,0,0,0,0]
+        p2_ac = [0,0,0,0,0,0,0,0,0,0,0,0]
         p1_zero = [0,0,0,0,0,0,0,0,0,0,0,0]
         #p2_ac[GameConsts.INPUT_UP] = 1
         #p1_zero[GameConsts.INPUT_LEFT] = 1
-        if self.prev_info != None:
-            p2_ac = self.Think_testAI(self.prev_info)
+        #if self.prev_info != None:
+        #    p2_ac = self.Think_testAI(self.prev_info)
         
         ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + p2_ac
         
@@ -447,8 +453,8 @@ class NHL94Observation2PEnv(gym.Wrapper):
         g2_x = info.get('g2_x') / 120
         g2_y = info.get('g2_y') / 300
 
-        puck_x = info.get('puck_x') / 120
-        puck_y = info.get('puck_y') / 300
+        puck_x = info.get('puck_x') / 130
+        puck_y = info.get('puck_y') / 270
 
         g1_x = info.get('g1_x')
         g1_y = info.get('g1_y')
@@ -474,7 +480,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
         player_haspuck = 0.0
         goalie_haspuck = 0.0
 
-        if(p1_x == fullstar_x and p1_y == fullstar_y):
+        distToPuck = self.Distance((p1_x, p1_y), (0, 0))
+
+        if(info.get('p1_x') == fullstar_x and info.get('p1_y') == fullstar_y):
             player_haspuck = 1.0
             self.last_havepuck_time = time
         if(g1_x == fullstar_x and g1_y == fullstar_y):
@@ -510,7 +518,12 @@ class NHL94Observation2PEnv(gym.Wrapper):
         if self.reward_function == "GetPuck":
             #print('GetPuck')
             rew = self.calc_reward_getpuck(info)
+            #print(rew)
             if player_haspuck > 0.0:
+                print('TERMINATED: GOT PUCK: (%d,%d) (%d,%d)' % (info.get('p1_x'), info.get('p1_y'), fullstar_x, fullstar_y))
+                terminated = True
+            if time < 100:
+                print('TERMINATED: TIME')
                 terminated = True
         elif self.reward_function == "ScoreGoal":
             rew = self.calc_reward_scoregoal(info)
