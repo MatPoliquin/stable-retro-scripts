@@ -4,12 +4,14 @@ Very simple hard coded AI for testing purposes
 """
 
 import math
+import random
 from game_wrappers.nhl94_const import GameConsts
 
 AI_STATE_IDLE = 0
 AI_STATE_ISHOOTING = 1
 
 from models import init_model
+
 
 class NHL94AISystem():
     def __init__(self, args, env, logger):
@@ -28,6 +30,8 @@ class NHL94AISystem():
 
         self.logger = logger
         self.env = env
+
+        self.target_xy = [0,0]
 
     def SetModels(self, get_puck_model_path, score_goal_model_path):
         if get_puck_model_path != '' and score_goal_model_path != '':
@@ -87,6 +91,12 @@ class NHL94AISystem():
 
         return p1_actions
 
+    def SelectRandomTarget(self, info):
+        x = (random.random() - 0.5) * 240
+        y = (random.random() - 0.5) * 460
+
+        return [x,y]
+
 
     def Think_testAI(self, info):
         p1_actions = [0] * GameConsts.INPUT_MAX
@@ -112,22 +122,40 @@ class NHL94AISystem():
         tmp = (p1_x - puck_x)**2 + (p1_y - puck_y)**2
         pp_dist = math.sqrt(tmp)
 
-        if(goalie_haspuck): print('GOALIE HAS PUCK')
+        #if(goalie_haspuck): print('GOALIE HAS PUCK')
+
+        goto_target_test = False
 
         if player_haspuck:
-            dist = self.DistToPos([p1_x, p1_y], [GameConsts.SHOOT_POS_X, GameConsts.SHOOT_POS_Y])
+            if not goto_target_test:
+                dist = self.DistToPos([p1_x, p1_y], [GameConsts.SHOOT_POS_X, GameConsts.SHOOT_POS_Y])
 
-            if dist < 60:
-                p1_actions[GameConsts.INPUT_C] = 1
+                if dist < 60:
+                    p1_actions[GameConsts.INPUT_C] = 1
+                else:
+                    self.GotoTarget(p1_actions, [p1_x - GameConsts.SHOOT_POS_X, p1_y - GameConsts.SHOOT_POS_Y])
+                    #print('GOTO SHOOT POSITION')
             else:
-                self.GotoTarget(p1_actions, [p1_x - GameConsts.SHOOT_POS_X, p1_y - GameConsts.SHOOT_POS_Y])
-                print('GOTO SHOOT POSITION')
+
+                dist = self.DistToPos([p1_x, p1_y], self.target_xy)
+
+                if dist < 20.0:
+                    self.target_xy = self.SelectRandomTarget(info)
+                    print(self.target_xy)
+                    r = random.random()
+                    print(r)
+                    if r < 0.2:
+                        p1_actions[GameConsts.INPUT_B] = 1
+
+                # TODO check if target is near opposing player
+                self.GotoTarget(p1_actions, [p1_x - self.target_xy[0], p1_y - self.target_xy[1]])
+
         elif goalie_haspuck:
             p1_actions[GameConsts.INPUT_B] = 1
-            print('GOALIE PASS')
+            #print('GOALIE PASS')
         else:
             self.GotoTarget(p1_actions, pp_vec)
-            print('FIND PUCK')
+            #print('FIND PUCK')
 
         return [p1_actions]
 
