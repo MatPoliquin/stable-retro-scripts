@@ -12,6 +12,8 @@ import numpy as np
 from os import environ
 import math
 import time
+import random
+from datetime import datetime
 
 from game_wrappers.nhl94_const import GameConsts
 
@@ -70,6 +72,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
         #self.action_space = 12 * [0]
 
         self.prev_info = None
+
+        self.target_xy = [-1, -1]
+        random.seed(datetime.now().timestamp())
 
         self.action_space = gym.spaces.MultiBinary(self.num_buttons)
 
@@ -281,6 +286,57 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         return rew
 
+    def calc_reward_keeppuck(self, info):
+        p1_score = info.get('p1_score')
+        p2_score = info.get('p2_score')
+        p1_shots = info.get('p1_shots')
+        p2_shots = info.get('p2_shots')
+        p1_bodychecks = info.get('p1_bodychecks')
+        p2_attackzone = info.get('p2_attackzone')
+        p1_attackzone = info.get('p1_attackzone')
+        p1_faceoffwon = info.get('p1_faceoffwon')
+        p1_passing = info.get('p1_passing')
+        p1_x = info.get('p1_x')
+        p1_y = info.get('p1_y')
+        p2_x = info.get('p2_x')
+        p2_y = info.get('p2_y')
+        g1_x = info.get('g1_x')
+        g1_y = info.get('g1_y')
+        time = info.get('time')
+        puck_x = info.get('puck_x')
+        puck_y = info.get('puck_y')
+
+        fullstar_x = info.get('fullstar_x')
+        fullstar_y = info.get('fullstar_y')
+        
+
+        player_haspuck = False
+        goalie_haspuck = False
+
+        if(p1_x == fullstar_x and p1_y == fullstar_y):
+            player_haspuck = True
+        elif(g1_x == fullstar_x and g1_y == fullstar_y):
+            goalie_haspuck = True
+
+        rew = 1.0
+        if not player_haspuck:
+            rew = -1.0
+
+        self.last_p1_score = p1_score
+        self.last_p1_shots = p1_shots
+        self.last_p1_bodychecks = p1_bodychecks
+        self.last_p2_attackzone = p2_attackzone
+        self.last_p1_attackzone = p1_attackzone
+        self.last_p1_faceoffwon = p1_faceoffwon
+        self.last_p2_shots = p2_shots
+        self.last_p2_score = p2_score
+        self.last_time = time
+        self.last_p1_passing = p1_passing
+        self.last_dist = distToPuck
+        self.last_dist_az = distToAttackZone
+
+        return rew
+    
     def calc_reward_getpuck(self, info):
         p1_score = info.get('p1_score')
         p2_score = info.get('p2_score')
@@ -375,6 +431,12 @@ class NHL94Observation2PEnv(gym.Wrapper):
         else:
             p1_actions[GameConsts.INPUT_UP] = 1
 
+    def SelectRandomTarget(self):
+        x = (random.random() - 0.5) * 240
+        y = (random.random() - 0.5) * 460
+
+        return [x,y]
+    
     def Think_testAI(self, info):
         p1_actions = [0] * GameConsts.INPUT_MAX
 
@@ -401,14 +463,36 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         #if(goalie_haspuck): print('GOALIE HAS PUCK')
 
-        if player_haspuck:
-            dist = self.DistToPos([p2_x, p2_y], [GameConsts.P2_SHOOT_POS_X, GameConsts.P2_SHOOT_POS_Y])
+        goto_target_test = True
 
-            if dist < 60:
-                p1_actions[GameConsts.INPUT_C] = 1
+        if player_haspuck:
+            if not goto_target_test:
+                dist = self.DistToPos([p2_x, p2_y], [GameConsts.SHOOT_POS_X, GameConsts.SHOOT_POS_Y])
+
+                if dist < 60:
+                    p1_actions[GameConsts.INPUT_C] = 1
+                else:
+                    self.GotoTarget(p1_actions, [p2_x - GameConsts.SHOOT_POS_X, p2_y - GameConsts.SHOOT_POS_Y])
+                    #print('GOTO SHOOT POSITION')
             else:
-                self.GotoTarget(p1_actions, [p2_x - GameConsts.P2_SHOOT_POS_X, p2_y - GameConsts.P2_SHOOT_POS_Y])
-                #print('GOTO SHOOT POSITION')
+
+
+                if self.target_xy[0] != -1:
+                    dist = self.DistToPos([p2_x, p2_y], self.target_xy)
+                else:
+                    dist = 0.0
+
+                if dist < 20.0:
+                    self.target_xy = self.SelectRandomTarget()
+                    #print(self.target_xy)
+                    random.seed(datetime.now().timestamp())
+                    r = random.random()
+                    #print(r)
+                    if r < 0.2:
+                        p1_actions[GameConsts.INPUT_B] = 1
+
+                # TODO check if target is near opposing player
+                self.GotoTarget(p1_actions, [p2_x - self.target_xy[0], p2_y - self.target_xy[1]])
         elif goalie_haspuck:
             p1_actions[GameConsts.INPUT_B] = 1
             #print('GOALIE PASS')
@@ -422,11 +506,28 @@ class NHL94Observation2PEnv(gym.Wrapper):
         #print(ac)
         
         p2_ac = [0,0,0,0,0,0,0,0,0,0,0,0]
+
+        # up = random.random()
+        # right = random.random()
+
+        # if up >= 0.5:
+        #     p2_ac[GameConsts.INPUT_UP] = 1
+        # else:
+        #     p2_ac[GameConsts.INPUT_DOWN] = 1
+
+        # if right >= 0.5:
+        #     p2_ac[GameConsts.INPUT_RIGHT] = 1
+        # else:
+        #     p2_ac[GameConsts.INPUT_LEFT] = 1
+
         p1_zero = [0,0,0,0,0,0,0,0,0,0,0,0]
         #p2_ac[GameConsts.INPUT_UP] = 1
         #p1_zero[GameConsts.INPUT_LEFT] = 1
-        #if self.prev_info != None:
-        #    p2_ac = self.Think_testAI(self.prev_info)
+
+        think = random.random()
+
+        if self.prev_info != None: #and think > 0.2:
+            p2_ac = self.Think_testAI(self.prev_info)
         
         ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + p2_ac
         
@@ -520,18 +621,22 @@ class NHL94Observation2PEnv(gym.Wrapper):
             rew = self.calc_reward_getpuck(info)
             #print(rew)
             if player_haspuck > 0.0:
-                print('TERMINATED: GOT PUCK: (%d,%d) (%d,%d)' % (info.get('p1_x'), info.get('p1_y'), fullstar_x, fullstar_y))
+                #print('TERMINATED: GOT PUCK: (%d,%d) (%d,%d)' % (info.get('p1_x'), info.get('p1_y'), fullstar_x, fullstar_y))
                 terminated = True
             if time < 100:
-                print('TERMINATED: TIME')
+                #print('TERMINATED: TIME')
                 terminated = True
         elif self.reward_function == "ScoreGoal":
             rew = self.calc_reward_scoregoal(info)
             if p1_score > self.last_p1_score or p1_shots > self.last_p1_shots:
                 if self.last_havepuck_time != -1 and (time - self.last_havepuck_time > 30):
                     terminated = True
+        elif self.reward_function == "KeepPuck":
+            rew = self.calc_reward_keeppuck(info)
+            if player_haspuck == 0.0:
+                terminated = True
         else:
-            print('error')
+            #print('error')
             rew = self.calc_reward_general(info)
             if time < 10:
                 terminated = True
