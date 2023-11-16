@@ -332,8 +332,8 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.last_p2_score = p2_score
         self.last_time = time
         self.last_p1_passing = p1_passing
-        self.last_dist = distToPuck
-        self.last_dist_az = distToAttackZone
+        #self.last_dist = distToPuck
+        #self.last_dist_az = distToAttackZone
 
         return rew
     
@@ -463,7 +463,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         #if(goalie_haspuck): print('GOALIE HAS PUCK')
 
-        goto_target_test = True
+        goto_target_test = False
 
         if player_haspuck:
             if not goto_target_test:
