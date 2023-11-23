@@ -40,7 +40,7 @@ class NHL94Discretizer(gym.ActionWrapper):
 
 # WARNING: NON FUNCTIONAL CODE - WIP
 class NHL94Observation2PEnv(gym.Wrapper):
-    def __init__(self, env):
+    def __init__(self, env, num_players):
         gym.Wrapper.__init__(self, env)
 
         low = np.array([-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], dtype=np.float32)
@@ -76,7 +76,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.target_xy = [-1, -1]
         random.seed(datetime.now().timestamp())
 
-        self.action_space = gym.spaces.MultiBinary(self.num_buttons)
+        self.num_players = num_players
+        if num_players == 2:
+            self.action_space = gym.spaces.MultiBinary(self.num_buttons)
 
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
@@ -256,20 +258,15 @@ class NHL94Observation2PEnv(gym.Wrapper):
         isGoodShot = True
         rew = 0
 
-        distToPuck = self.Distance((p1_x, p1_y), (puck_x, puck_y))
-        distToAttackZone = 120 - p1_y 
 
-        if p1_y < 120 and self.last_dist_az != -1:
-            if distToAttackZone < self.last_dist_az:
-                rew = 0.1
-            else:
-                rew = -1
 
         if p1_score > self.last_p1_score:
             rew = 1.0
 
-        if p1_y < 120 and p1_shots > self.last_p1_shots:
-            rew = 0.3
+
+        if time < 200:
+            rew = -1
+
 
         self.last_p1_score = p1_score
         self.last_p1_shots = p1_shots
@@ -281,8 +278,8 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.last_p2_score = p2_score
         self.last_time = time
         self.last_p1_passing = p1_passing
-        self.last_dist = distToPuck
-        self.last_dist_az = distToAttackZone
+        #self.last_dist = distToPuck
+        #self.last_dist_az = distToAttackZone
 
         return rew
 
@@ -504,34 +501,35 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
     def step(self, ac):
         #print(ac)
-        
-        p2_ac = [0,0,0,0,0,0,0,0,0,0,0,0]
+        ac2 = ac
+        if self.num_players == 2:
+            p2_ac = [0,0,0,0,0,0,0,0,0,0,0,0]
 
-        # up = random.random()
-        # right = random.random()
+            # up = random.random()
+            # right = random.random()
 
-        # if up >= 0.5:
-        #     p2_ac[GameConsts.INPUT_UP] = 1
-        # else:
-        #     p2_ac[GameConsts.INPUT_DOWN] = 1
+            # if up >= 0.5:
+            #     p2_ac[GameConsts.INPUT_UP] = 1
+            # else:
+            #     p2_ac[GameConsts.INPUT_DOWN] = 1
 
-        # if right >= 0.5:
-        #     p2_ac[GameConsts.INPUT_RIGHT] = 1
-        # else:
-        #     p2_ac[GameConsts.INPUT_LEFT] = 1
+            # if right >= 0.5:
+            #     p2_ac[GameConsts.INPUT_RIGHT] = 1
+            # else:
+            #     p2_ac[GameConsts.INPUT_LEFT] = 1
 
-        p1_zero = [0,0,0,0,0,0,0,0,0,0,0,0]
-        #p2_ac[GameConsts.INPUT_UP] = 1
-        #p1_zero[GameConsts.INPUT_LEFT] = 1
+            p1_zero = [0,0,0,0,0,0,0,0,0,0,0,0]
+            #p2_ac[GameConsts.INPUT_UP] = 1
+            #p1_zero[GameConsts.INPUT_LEFT] = 1
 
-        think = random.random()
+            think = random.random()
 
-        if self.prev_info != None: #and think > 0.2:
-            p2_ac = self.Think_testAI(self.prev_info)
-        
-        ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + p2_ac
-        
-        ac2 = np.concatenate([ac, np.array(p2_ac)])
+            if self.prev_info != None: #and think > 0.2:
+                p2_ac = self.Think_testAI(self.prev_info)
+            
+            ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + p2_ac
+            
+            ac2 = np.concatenate([ac, np.array(p2_ac)])
         #print(ac2)
         #print(np.array(p2_ac))
         #ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + [0,0,0,0,1,0,0,0,0,0,0,0]
@@ -628,9 +626,8 @@ class NHL94Observation2PEnv(gym.Wrapper):
                 terminated = True
         elif self.reward_function == "ScoreGoal":
             rew = self.calc_reward_scoregoal(info)
-            if p1_score > self.last_p1_score or p1_shots > self.last_p1_shots:
-                if self.last_havepuck_time != -1 and (time - self.last_havepuck_time > 30):
-                    terminated = True
+            if rew != 0:
+                terminated = True
         elif self.reward_function == "KeepPuck":
             rew = self.calc_reward_keeppuck(info)
             if player_haspuck == 0.0:
