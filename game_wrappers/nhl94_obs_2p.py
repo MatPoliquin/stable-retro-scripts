@@ -45,7 +45,7 @@ class NHL94Discretizer(gym.ActionWrapper):
 
 # WARNING: NON FUNCTIONAL CODE - WIP
 class NHL94Observation2PEnv(gym.Wrapper):
-    def __init__(self, env):
+    def __init__(self, env, num_players):
         gym.Wrapper.__init__(self, env)
 
         low = np.array([-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], dtype=np.float32)
@@ -61,7 +61,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.target_xy = [-1, -1]
         random.seed(datetime.now().timestamp())
 
-        self.action_space = gym.spaces.MultiBinary(self.num_buttons)
+        self.num_players = num_players
+        if num_players == 2:
+            self.action_space = gym.spaces.MultiBinary(self.num_buttons)
 
         self.game_state = NHL94GameState()
 
