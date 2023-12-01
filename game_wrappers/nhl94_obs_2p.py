@@ -17,7 +17,7 @@ from datetime import datetime
 
 from game_wrappers.nhl94_const import GameConsts
 
-from game_wrappers.nhl94_rf import rf_general, rf_getpuck, rf_keeppuck, rf_scoregoal
+from game_wrappers.nhl94_rf import rf_general, rf_getpuck, rf_keeppuck, rf_scoregoal, isdone_getpuck, isdone_scoregoal, isdone_keeppuck
 from game_wrappers.nhl94_ai import NHL94AISystem
 
 from game_wrappers.nhl94_gamestate import NHL94GameState
@@ -181,30 +181,18 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.prev_info = info
         
 
-
         self.game_state.BeginFrame(info)
         
-
         # Calculate Reward and check if episode is done
         if self.reward_function == "GetPuck":
-            #print('GetPuck')
             rew = rf_getpuck(self.game_state)
-            #print(rew)
-            if self.game_state.player_haspuck > 0.0:
-                #print('TERMINATED: GOT PUCK: (%d,%d) (%d,%d)' % (info.get('p1_x'), info.get('p1_y'), fullstar_x, fullstar_y))
-                terminated = True
-            if self.game_state.time < 100:
-                #print('TERMINATED: TIME')
-                terminated = True
+            terminated = isdone_getpuck(self.game_state)
         elif self.reward_function == "ScoreGoal":
             rew = rf_scoregoal(self.game_state)
-            if self.game_state.p1_score > self.game_state.last_p1_score or self.game_state.p1_shots > self.game_state.last_p1_shots:
-                if self.game_state.last_havepuck_time != -1 and (time - self.game_state.last_havepuck_time > 30):
-                    terminated = True
+            terminated = isdone_scoregoal(self.game_state)
         elif self.reward_function == "KeepPuck":
             rew = rf_keeppuck(self.game_state)
-            if self.game_state.player_haspuck == 0.0:
-                terminated = True
+            terminated = isdone_keeppuck(self.game_state)
         else:
             #print('error')
             rew = self.calc_reward_general(info)

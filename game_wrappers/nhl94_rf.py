@@ -107,6 +107,14 @@ def rf_general(state):
     # #    rew = -1
 
     return rew
+
+
+def isdone_scoregoal(state):
+    #if self.game_state.p1_score > self.game_state.last_p1_score or self.game_state.p1_shots > self.game_state.last_p1_shots:
+    #    if self.game_state.last_havepuck_time != -1 and (time - self.game_state.last_havepuck_time > 30):
+    #            terminated = True
+
+    return False
     
 def rf_scoregoal(state):
     
@@ -148,6 +156,11 @@ def rf_scoregoal(state):
 
     return rew
 
+
+def isdone_keeppuck(state):
+    if state.player_haspuck == False:
+        return True
+
 def rf_keeppuck(state):
     
     rew = 1.0
@@ -155,6 +168,13 @@ def rf_keeppuck(state):
         rew = -1.0
 
     return rew
+
+def isdone_getpuck(state):
+    if state.player_haspuck == True:
+        #print('TERMINATED: GOT PUCK: (%d,%d) (%d,%d)' % (info.get('p1_x'), info.get('p1_y'), fullstar_x, fullstar_y))
+        return True
+    elif state.time < 100:
+        return True
     
 def rf_getpuck(state):
     rew = 0
