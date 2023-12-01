@@ -87,6 +87,8 @@ class NHL94GameState():
         self.time = info.get('time')
         self.puck_x = info.get('puck_x')
         self.puck_y = info.get('puck_y')
+        self.fullstar_x = info.get('fullstar_x')
+        self.fullstar_y = info.get('fullstar_y')
 
         self.distToPuck = self.Distance((self.p1_x, self.p1_y), (self.puck_x, self.puck_y))
 

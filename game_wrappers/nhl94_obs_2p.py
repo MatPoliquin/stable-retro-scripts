@@ -96,6 +96,11 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         return [x,y]
     
+    def DistToPos(self, vec1, vec2):
+        tmp = (vec1[0] - vec2[0])**2 + (vec1[1] - vec2[1])**2
+    
+        return math.sqrt(tmp)
+    
     def Think_testAI(self, info):
         p1_actions = [0] * GameConsts.INPUT_MAX
 
