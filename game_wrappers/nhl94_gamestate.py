@@ -40,6 +40,8 @@ class NHL94GameState():
         self.p2_fullstar_y = 0
         self.player_haspuck = False
         self.goalie_haspuck = False
+        self.p2_haspuck = False
+        self.g2_haspuck = False
         self.puck_vel_x  = 0
         self.puck_vel_y  = 0
         self.puck_x = 0
@@ -68,12 +70,27 @@ class NHL94GameState():
 
     # Flip the variables so p2 becomes p1
     def Flip(self):
-        self.swap(self.p1_x, self.p2_x)
-        self.swap(self.p1_y, self.p2_y)
-        self.swap(self.g1_x, self.g2_x)
-        self.swap(self.g1_y, self.g2_y)
-        self.swap(self.p1_fullstar_x, self.p2_fullstar_x)
-        self.swap(self.p1_fullstar_y, self.p2_fullstar_y)
+        #print('BEFORE:%d,%d\n' % (self.p1_x, self.p2_x))
+
+        #self.swap(self.p1_x, self.p2_x)
+        #self.swap(self.p1_y, self.p2_y)
+        #self.swap(self.g1_x, self.g2_x)
+        #self.swap(self.g1_y, self.g2_y)
+        #self.swap(self.p1_fullstar_x, self.p2_fullstar_x)
+        #self.swap(self.p1_fullstar_y, self.p2_fullstar_y)
+
+        self.p1_x, self.p2_x = self.p2_x, self.p1_x
+        self.p1_y, self.p2_y = self.p2_y, self.p1_y
+        self.g1_x, self.g2_x = self.g2_x, self.g1_x
+        self.g1_y, self.g2_y = self.g2_y, self.g1_y
+        self.p1_fullstar_x, self.p2_fullstar_x = self.p2_fullstar_x, self.p1_fullstar_x
+        self.p1_fullstar_y, self.p2_fullstar_y = self.p2_fullstar_y, self.p1_fullstar_y
+
+        self.player_haspuck, self.p2_haspuck = self.p2_haspuck, self.player_haspuck
+        self.goalie_haspuck, self.g2_haspuck = self.g2_haspuck, self.goalie_haspuck
+
+
+        #print('AFTER:%d,%d\n' % (self.p1_x, self.p2_x))
 
     def Distance(self, vec1, vec2):
         tmp = (vec1[0] - vec2[0])**2 + (vec1[1] - vec2[1])**2
@@ -117,11 +134,21 @@ class NHL94GameState():
             self.player_haspuck = True
         else:
             self.player_haspuck = False
+
+        if(self.p2_x == self.p2_fullstar_x and self.p2_y == self.p2_fullstar_y):
+            self.p2_haspuck = True
+        else:
+            self.p2_haspuck = False
             
         if(self.g1_x == self.p1_fullstar_x and self.g1_y == self.p1_fullstar_y):
             self.goalie_haspuck = True
         else:
             self.goalie_haspuck = False
+
+        if(self.g2_x == self.p2_fullstar_x and self.g2_y == self.p2_fullstar_y):
+            self.g2_haspuck = True
+        else:
+            self.g2_haspuck = False
         
 
     def EndFrame(self):
