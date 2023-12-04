@@ -70,17 +70,42 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         self.ai_sys = NHL94AISystem(args, env, None)
 
+        self.ram_inited = False
+
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
 
         self.state = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
         self.game_state = NHL94GameState()
+        self.ram_inited = False
 
         return self.state, info
 
     def set_reward_function(self, rf):
         self.reward_function = rf
+
+    def RandomPos(self):
+        x = (random.random() - 0.5) * 240
+        y = (random.random() - 0.5) * 460
+
+        #print(x,y)
+        return x, y
+
+    def init_ramvalues(self):
+        #x, y = self.RandomPos()
+        #self.env.set_value("rpuck_x", x)
+        #self.env.set_value("rpuck_y", y)
+
+        x, y = self.RandomPos()
+        self.env.set_value("rp2_x", x)
+        self.env.set_value("rp2_y", y)
+
+        x, y = self.RandomPos()
+        self.env.set_value("p1_x", x)
+        self.env.set_value("rp1_y", y)
+        
+
 
     def step(self, ac):
         p2_ac = [0,0,0,0,0,0,0,0,0,0,0,0]
@@ -94,7 +119,18 @@ class NHL94Observation2PEnv(gym.Wrapper):
         #ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + p2_ac
         ac2 = np.concatenate([ac, np.array(p2_ac)])
 
+        #print("Hello")
+        
+
         ob, rew, terminated, truncated, info = self.env.step(ac2)
+
+        if not self.ram_inited:
+            self.init_ramvalues()
+            self.ram_inited = True
+
+
+        #self.env.set_value("rp2_x", 0)
+        #self.env.set_value("rp2_y", 0)
 
         self.prev_state = copy.deepcopy(self.game_state)
         
