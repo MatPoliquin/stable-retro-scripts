@@ -6,13 +6,18 @@ import random
 from game_wrappers.nhl94_gamestate import NHL94GameState
 
 def RandomPos():
-    x = (random.random() - 0.5) * 240
+    x = (random.random() - 0.5) * 235
     y = (random.random() - 0.5) * 460
 
     #print(x,y)
     return x, y
 
+def RandomPosAttackZone():
+    x = (random.random() - 0.5) * 235
+    y = (random.random() * 140) + 100
 
+    #print(x,y)
+    return x, y
 
 def rf_general(state):
     
@@ -122,58 +127,41 @@ def init_scoregoal(env):
     #self.env.set_value("rpuck_x", x)
     #self.env.set_value("rpuck_y", y)
 
-    x, y = RandomPos()
+    x, y = RandomPosAttackZone()
     env.set_value("rp2_x", x)
     env.set_value("rp2_y", y)
 
-    x, y = RandomPos()
+    x, y = RandomPosAttackZone()
     env.set_value("p1_x", x)
     env.set_value("rp1_y", y)
 
 def isdone_scoregoal(state):
-    #if self.game_state.p1_score > self.game_state.last_p1_score or self.game_state.p1_shots > self.game_state.last_p1_shots:
-    #    if self.game_state.last_havepuck_time != -1 and (time - self.game_state.last_havepuck_time > 30):
-    #            terminated = True
+    if state.p1_score > state.last_p1_score: #or self.game_state.p1_shots > self.game_state.last_p1_shots:
+        return True
+
+    if state.p2_haspuck:
+        return True
+    
+    if state.puck_y < 100:
+        return True
 
     return False
     
 def rf_scoregoal(state):
     
     rew = 0.0
+
+    if state.p2_haspuck:
+        rew = -1.0
     
-    # player_haspuck = False
-    # goalie_haspuck = False
+    if state.puck_y < 100:
+        rew = -1.0
+    
+    if state.p1_score > state.last_p1_score: 
+        rew = 1.0
 
-    # isGoodShot = True
-    # rew = 0
-
-
-    # distToAttackZone = 120 - state.p1_y 
-
-    # if p1_y < 120 and self.last_dist_az != -1:
-    #     if distToAttackZone < self.last_dist_az:
-    #         rew = 0.1
-    #     else:
-    #         rew = -1
-
-    # if p1_score > self.last_p1_score:
-    #     rew = 1.0
-
-    # if p1_y < 120 and p1_shots > self.last_p1_shots:
-    #     rew = 0.3
-
-    # self.last_p1_score = p1_score
-    # self.last_p1_shots = p1_shots
-    # self.last_p1_bodychecks = p1_bodychecks
-    # self.last_p2_attackzone = p2_attackzone
-    # self.last_p1_attackzone = p1_attackzone
-    # self.last_p1_faceoffwon = p1_faceoffwon
-    # self.last_p2_shots = p2_shots
-    # self.last_p2_score = p2_score
-    # self.last_time = time
-    # self.last_p1_passing = p1_passing
-    # self.last_dist = distToPuck
-    # self.last_dist_az = distToAttackZone
+    #TODO reward good shots
+    #or self.game_state.p1_shots > self.game_state.last_p1_shots:
 
     return rew
 
