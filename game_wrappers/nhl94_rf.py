@@ -2,8 +2,17 @@
 NHL94 Reward Functions
 """
 
-
+import random
 from game_wrappers.nhl94_gamestate import NHL94GameState
+
+def RandomPos():
+    x = (random.random() - 0.5) * 240
+    y = (random.random() - 0.5) * 460
+
+    #print(x,y)
+    return x, y
+
+
 
 def rf_general(state):
     
@@ -108,6 +117,18 @@ def rf_general(state):
 
     return rew
 
+def init_scoregoal(env):
+    #x, y = self.RandomPos()
+    #self.env.set_value("rpuck_x", x)
+    #self.env.set_value("rpuck_y", y)
+
+    x, y = RandomPos()
+    env.set_value("rp2_x", x)
+    env.set_value("rp2_y", y)
+
+    x, y = RandomPos()
+    env.set_value("p1_x", x)
+    env.set_value("rp1_y", y)
 
 def isdone_scoregoal(state):
     #if self.game_state.p1_score > self.game_state.last_p1_score or self.game_state.p1_shots > self.game_state.last_p1_shots:
@@ -156,6 +177,18 @@ def rf_scoregoal(state):
 
     return rew
 
+def init_keeppuck(env):
+    #x, y = self.RandomPos()
+    #self.env.set_value("rpuck_x", x)
+    #self.env.set_value("rpuck_y", y)
+
+    x, y = RandomPos()
+    env.set_value("rp2_x", x)
+    env.set_value("rp2_y", y)
+
+    x, y = RandomPos()
+    env.set_value("p1_x", x)
+    env.set_value("rp1_y", y)
 
 def isdone_keeppuck(state):
     if state.player_haspuck == False:
@@ -168,6 +201,19 @@ def rf_keeppuck(state):
         rew = -1.0
 
     return rew
+
+def init_getpuck(env):
+    #x, y = self.RandomPos()
+    #self.env.set_value("rpuck_x", x)
+    #self.env.set_value("rpuck_y", y)
+
+    x, y = RandomPos()
+    env.set_value("rp2_x", x)
+    env.set_value("rp2_y", y)
+
+    x, y = RandomPos()
+    env.set_value("p1_x", x)
+    env.set_value("rp1_y", y)
 
 def isdone_getpuck(state):
     if state.player_haspuck == True:

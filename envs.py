@@ -88,9 +88,9 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
             env.action_space.seed(seed + rank)
 
             if args.nn == 'MlpPolicy':
-                env = games.wrappers.obs_env(env, args, num_players)
-                if args.rf != '':
-                    env.set_reward_function(args.rf)
+                env = games.wrappers.obs_env(env, args, num_players, args.rf)
+                #if args.rf != '':
+                #    env.set_reward_function(args.rf)
 
             env = Monitor(env, output_path and os.path.join(output_path, str(rank)), allow_early_resets=allow_early_resets)
 

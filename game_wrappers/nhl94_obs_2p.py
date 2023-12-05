@@ -17,7 +17,7 @@ from datetime import datetime
 
 from game_wrappers.nhl94_const import GameConsts
 
-from game_wrappers.nhl94_rf import rf_general, rf_getpuck, rf_keeppuck, rf_scoregoal, isdone_getpuck, isdone_scoregoal, isdone_keeppuck
+from game_wrappers.nhl94_rf import rf_general, rf_getpuck, rf_keeppuck, rf_scoregoal, isdone_getpuck, isdone_scoregoal, isdone_keeppuck, init_getpuck, init_scoregoal, init_keeppuck
 from game_wrappers.nhl94_ai import NHL94AISystem
 
 from game_wrappers.nhl94_gamestate import NHL94GameState
@@ -46,7 +46,7 @@ class NHL94Discretizer(gym.ActionWrapper):
 
 # WARNING: NON FUNCTIONAL CODE - WIP
 class NHL94Observation2PEnv(gym.Wrapper):
-    def __init__(self, env, args, num_players):
+    def __init__(self, env, args, num_players, rf_name):
         gym.Wrapper.__init__(self, env)
 
         low = np.array([-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], dtype=np.float32)
@@ -72,6 +72,29 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         self.ram_inited = False
 
+        self.rf_name = rf_name
+        self.reward_function = None
+        self.done_function = None
+        self.init_function = None
+
+        if self.rf_name == "GetPuck":
+            self.init_function = init_getpuck
+            self.reward_function = rf_getpuck
+            self.done_function = isdone_getpuck
+        elif self.rf_name == "ScoreGoal":
+            self.init_function = init_scoregoal
+            self.reward_function = rf_scoregoal
+            self.done_function = isdone_scoregoal
+        elif self.rf_name == "KeepPuck":
+            self.init_function = init_keeppuck
+            self.reward_function = rf_keeppuck
+            self.done_function = isdone_keeppuck
+        else:
+            print('error')
+            #rew = self.calc_reward_general(info)
+            #if self.game_state.time < 10:
+            #    terminated = True
+
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
 
@@ -82,31 +105,6 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         return self.state, info
 
-    def set_reward_function(self, rf):
-        self.reward_function = rf
-
-    def RandomPos(self):
-        x = (random.random() - 0.5) * 240
-        y = (random.random() - 0.5) * 460
-
-        #print(x,y)
-        return x, y
-
-    def init_ramvalues(self):
-        #x, y = self.RandomPos()
-        #self.env.set_value("rpuck_x", x)
-        #self.env.set_value("rpuck_y", y)
-
-        x, y = self.RandomPos()
-        self.env.set_value("rp2_x", x)
-        self.env.set_value("rp2_y", y)
-
-        x, y = self.RandomPos()
-        self.env.set_value("p1_x", x)
-        self.env.set_value("rp1_y", y)
-        
-
-
     def step(self, ac):
         p2_ac = [0,0,0,0,0,0,0,0,0,0,0,0]
         p1_zero = [0,0,0,0,0,0,0,0,0,0,0,0]
@@ -114,48 +112,28 @@ class NHL94Observation2PEnv(gym.Wrapper):
         if self.prev_state != None:
             self.prev_state.Flip()
             p2_ac = self.ai_sys.Think_testAI(self.prev_state)
-            #self.ai_sys.
         
         #ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + p2_ac
         ac2 = np.concatenate([ac, np.array(p2_ac)])
 
-        #print("Hello")
-        
 
         ob, rew, terminated, truncated, info = self.env.step(ac2)
 
         if not self.ram_inited:
-            self.init_ramvalues()
+            self.init_function(self.env)
             self.ram_inited = True
 
 
-        #self.env.set_value("rp2_x", 0)
-        #self.env.set_value("rp2_y", 0)
 
         self.prev_state = copy.deepcopy(self.game_state)
-        
 
         self.game_state.BeginFrame(info)
         
         # Calculate Reward and check if episode is done
-        if self.reward_function == "GetPuck":
-            rew = rf_getpuck(self.game_state)
-            terminated = isdone_getpuck(self.game_state)
-        elif self.reward_function == "ScoreGoal":
-            rew = rf_scoregoal(self.game_state)
-            terminated = isdone_scoregoal(self.game_state)
-        elif self.reward_function == "KeepPuck":
-            rew = rf_keeppuck(self.game_state)
-            terminated = isdone_keeppuck(self.game_state)
-        else:
-            #print('error')
-            rew = self.calc_reward_general(info)
-            if self.game_state.time < 10:
-                terminated = True
-
-
+        rew = self.reward_function(self.game_state)
+        terminated = self.done_function(self.game_state)
+       
         self.game_state.EndFrame()
-
 
         self.state = (self.game_state.normalized_p1_x, self.game_state.normalized_p1_y, \
                      self.game_state.normalized_p1_velx, self.game_state.normalized_p1_vely, \
