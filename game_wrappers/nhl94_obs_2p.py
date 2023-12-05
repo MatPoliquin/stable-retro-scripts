@@ -88,7 +88,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         if self.prev_state != None:
             self.prev_state.Flip()
-            p2_ac = self.ai_sys.Think_testAI(self.prev_state)
+            p2_ac = self.ai_sys.Think_GotoRandomTarget(self.prev_state)
         
         #ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + p2_ac
         ac2 = np.concatenate([ac, np.array(p2_ac)])

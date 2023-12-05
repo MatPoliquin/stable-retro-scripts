@@ -34,6 +34,8 @@ class NHL94AISystem():
 
         self.target_xy = [0,0]
 
+        self.scoregoal_state = None
+
         self.game_state = NHL94GameState()
 
     def SetModels(self, get_puck_model_path, score_goal_model_path):
@@ -100,6 +102,79 @@ class NHL94AISystem():
 
         return [x,y]
 
+    def Think_GotoRandomTarget(self, state):
+        p1_actions = [0] * GameConsts.INPUT_MAX
+
+        pp_vec = [state.p1_x - state.puck_x, state.p1_y - state.puck_y]
+        tmp = (state.p1_x - state.puck_x)**2 + (state.p1_y - state.puck_y)**2
+        pp_dist = math.sqrt(tmp)
+
+        #if(state.goalie_haspuck): print('GOALIE HAS PUCK')
+
+        if state.player_haspuck:
+            dist = self.DistToPos([state.p1_x, state.p1_y], self.target_xy)
+
+            if dist < 20.0:
+                self.target_xy = self.SelectRandomTarget()
+                #print(self.target_xy)
+                r = random.random()
+                #print(r)
+                if r < 0.2:
+                    p1_actions[GameConsts.INPUT_B] = 1
+
+            # TODO check if target is near opposing player
+            self.GotoTarget(p1_actions, [state.p1_x - self.target_xy[0], state.p1_y - self.target_xy[1]])
+
+        elif state.goalie_haspuck:
+            p1_actions[GameConsts.INPUT_B] = 1
+            #print('GOALIE PASS')
+        else:
+            self.GotoTarget(p1_actions, pp_vec)
+            #print('FIND PUCK')
+
+        return p1_actions
+    
+    def Think_ScoreGoal01(self, state):
+        p1_actions = [0] * GameConsts.INPUT_MAX
+
+        dist = self.DistToPos([state.p1_x, state.p1_y], [GameConsts.SHOOT_POS_X, GameConsts.SHOOT_POS_Y])
+
+        if dist < 60:
+            p1_actions[GameConsts.INPUT_C] = 1
+        else:
+            self.GotoTarget(p1_actions, [state.p1_x - GameConsts.SHOOT_POS_X, state.p1_y - GameConsts.SHOOT_POS_Y])
+
+        return p1_actions
+
+        
+    def Think_ScoreGoal02(self, state):
+        p1_actions = [0] * GameConsts.INPUT_MAX
+
+        if self.scoregoal_state == None:
+            #choose target on left side
+            dist = self.DistToPos([state.p1_x, state.p1_y], [90, 200])
+
+            if dist < 50:
+                self.scoregoal_state = "On left side"
+            else:
+                self.GotoTarget(p1_actions, [state.p1_x - (90), state.p1_y - 200])
+                    #print('GOTO SHOOT POSITION')
+        
+        if self.scoregoal_state == "On left side":
+            dist = self.DistToPos([state.p1_x, state.p1_y], [-80, 200])
+
+            if dist < 50:
+                self.scoregoal_state = "On right side"
+            else:
+                self.GotoTarget(p1_actions, [state.p1_x - (-80), state.p1_y - 200])
+
+        if self.scoregoal_state == "On right side":
+            p1_actions[GameConsts.INPUT_C] = 1
+            self.scoregoal_state = None
+
+        return p1_actions
+
+
 
     def Think_testAI(self, state):
         p1_actions = [0] * GameConsts.INPUT_MAX
@@ -110,36 +185,17 @@ class NHL94AISystem():
 
         #if(state.goalie_haspuck): print('GOALIE HAS PUCK')
 
-        goto_target_test = False
-
         if state.player_haspuck:
-            if not goto_target_test:
-                dist = self.DistToPos([state.p1_x, state.p1_y], [GameConsts.SHOOT_POS_X, GameConsts.SHOOT_POS_Y])
+            
 
-                if dist < 60:
-                    p1_actions[GameConsts.INPUT_C] = 1
-                else:
-                    self.GotoTarget(p1_actions, [state.p1_x - GameConsts.SHOOT_POS_X, state.p1_y - GameConsts.SHOOT_POS_Y])
-                    #print('GOTO SHOOT POSITION')
-            else:
-
-                dist = self.DistToPos([state.p1_x, state.p1_y], self.target_xy)
-
-                if dist < 20.0:
-                    self.target_xy = self.SelectRandomTarget()
-                    print(self.target_xy)
-                    r = random.random()
-                    print(r)
-                    if r < 0.2:
-                        p1_actions[GameConsts.INPUT_B] = 1
-
-                # TODO check if target is near opposing player
-                self.GotoTarget(p1_actions, [state.p1_x - self.target_xy[0], state.p1_y - self.target_xy[1]])
-
+            p1_actions = self.Think_ScoreGoal02(state)
+           
         elif state.goalie_haspuck:
+            self.scoregoal_state = None
             p1_actions[GameConsts.INPUT_B] = 1
             #print('GOALIE PASS')
         else:
+            self.scoregoal_state = None
             self.GotoTarget(p1_actions, pp_vec)
             #print('FIND PUCK')
 
