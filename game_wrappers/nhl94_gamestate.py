@@ -23,6 +23,10 @@ class NHL94GameState():
         self.p1_y = 0
         self.p2_x = 0
         self.p2_y = 0
+        self.rp1_x = 0
+        self.rp1_y = 0
+        self.rp2_x = 0
+        self.rp2_y = 0
         self.g1_x = 0
         self.g1_y = 0
         self.g2_x = 0
@@ -116,6 +120,10 @@ class NHL94GameState():
         self.p1_y = info.get('p1_y')
         self.p2_x = info.get('p2_x')
         self.p2_y = info.get('p2_y')
+        #self.rp1_x = info.get('p1_x')
+        #self.rp1_y = info.get('rp1_y')
+        #self.rp2_x = info.get('rp2_x')
+        #self.rp2_y = info.get('rp2_y')
         self.g1_x = info.get('g1_x')
         self.g1_y = info.get('g1_y')
         self.g2_x = info.get('g2_x')
@@ -130,26 +138,43 @@ class NHL94GameState():
 
         self.distToPuck = self.Distance((self.p1_x, self.p1_y), (self.puck_x, self.puck_y))
 
-        if(self.p1_x == self.p1_fullstar_x and self.p1_y == self.p1_fullstar_y):
+
+        # Knowing if the player has the puck is tricky since the fullstar in the game is not aligned with the player every frame
+        # There is an offset of up to 2 sometimes
+
+        #if self.p1_fullstar_x == 0 and self.p1_fullstar_y == 0:
+        #    self.player_haspuck = False
+        #    self.p2_haspuck = False
+        #    self.goalie_haspuck = False
+        #    self.g2_haspuck = False
+
+        #if(self.p1_x == self.p1_fullstar_x and self.p1_y == self.p1_fullstar_y):
+        if(abs(self.p1_x - self.p1_fullstar_x) < 3 and abs(self.p1_y - self.p1_fullstar_y) < 3):
             self.player_haspuck = True
         else:
             self.player_haspuck = False
 
-        if(self.p2_x == self.p2_fullstar_x and self.p2_y == self.p2_fullstar_y):
+        #if(self.p2_x == self.p2_fullstar_x and self.p2_y == self.p2_fullstar_y):
+        if(abs(self.p2_x - self.p1_fullstar_x) < 3 and abs(self.p2_y - self.p1_fullstar_y) < 3):
             self.p2_haspuck = True
         else:
             self.p2_haspuck = False
             
-        if(self.g1_x == self.p1_fullstar_x and self.g1_y == self.p1_fullstar_y):
+        #if(self.g1_x == self.p1_fullstar_x and self.g1_y == self.p1_fullstar_y):
+        if(abs(self.g1_x - self.p1_fullstar_x) < 3 and abs(self.g1_y - self.p1_fullstar_y) < 3):
             self.goalie_haspuck = True
         else:
             self.goalie_haspuck = False
 
-        if(self.g2_x == self.p2_fullstar_x and self.g2_y == self.p2_fullstar_y):
+        
+        #if(self.g2_x == self.p2_fullstar_x and self.g2_y == self.p2_fullstar_y):
+        if(abs(self.g2_x - self.p1_fullstar_x) < 3 and abs(self.g2_y - self.p1_fullstar_y) < 3):
             self.g2_haspuck = True
         else:
             self.g2_haspuck = False
         
+
+
 
     def EndFrame(self):
         self.counter += 1
