@@ -128,12 +128,12 @@ def init_scoregoal(env):
     #self.env.set_value("rpuck_y", y)
 
     x, y = RandomPosAttackZone()
-    env.set_value("rp2_x", x)
-    env.set_value("rp2_y", y)
+    env.set_value("p2_x", x)
+    env.set_value("p2_y", y)
 
     x, y = RandomPosAttackZone()
     env.set_value("p1_x", x)
-    env.set_value("rp1_y", y)
+    env.set_value("p1_y", y)
 
 def isdone_scoregoal(state):
     if state.p1_score > state.last_p1_score: #or self.game_state.p1_shots > self.game_state.last_p1_shots:
@@ -171,12 +171,12 @@ def init_keeppuck(env):
     #self.env.set_value("rpuck_y", y)
 
     x, y = RandomPos()
-    env.set_value("rp2_x", x)
-    env.set_value("rp2_y", y)
+    env.set_value("p2_x", x)
+    env.set_value("p2_y", y)
 
     x, y = RandomPos()
     env.set_value("p1_x", x)
-    env.set_value("rp1_y", y)
+    env.set_value("p1_y", y)
 
 def isdone_keeppuck(state):
     if state.player_haspuck == False:
@@ -196,18 +196,18 @@ def init_getpuck(env):
     #self.env.set_value("rpuck_y", y)
 
     x, y = RandomPos()
-    env.set_value("rp2_x", x)
-    env.set_value("rp2_y", y)
+    env.set_value("p2_x", x)
+    env.set_value("p2_y", y)
 
     x, y = RandomPos()
     env.set_value("p1_x", x)
-    env.set_value("rp1_y", y)
+    env.set_value("p1_y", y)
 
 def isdone_getpuck(state):
     if state.player_haspuck == True:
         #print('TERMINATED: GOT PUCK: (%d,%d) (%d,%d)' % (info.get('p1_x'), info.get('p1_y'), fullstar_x, fullstar_y))
         return True
-    elif state.time < 100:
+    elif state.time < 200:
         return True
     
 def rf_getpuck(state):
@@ -236,7 +236,7 @@ def rf_getpuck(state):
     if state.p2_shots > state.last_p2_shots:
         rew = -1.0
 
-    if state.time < 100:
+    if state.time < 200:
         rew = -1
 
     return rew
