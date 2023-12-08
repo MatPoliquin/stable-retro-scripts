@@ -217,10 +217,11 @@ def rf_getpuck(state):
 
     if state.player_haspuck == False:
         if state.distToPuck < state.last_dist:
-            rew = 1.0 / (1.0 + scaled_dist)
-            #print(rew)
-        else:
-            rew = -1.0
+            #rew = 1.0 / (1.0 + scaled_dist)
+            rew = 1 - (state.distToPuck / 200.0)**0.5
+            #print(state.distToPuck, rew)
+        #else:
+        #    rew = -1.0
     else:
         rew = 1
 
