@@ -31,6 +31,7 @@ def parse_cmdline(argv):
     parser.add_argument('--num_timesteps', type=int, default=0)
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_model', type=str, default='')
+    parser.add_argument('--load_p1_model', type=str, default='')
     parser.add_argument('--load_p2_model', type=str, default='')
     parser.add_argument('--display_width', type=int, default='1440')
     parser.add_argument('--display_height', type=int, default='810')
@@ -68,7 +69,7 @@ def main(argv):
     p2_actions = []
     total_rewards = 0
     while True:        
-        p1_actions = model.predict(state)[0]
+        p1_actions = model.predict(state, deterministic=args.deterministic)[0]
         p2_actions = play_env.player_actions
 
         action_probabilities = get_model_probabilities(model, state)

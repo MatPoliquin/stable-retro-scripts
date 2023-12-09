@@ -8,6 +8,7 @@ warnings.filterwarnings("ignore")
 import os
 import sys
 import retro
+import time
 import datetime
 import argparse
 import logging
@@ -37,6 +38,7 @@ def parse_cmdline(argv):
     parser.add_argument('--info_verbose', default=True, action='store_true')
     parser.add_argument('--play', default=False, action='store_true')
     parser.add_argument('--rf', type=str, default='')
+    parser.add_argument('--deterministic', default=True, action='store_true')
 
     print(argv)
     args = parser.parse_args(argv)
@@ -86,17 +88,17 @@ class ModelTrainer:
 
         return self.model_savepath
 
-    def play(self, continuous=True):
+    def play(self, args, continuous=True):
         #if self.args.alg_verbose:
         com_print('========= Start Play Loop ==========')
         state = self.env.reset()
         while True:
             self.env.render(mode='human')
 
-            p1_actions = self.p1_model.predict(state)
+            p1_actions = self.p1_model.predict(state, deterministic=args.deterministic)
             
             state, reward, done, info = self.env.step(p1_actions[0])
-
+            time.sleep(0.01)
             #print(reward)
 
             if done[0]:
@@ -120,7 +122,7 @@ def main(argv):
     trainer.train()
     
     if args.play:
-        trainer.play()
+        trainer.play(args)
 
 
 if __name__ == '__main__':
