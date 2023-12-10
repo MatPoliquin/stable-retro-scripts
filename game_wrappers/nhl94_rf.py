@@ -151,6 +151,9 @@ def isdone_scoregoal(state):
     
     if state.puck_y < 100:
         return True
+    
+    if state.time < 100:
+        return True
 
     return False
     
