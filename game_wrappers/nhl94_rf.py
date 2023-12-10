@@ -19,6 +19,13 @@ def RandomPosAttackZone():
     #print(x,y)
     return x, y
 
+def RandomPosDefenseZone():
+    x = (random.random() - 0.5) * 235
+    y = (random.random() * 140) - 220
+
+    #print(x,y)
+    return x, y
+
 def rf_general(state):
     
     player_haspuck = False
@@ -139,7 +146,7 @@ def isdone_scoregoal(state):
     if state.p1_score > state.last_p1_score: #or self.game_state.p1_shots > self.game_state.last_p1_shots:
         return True
 
-    if state.p2_haspuck:
+    if state.p2_haspuck or state.g2_haspuck:
         return True
     
     if state.puck_y < 100:
@@ -151,8 +158,8 @@ def rf_scoregoal(state):
     
     rew = 0.0
 
-    if state.p2_haspuck:
-        rew = -1.0
+    #if state.p2_haspuck or state.g2_haspuck:
+    #    rew = -1.0
     
     if state.puck_y < 100:
         rew = -1.0
@@ -160,8 +167,10 @@ def rf_scoregoal(state):
     if state.p1_score > state.last_p1_score: 
         rew = 1.0
 
+
     #TODO reward good shots
-    #or self.game_state.p1_shots > self.game_state.last_p1_shots:
+    #if state.p1_shots > state.last_p1_shots: 
+    #    rew = 1.0
 
     return rew
 
@@ -220,13 +229,13 @@ def rf_getpuck(state):
             #rew = 1.0 / (1.0 + scaled_dist)
             rew = 1 - (state.distToPuck / 200.0)**0.5
             #print(state.distToPuck, rew)
-        #else:
-        #    rew = -1.0
+        else:
+            rew = -0.1
     else:
         rew = 1
 
-    if state.p1_bodychecks > state.last_p1_bodychecks:
-        rew = 0.5
+    #if state.p1_bodychecks > state.last_p1_bodychecks:
+    #    rew = 0.5
 
     if state.goalie_haspuck:
         rew = -1
@@ -237,7 +246,66 @@ def rf_getpuck(state):
     if state.p2_shots > state.last_p2_shots:
         rew = -1.0
 
-    if state.time < 200:
-        rew = -1
+    #if state.time < 200:
+    #    rew = -1
+
+    return rew
+
+
+def init_defensezone(env):
+    #x, y = self.RandomPos()
+    #self.env.set_value("rpuck_x", x)
+    #self.env.set_value("rpuck_y", y)
+
+    x, y = RandomPosDefenseZone()
+    env.set_value("p2_x", x)
+    env.set_value("p2_y", y)
+
+    x, y = RandomPosDefenseZone()
+    env.set_value("p1_x", x)
+    env.set_value("p1_y", y)
+
+def isdone_defensezone(state):
+    if state.player_haspuck and state.puck_y > - 80:
+        #print('TERMINATED: GOT PUCK: (%d,%d) (%d,%d)' % (info.get('p1_x'), info.get('p1_y'), fullstar_x, fullstar_y))
+        return True
+    
+    if state.p2_score > state.last_p2_score:
+        return True
+
+    if state.time < 100:
+        return True
+    
+def rf_defensezone(state):
+    rew = 0
+
+    #scaled_dist = state.distToPuck / 200.0
+
+    if state.player_haspuck:
+        rew = 1
+
+    if state.p1_bodychecks > state.last_p1_bodychecks:
+        rew = 1.0
+
+    if state.p1_passing > state.last_p1_passing:
+        rew = 1.0
+
+    if not state.player_haspuck:
+        if state.p1_y > -80:
+            rew = -1.0
+        if state.puck_y > -80:
+            rew = -1.0
+
+    if state.goalie_haspuck:
+        rew = -1.0
+
+    if state.p2_score > state.last_p2_score:
+        rew = -1.0
+
+    if state.p2_shots > state.last_p2_shots:
+        rew = -1.0
+
+    #if state.time < 200:
+    #    rew = -1
 
     return rew

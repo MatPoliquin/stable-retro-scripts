@@ -17,7 +17,7 @@ from datetime import datetime
 
 from game_wrappers.nhl94_const import GameConsts
 
-from game_wrappers.nhl94_rf import rf_general, rf_getpuck, rf_keeppuck, rf_scoregoal, isdone_getpuck, isdone_scoregoal, isdone_keeppuck, init_getpuck, init_scoregoal, init_keeppuck
+from game_wrappers.nhl94_rf import rf_general, rf_getpuck, rf_keeppuck, rf_scoregoal, rf_defensezone, isdone_getpuck, isdone_scoregoal, isdone_keeppuck, isdone_defensezone, init_getpuck, init_scoregoal, init_keeppuck, init_defensezone
 from game_wrappers.nhl94_ai import NHL94AISystem
 
 from game_wrappers.nhl94_gamestate import NHL94GameState
@@ -66,6 +66,10 @@ class NHL94Observation2PEnv(gym.Wrapper):
             self.init_function = init_keeppuck
             self.reward_function = rf_keeppuck
             self.done_function = isdone_keeppuck
+        elif self.rf_name == "DefenseZone":
+            self.init_function = init_defensezone
+            self.reward_function = rf_defensezone
+            self.done_function = isdone_defensezone
         else:
             print('error')
             #rew = self.calc_reward_general(info)
