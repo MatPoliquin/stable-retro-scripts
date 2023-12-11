@@ -216,10 +216,10 @@ def init_getpuck(env):
     env.set_value("p1_y", y)
 
 def isdone_getpuck(state):
-    if state.player_haspuck == True:
+    #if state.player_haspuck == True:
         #print('TERMINATED: GOT PUCK: (%d,%d) (%d,%d)' % (info.get('p1_x'), info.get('p1_y'), fullstar_x, fullstar_y))
-        return True
-    elif state.time < 200:
+    #    return True
+    if state.time < 100:
         return True
     
 def rf_getpuck(state):
