@@ -46,6 +46,10 @@ class NHL94GameState():
         self.goalie_haspuck = False
         self.p2_haspuck = False
         self.g2_haspuck = False
+        self.p1_vel_x  = 0
+        self.p1_vel_y  = 0
+        self.p2_vel_x  = 0
+        self.p2_vel_y  = 0
         self.puck_vel_x  = 0
         self.puck_vel_y  = 0
         self.puck_x = 0
@@ -65,6 +69,11 @@ class NHL94GameState():
         self.normalized_puckvel_y = 0
         self.normalized_player_haspuck = 0.0
         self.normalized_goalie_haspuck = 0.0
+
+        self.normalized_p1_velx = 0.0
+        self.normalized_p1_vely = 0.0
+        self.normalized_p2_velx = 0.0
+        self.normalized_p2_vely = 0.0
 
 
     def swap(self, x,y):
@@ -120,10 +129,6 @@ class NHL94GameState():
         self.p1_y = info.get('p1_y')
         self.p2_x = info.get('p2_x')
         self.p2_y = info.get('p2_y')
-        #self.rp1_x = info.get('p1_x')
-        #self.rp1_y = info.get('rp1_y')
-        #self.rp2_x = info.get('rp2_x')
-        #self.rp2_y = info.get('rp2_y')
         self.g1_x = info.get('g1_x')
         self.g1_y = info.get('g1_y')
         self.g2_x = info.get('g2_x')
@@ -131,6 +136,12 @@ class NHL94GameState():
         self.time = info.get('time')
         self.puck_x = info.get('puck_x')
         self.puck_y = info.get('puck_y')
+        self.puck_vel_x = info.get('puck_vel_x')
+        self.puck_vel_y = info.get('puck_vel_y')
+        self.p1_vel_x = info.get('p1_vel_x')
+        self.p1_vel_y = info.get('p1_vel_y')
+        self.p2_vel_x = info.get('p2_vel_x')
+        self.p2_vel_y = info.get('p2_vel_y')
         self.p1_fullstar_x = info.get('fullstar_x')
         self.p1_fullstar_y = info.get('fullstar_y')
         self.p2_fullstar_x = info.get('p2_fullstar_x')
@@ -209,9 +220,9 @@ class NHL94GameState():
         self.normalized_goalie_haspuck = 0.0 if self.goalie_haspuck else 1.0
 
 
-        self.normalized_p1_velx = (self.last_p1_pos[0] - self.p1_x) / 80
-        self.normalized_p1_vely = (self.last_p1_pos[1] - self.p2_y) / 80
-        self.normalized_p2_velx = (self.last_p2_pos[0] - self.p2_x) / 80
-        self.normalized_p2_vely = (self.last_p2_pos[1] - self.p2_y) / 80
+        self.normalized_p1_velx = self.p1_vel_x  / 50
+        self.normalized_p1_vely = self.p1_vel_y  / 50
+        self.normalized_p2_velx = self.p2_vel_x  / 50
+        self.normalized_p2_vely = self.p2_vel_y  / 50
         self.normalized_puck_velx = self.puck_vel_x  / 50
         self.normalized_puck_vely = self.puck_vel_y  / 50
