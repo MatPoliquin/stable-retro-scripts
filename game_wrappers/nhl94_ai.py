@@ -35,6 +35,7 @@ class NHL94AISystem():
         self.target_xy = [0,0]
 
         self.scoregoal_state = None
+        self.pass_button_pressed = False
 
         self.game_state = NHL94GameState()
 
@@ -152,12 +153,12 @@ class NHL94AISystem():
 
         if self.scoregoal_state == None:
             #choose target on left side
-            dist = self.DistToPos([state.p1_x, state.p1_y], [90, 200])
+            dist = self.DistToPos([state.p1_x, state.p1_y], [90, 180])
 
             if dist < 50:
                 self.scoregoal_state = "On left side"
             else:
-                self.GotoTarget(p1_actions, [state.p1_x - (90), state.p1_y - 200])
+                self.GotoTarget(p1_actions, [state.p1_x - (90), state.p1_y - 180])
                     #print('GOTO SHOOT POSITION')
         
         if self.scoregoal_state == "On left side":
@@ -189,15 +190,24 @@ class NHL94AISystem():
             
 
             p1_actions = self.Think_ScoreGoal02(state)
+            self.pass_button_pressed = False
            
         elif state.goalie_haspuck:
             self.scoregoal_state = None
-            p1_actions[GameConsts.INPUT_B] = 1
+            if not self.pass_button_pressed:
+                p1_actions[GameConsts.INPUT_B] = 1
+                self.pass_button_pressed = True
+            else:
+                self.pass_button_pressed = False
+            
             #print('GOALIE PASS')
         else:
             self.scoregoal_state = None
             self.GotoTarget(p1_actions, pp_vec)
+            self.pass_button_pressed = False
             #print('FIND PUCK')
+
+        #print(p1_actions)
 
         return p1_actions
 
