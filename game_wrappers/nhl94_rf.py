@@ -273,8 +273,8 @@ def isdone_defensezone(state):
         #print('TERMINATED: GOT PUCK: (%d,%d) (%d,%d)' % (info.get('p1_x'), info.get('p1_y'), fullstar_x, fullstar_y))
     #    return True
     
-    if state.p2_score > state.last_p2_score:
-        return True
+    #if state.p2_score > state.last_p2_score:
+    #    return True
 
     if state.time < 100:
         return True
@@ -282,19 +282,15 @@ def isdone_defensezone(state):
 def rf_defensezone(state):
     rew = 0
 
-    #scaled_dist = state.distToPuck / 200.0
-
-    if state.player_haspuck:
-        if state.p1_y >= -80:
-            rew = 1
-        else:
-            distToNeutralZone = -80 - state.p1_y
-            #if state.p1_y < state.last_dist:
+    if state.player_haspuck == False:
+        if state.distToPuck < state.last_dist:
             #rew = 1.0 / (1.0 + scaled_dist)
-            rew = 1 - (distToNeutralZone / 150.0)**0.5
+            rew = 1 - (state.distToPuck / 200.0)**0.5
             #print(state.distToPuck, rew)
-            #else:
-            #rew = -0.1
+        else:
+            rew = -0.1
+    else:
+        rew = 1
 
 
     if state.p1_bodychecks > state.last_p1_bodychecks:
