@@ -48,6 +48,8 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.ai_sys = NHL94AISystem(args, env, None)
 
         self.ram_inited = False
+        self.b_button_pressed = False
+        self.c_button_pressed = False
 
         self.rf_name = rf_name
         self.reward_function = None
@@ -83,6 +85,8 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         self.game_state = NHL94GameState()
         self.ram_inited = False
+        self.b_button_pressed = False
+        self.c_button_pressed = False
 
         return self.state, info
 
@@ -95,6 +99,23 @@ class NHL94Observation2PEnv(gym.Wrapper):
             p2_ac = self.ai_sys.Think_GotoRandomTarget(self.prev_state)
         
         #ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + p2_ac
+        if self.b_button_pressed and ac[GameConsts.INPUT_B] == 1:
+            ac[GameConsts.INPUT_B] = 0
+            self.b_button_pressed = False
+        elif not self.b_button_pressed and ac[GameConsts.INPUT_B] == 1:
+            self.b_button_pressed = True
+        else:
+            self.b_button_pressed = False
+
+        if self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
+            ac[GameConsts.INPUT_C] = 0
+            self.c_button_pressed = False
+        elif not self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
+            self.c_button_pressed = True
+        else:
+            self.c_button_pressed = False
+
+
         ac2 = np.concatenate([ac, np.array(p2_ac)])
 
 
