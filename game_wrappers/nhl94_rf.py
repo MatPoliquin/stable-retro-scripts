@@ -171,11 +171,14 @@ def rf_scoregoal(state):
         rew = 1.0
 
     # reward scoring opportunities
-    if state.player_haspuck:
-        if state.puck_x < -10 and state.g2_x >= -6:
-            rew = 1.0
-        elif state.puck_x > 10 and state.g2_x <= 6:
-            rew = 1.0
+    if state.player_haspuck and state.p1_y < 230 and state.p1_y > 210:
+        if state.p1_vel_x >= 30 or state.p1_vel_x <= -30:
+            rew = 0.2
+            if state.puck_x > -23 and state.puck_x < 23:
+                if abs(state.puck_x - state.g2_x) > 7:
+                    rew = 1.0
+                else:
+                    rew = 0.5
         
     #TODO reward good shots
     #if state.p1_shots > state.last_p1_shots: 
