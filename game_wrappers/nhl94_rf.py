@@ -5,6 +5,10 @@ NHL94 Reward Functions
 import random
 from game_wrappers.nhl94_gamestate import NHL94GameState
 
+
+
+
+
 def RandomPos():
     x = (random.random() - 0.5) * 235
     y = (random.random() - 0.5) * 460
@@ -327,3 +331,18 @@ def rf_defensezone(state):
     #    rew = -1
 
     return rew
+
+
+def register_functions(name):
+    if name == "GetPuck":
+        return init_getpuck, rf_getpuck, isdone_getpuck
+    elif name == "ScoreGoal":
+        return init_scoregoal, rf_scoregoal, isdone_scoregoal
+    elif name == "KeepPuck":
+        return init_keeppuck, rf_keeppuck, isdone_keeppuck
+    elif name == "DefenseZone":
+        return init_defensezone, rf_defensezone, isdone_defensezone
+    else:
+        raise Exception("Unsupported Reward Function")
+
+    return none, none, none

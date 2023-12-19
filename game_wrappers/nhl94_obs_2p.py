@@ -2,11 +2,8 @@
 NHL94 Observation wrapper
 """
 
-import os, datetime
-import retro
-import gymnasium as gym
-from gymnasium import spaces, logger
-from gymnasium.utils import seeding
+import os
+import datetime
 import numpy as np
 from os import environ
 import math
@@ -14,12 +11,14 @@ import time
 import random
 import copy
 from datetime import datetime
+import retro
+import gymnasium as gym
+from gymnasium import spaces, logger
+from gymnasium.utils import seeding
 
 from game_wrappers.nhl94_const import GameConsts
-
-from game_wrappers.nhl94_rf import rf_general, rf_getpuck, rf_keeppuck, rf_scoregoal, rf_defensezone, isdone_getpuck, isdone_scoregoal, isdone_keeppuck, isdone_defensezone, init_getpuck, init_scoregoal, init_keeppuck, init_defensezone
+from game_wrappers.nhl94_rf import register_functions
 from game_wrappers.nhl94_ai import NHL94AISystem
-
 from game_wrappers.nhl94_gamestate import NHL94GameState
 
 class NHL94Observation2PEnv(gym.Wrapper):
@@ -56,27 +55,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.done_function = None
         self.init_function = None
 
-        if self.rf_name == "GetPuck":
-            self.init_function = init_getpuck
-            self.reward_function = rf_getpuck
-            self.done_function = isdone_getpuck
-        elif self.rf_name == "ScoreGoal":
-            self.init_function = init_scoregoal
-            self.reward_function = rf_scoregoal
-            self.done_function = isdone_scoregoal
-        elif self.rf_name == "KeepPuck":
-            self.init_function = init_keeppuck
-            self.reward_function = rf_keeppuck
-            self.done_function = isdone_keeppuck
-        elif self.rf_name == "DefenseZone":
-            self.init_function = init_defensezone
-            self.reward_function = rf_defensezone
-            self.done_function = isdone_defensezone
-        else:
-            print('error')
-            #rew = self.calc_reward_general(info)
-            #if self.game_state.time < 10:
-            #    terminated = True
+        self.init_function, self.reward_function, self.done_function = register_functions(self.rf_name)
 
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
