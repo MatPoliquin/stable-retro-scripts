@@ -42,6 +42,8 @@ Currently there is two NHL 94 env in stable-retro: The original game and the '1 
 
 ## Examples
 
+For NHL94 specific page click [here](./NHL94-README.md)
+
 Train Yokozuna Model:
 ```
 python3 model_trainer.py --env=WWFArcade-Genesis --state=VeryHard_YokozunaVsShawnMicheals --num_timesteps=5000000 --play
