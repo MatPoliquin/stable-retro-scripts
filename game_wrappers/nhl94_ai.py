@@ -37,6 +37,8 @@ class NHL94AISystem():
         self.scoregoal_state = None
         self.pass_button_pressed = False
 
+        self.shooting = False
+
         self.game_state = NHL94GameState()
 
     def SetModels(self, get_puck_model_path, score_goal_model_path):
@@ -62,38 +64,48 @@ class NHL94AISystem():
     
         return math.sqrt(tmp)
 
-    def Think_TwoModels(self, info, state, deterministic):
+    def Think_TwoModels(self, model_input, state, deterministic):
 
         p1_actions = [0] * GameConsts.INPUT_MAX
 
-        p1_x = info.get('p1_x')
-        p1_y = info.get('p1_y')
-        g1_x = info.get('g1_x')
-        g1_y = info.get('g1_y')
-        puck_x = info.get('puck_x')
-        puck_y = info.get('puck_y')
-        fullstar_x = info.get('fullstar_x')
-        fullstar_y = info.get('fullstar_y')
+        if state.player_haspuck == True:
+            # If in attack zone use ScoreGoal model
+            # Otherwise go to attack zone
+            if state.p1_y >= 100:
+                p1_actions = self.score_goal_model.predict(model_input, deterministic=deterministic)[0][0]
+                p1_actions[GameConsts.INPUT_C] = 0
+                p1_actions[GameConsts.INPUT_B] = 0
+                # check if we are in good scoring opportunity
+                if state.p1_y < 230 and state.p1_y > 210:
+                    if state.p1_vel_x >= 30 and state.puck_x > -23 and state.puck_x < 0:
+                        p1_actions[GameConsts.INPUT_C] = 1
+                        self.shooting = True
+                        #print('SHOOT')
+                    elif state.p1_vel_x <= -30 and state.puck_x < 23 and state.puck_x > 0:
+                        p1_actions[GameConsts.INPUT_C] = 1
+                        self.shooting = True
+                        #print('SHOOT')
+                #else:
+                #    p1_actions = self.score_goal_model.predict(model_input, deterministic=deterministic)[0][0]
+                    #print(p1_actions)
+            else:
+                #dist = self.DistToPos([state.p1_x, state.p1_y], [GameConsts.SHOOT_POS_X, GameConsts.SHOOT_POS_Y])
+                self.GotoTarget(p1_actions, [state.p1_x - 0, state.p1_y - 99])
 
-
-        player_haspuck = False
-        goalie_haspuck = False
-
-        if(p1_x == fullstar_x and p1_y == fullstar_y):
-            player_haspuck = True
-        elif(g1_x == fullstar_x and g1_y == fullstar_y):
-            goalie_haspuck = True
-
-
-        if player_haspuck:
-            p1_actions = self.score_goal_model.predict(state, deterministic=deterministic)
-
-        elif goalie_haspuck:
+        elif state.goalie_haspuck:
             p1_actions[GameConsts.INPUT_B] = 1
-            return [[p1_actions]]
-            print('GOALIE PASS')
+
         else:
-            p1_actions = self.get_puck_model.predict(state, deterministic=deterministic)
+            self.shooting = False
+
+            if state.p1_y < -80:
+                p1_actions = self.get_puck_model.predict(model_input, deterministic=deterministic)[0][0]
+            else:
+                pp_vec = [state.p1_x - state.puck_x, state.p1_y - state.puck_y]
+                self.GotoTarget(p1_actions, pp_vec)
+
+        if self.shooting == True:
+            p1_actions[GameConsts.INPUT_C] = 1
 
         return p1_actions
 
@@ -221,7 +233,7 @@ class NHL94AISystem():
         if self.use_model:
             p1_actions = self.p1_model.predict(state, deterministic=deterministic)[0]
         elif self.get_puck_model and self.score_goal_model:
-            p1_actions = self.Think_TwoModels(info[0], state, deterministic)[0]
+            p1_actions = [self.Think_TwoModels(state, self.game_state, deterministic)]
         else:          
             p1_actions = [self.Think_testAI(self.game_state)]
 
