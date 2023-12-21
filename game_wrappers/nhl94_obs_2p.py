@@ -73,7 +73,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
         p2_ac = [0,0,0,0,0,0,0,0,0,0,0,0]
         p1_zero = [0,0,0,0,0,0,0,0,0,0,0,0]
 
-        if self.prev_state != None:
+        if self.prev_state != None and self.num_players == 2:
             self.prev_state.Flip()
             p2_ac = self.ai_sys.Think_GotoRandomTarget(self.prev_state)
         
@@ -95,7 +95,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
             self.c_button_pressed = False
 
 
-        ac2 = np.concatenate([ac, np.array(p2_ac)])
+        ac2 = ac
+        if self.num_players == 2:
+            ac2 = np.concatenate([ac, np.array(p2_ac)])
 
 
         ob, rew, terminated, truncated, info = self.env.step(ac2)
