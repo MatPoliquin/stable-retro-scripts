@@ -33,8 +33,18 @@ def RandomPosDefenseZone():
 # =====================================================================
 # General
 # =====================================================================
+def init_general(state):
+    return
+
+def isdone_general(state):
+    if state.time < 10:
+        return True
+
+    return False
+
 def rf_general(state):
-    
+    rew = 0.0
+
     if state.p1_score > state.last_p1_score: 
         rew = 1.0
     
@@ -313,6 +323,8 @@ def register_functions(name):
         return init_keeppuck, rf_keeppuck, isdone_keeppuck
     elif name == "DefenseZone":
         return init_defensezone, rf_defensezone, isdone_defensezone
+    elif name == "General":
+        return init_general, rf_general, isdone_general
     else:
         raise Exception("Unsupported Reward Function")
 
