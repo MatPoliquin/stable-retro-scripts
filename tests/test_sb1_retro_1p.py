@@ -6,8 +6,8 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.atari_wrappers import WarpFrame, ClipRewardEnv
 import gymnasium as gym
 
-GAME_ENV = 'Pong-Atari2600'
-STATE_1P = 'Start'
+GAME_ENV = 'Airstriker-Genesis'
+STATE_1P = 'Level1'
 POLICY = 'CnnPolicy'
 TIMESTEPS = 10000000
 
@@ -18,11 +18,10 @@ def main():
     env = ClipRewardEnv(env)
     env = Monitor(env)
     env = DummyVecEnv([lambda: env])
-    
     env = VecFrameStack(env, n_stack=4)    
 
     # Train model
-    model = PPO(policy=POLICY, env=env, verbose=True, ent_coef=0.01, batch_size=256)
+    model = PPO(policy=POLICY, env=env, verbose=True, n_epochs = 4, batch_size=32, ent_coef=0.01)
     model.learn(total_timesteps=TIMESTEPS)
 
     # Test the trained model
