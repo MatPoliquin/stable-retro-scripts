@@ -18,19 +18,14 @@ class NHL94AISystem():
     def __init__(self, args, env, logger):
         self.test = 0
         self.args = args
-        self.use_model = True
+        self.use_model = False
         self.p1_model = None
         self.state = AI_STATE_IDLE
-        if args.load_p1_model is '':
-            self.use_model = False
-        else:
-            self.p1_model = init_model(None, args.load_p1_model, args.alg, args, env, logger)
+        self.logger = logger
+        self.env = env
 
         self.get_puck_model = None
         self.score_goal_model = None
-
-        self.logger = logger
-        self.env = env
 
         self.target_xy = [0,0]
 
@@ -47,6 +42,12 @@ class NHL94AISystem():
             print(score_goal_model_path)
             self.get_puck_model = init_model(None, get_puck_model_path, self.args.alg, self.args, self.env, self.logger)
             self.score_goal_model = init_model(None, score_goal_model_path, self.args.alg, self.args, self.env, self.logger)
+    
+    def SetModel(self, model_path):
+        if model_path != '':
+            self.use_model = True
+            self.p1_model = init_model(None, model_path, self.args.alg, self.args, self.env, self.logger)
+            
 
     def GotoTarget(self, p1_actions, target_vec):
         if target_vec[0] > 0:
