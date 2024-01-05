@@ -32,8 +32,9 @@ def parse_cmdline(argv):
     parser.add_argument('--load_p1_model', type=str, default='')
     parser.add_argument('--model_1', type=str, default='')
     parser.add_argument('--model_2', type=str, default='')
-    parser.add_argument('--display_width', type=int, default='1440')
-    parser.add_argument('--display_height', type=int, default='810')
+    parser.add_argument('--display_width', type=int, default='1920')
+    parser.add_argument('--display_height', type=int, default='1080')
+    parser.add_argument('--fullscreen', default=True, action='store_true')
     parser.add_argument('--deterministic', default=True, action='store_true')
     parser.add_argument('--rf', type=str, default='')
     #parser.add_argument('--useframeskip', default=False, action='store_true')
@@ -81,6 +82,7 @@ class PlayerVsModel:
             actions = np.append(p1_actions, p2_actions)
             
             for i in range(4):
+                self.display_env.set_ai_sys_info(self.ai_sys)
                 state, reward, done, info = self.display_env.step([actions])
                 total_rewards += reward
 

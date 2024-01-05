@@ -7,11 +7,10 @@ import math
 import random
 from game_wrappers.nhl94_const import GameConsts
 from game_wrappers.nhl94_gamestate import NHL94GameState
+from models import init_model, print_model_info, get_num_parameters, get_model_probabilities
 
 AI_STATE_IDLE = 0
 AI_STATE_ISHOOTING = 1
-
-from models import init_model
 
 
 class NHL94AISystem():
@@ -33,6 +32,8 @@ class NHL94AISystem():
         self.pass_button_pressed = False
 
         self.shooting = False
+
+        self.display_probs = (1,0,0,0,0,0,0,0,0,0,0,0,0)
 
         self.game_state = NHL94GameState()
 
@@ -74,6 +75,9 @@ class NHL94AISystem():
             # Otherwise go to attack zone
             if state.p1_y >= 100:
                 p1_actions = self.score_goal_model.predict(model_input, deterministic=deterministic)[0][0]
+                #print(tuple(p1_actions))
+                self.display_probs = get_model_probabilities(self.score_goal_model, model_input)[0]
+                #print(self.display_probs)
                 p1_actions[GameConsts.INPUT_C] = 0
                 p1_actions[GameConsts.INPUT_B] = 0
                 # check if we are in good scoring opportunity
@@ -101,6 +105,7 @@ class NHL94AISystem():
 
             if state.p1_y < -80:
                 p1_actions = self.get_puck_model.predict(model_input, deterministic=deterministic)[0][0]
+                self.display_probs = get_model_probabilities(self.get_puck_model, model_input)[0]
             else:
                 pp_vec = [state.p1_x - state.puck_x, state.p1_y - state.puck_y]
                 self.GotoTarget(p1_actions, pp_vec)
@@ -239,6 +244,8 @@ class NHL94AISystem():
             p1_actions = [self.Think_testAI(self.game_state)]
 
         self.game_state.EndFrame()
+
+        #self.display_probs = tuple(p1_actions[0])
 
         return p1_actions
 
