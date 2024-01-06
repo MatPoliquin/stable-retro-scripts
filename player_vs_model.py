@@ -34,7 +34,7 @@ def parse_cmdline(argv):
     parser.add_argument('--model_2', type=str, default='')
     parser.add_argument('--display_width', type=int, default='1920')
     parser.add_argument('--display_height', type=int, default='1080')
-    parser.add_argument('--fullscreen', default=True, action='store_true')
+    parser.add_argument('--fullscreen', default=False, action='store_true')
     parser.add_argument('--deterministic', default=True, action='store_true')
     parser.add_argument('--rf', type=str, default='')
     #parser.add_argument('--useframeskip', default=False, action='store_true')
