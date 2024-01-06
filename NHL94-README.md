@@ -3,9 +3,13 @@
 
 ## Examples
 
-models (Player 1) vs in-game AI (Player 2):
+Models (Player 1) vs in-game AI (Player 2):
 ```bash
 python3 model_vs_game.py --env=NHL941on1-Genesis --state=PenguinsVsSenators --model_1=./models/DefenseZone --model_2=./models/ScoreGoal --nn=MlpPolicy --rf=General
+```
+Play against the models
+```bash
+python3 player_vs_model.py --env=NHL941on1-Genesis --state=PenguinsVsSenators.2P --model_1=./models/DefenseZone --model_2=./models/ScoreGoal --nn=MlpPolicy --rf=General --num_players=2
 ```
 
 Play against a model with for specific reward function (ex: DefenseZone):
