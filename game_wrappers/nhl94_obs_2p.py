@@ -86,13 +86,14 @@ class NHL94Observation2PEnv(gym.Wrapper):
         else:
             self.b_button_pressed = False
 
-        if self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
-            ac[GameConsts.INPUT_C] = 0
-            self.c_button_pressed = False
-        elif not self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
-            self.c_button_pressed = True
-        else:
-            self.c_button_pressed = False
+        if ac[GameConsts.INPUT_MODE] != 1:
+            if self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
+                ac[GameConsts.INPUT_C] = 0
+                self.c_button_pressed = False
+            elif not self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
+                self.c_button_pressed = True
+            else:
+                self.c_button_pressed = False
 
 
         ac2 = ac

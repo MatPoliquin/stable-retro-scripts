@@ -111,6 +111,7 @@ class NHL94AISystem():
                 self.GotoTarget(p1_actions, pp_vec)
 
         if self.shooting == True:
+            p1_actions[GameConsts.INPUT_MODE] = 1
             p1_actions[GameConsts.INPUT_C] = 1
 
         return p1_actions
