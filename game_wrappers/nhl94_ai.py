@@ -33,9 +33,15 @@ class NHL94AISystem():
 
         self.shooting = False
 
+        # for display
         self.display_probs = (1,0,0,0,0,0,0,0,0,0,0,0,0)
+        self.model_1_num_params = 0
+        self.model_2_num_params = 0
+        self.model_in_use = 0
 
         self.game_state = NHL94GameState()
+
+        
 
     def SetModels(self, get_puck_model_path, score_goal_model_path):
         if get_puck_model_path != '' and score_goal_model_path != '':
@@ -43,6 +49,9 @@ class NHL94AISystem():
             print(score_goal_model_path)
             self.get_puck_model = init_model(None, get_puck_model_path, self.args.alg, self.args, self.env, self.logger)
             self.score_goal_model = init_model(None, score_goal_model_path, self.args.alg, self.args, self.env, self.logger)
+
+            self.model_1_num_params = get_num_parameters(self.get_puck_model)
+            self.model_2_num_params = get_num_parameters(self.score_goal_model)
     
     def SetModel(self, model_path):
         if model_path != '':
@@ -70,11 +79,14 @@ class NHL94AISystem():
 
         p1_actions = [0] * GameConsts.INPUT_MAX
 
+        self.model_in_use = 0
+
         if state.player_haspuck == True:
             # If in attack zone use ScoreGoal model
             # Otherwise go to attack zone
             if state.p1_y >= 100:
                 p1_actions = self.score_goal_model.predict(model_input, deterministic=deterministic)[0][0]
+                self.model_in_use = 2
                 #print(tuple(p1_actions))
                 self.display_probs = get_model_probabilities(self.score_goal_model, model_input)[0]
                 #print(self.display_probs)
@@ -105,6 +117,7 @@ class NHL94AISystem():
 
             if state.p1_y < -80:
                 p1_actions = self.get_puck_model.predict(model_input, deterministic=deterministic)[0][0]
+                self.model_in_use = 1
                 self.display_probs = get_model_probabilities(self.get_puck_model, model_input)[0]
             else:
                 pp_vec = [state.p1_x - state.puck_x, state.p1_y - state.puck_y]

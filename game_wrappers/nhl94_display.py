@@ -14,6 +14,9 @@ import pygame.freetype
 import cv2
 import math
 import sys
+#import matplotlib.pyplot as plt
+#import matplotlib as mpl
+#mpl.use('Agg')
 
 
 
@@ -175,15 +178,15 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.NUM_PARAMS_X = 1100
         self.NUM_PARAMS_Y = self.FB_HEIGHT - 20
         self.AP_X = self.GAME_WIDTH + 300
-        self.AP_Y = 60
+        self.AP_Y = 200
         self.INPUT_X = self.GAME_WIDTH + 10
         self.INPUT_Y = 200
         self.AI_X = self.GAME_WIDTH + 10
-        self.AI_Y = 80
+        self.AI_Y = 20
         self.AP_TITLE_X = self.GAME_WIDTH + 300
-        self.AP_TITLE_Y = 10
+        self.AP_TITLE_Y = 200
         self.INPUT_TITLE_X = self.GAME_WIDTH + 10
-        self.INPUT_TITLE_Y = 10
+        self.INPUT_TITLE_Y = 200
         self.STATS_X = self.GAME_WIDTH + 10
         self.STATS_Y = 600
 
@@ -215,6 +218,35 @@ class NHL94GameDisplayEnv(gym.Wrapper):
 
         self.best_dist = 0
 
+        #self.ai_sys = None
+        self.model_1_num_params = 0
+        self.model_2_num_params = 0
+        self.model_in_use = 0
+        self.model_name = "N/A"
+
+        self.frameRewardList = [10] * 200
+        # self.fig = plt.figure(0)
+        # self.fig.set_facecolor('black')
+
+        # numYData = len(self.frameRewardList)
+        # plt.xlim([0,numYData])
+        # plt.ylim([-1,1])
+        # plt.tight_layout()
+  
+        # plt.grid(True)
+        # plt.rc('grid', color='w', linestyle='solid')
+
+
+        # self.fig.set_size_inches(200/80, 20/60, forward=True)
+
+        # ax = plt.gca()
+        # ax.set_facecolor("black")
+
+        # ax.tick_params(axis='x', colors='green')
+        # ax.tick_params(axis='y', colors='green')
+
+        # ax.get_xaxis().set_ticks([])
+
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
 
@@ -241,53 +273,64 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         text_rect.topleft = (self.FB_WIDTH - text_rect.width, self.FB_HEIGHT - text_rect.height)
         self.font.render_to(self.screen, text_rect.topleft, 'stable-retro', (255, 255, 255))
 
-    def draw_action_probabilties(self, action_probabilities):
-        self.draw_string(self.info_font, 'OUTPUT', (self.AP_TITLE_X, self.AP_TITLE_Y), (0, 255, 0))
-        self.draw_string(self.info_font, 'Action          Confidence', (self.AP_TITLE_X, self.AP_TITLE_Y + 20), (0, 255, 255))
+    def draw_basic_info(self):
+        self.draw_string(self.info_font, 'ENV', (self.ENV_X, self.ENV_Y), (0, 255, 0))
+        self.draw_string(self.info_font, 'AI', (self.MODELDESC_X, self.MODELDESC_Y), (0, 255, 0))
+        #self.draw_string(self.info_font, 'NUM PARAMETERS', (self.NUM_PARAMS_X, self.NUM_PARAMS_Y), (0, 255, 0))
 
-        if action_probabilities is None:
+        self.draw_string(self.font, self.args.env, (self.ENV_X - 100, self.ENV_Y - 70), (255, 255, 255))
+        self.draw_string(self.info_font_big, '2xMLP', (self.MODELDESC_X, self.MODELDESC_Y - 70), (255, 255, 255))
+        #self.draw_string(self.info_font_big, ('%d' % self.num_params), (self.NUM_PARAMS_X, self.NUM_PARAMS_Y - 70), (255, 255, 255))
+
+    def draw_ai_overview(self):
+
+        pygame.draw.rect(self.screen, (255,255,255), pygame.Rect(self.AI_X - 5, self.AI_Y - 5, self.AI_X + 200, self.AI_Y + 70), width=3)
+
+        self.draw_string(self.info_font, 'MODEL(TYPE): NUM PARAMS', (self.AI_X, self.AI_Y), (0, 255, 0))
+
+        color = [(255, 255, 255), (255, 255, 255), (255, 255, 255)]
+        
+        color[self.model_in_use] = (0, 0, 255)
+
+
+        self.draw_string(self.info_font, ('CODE: N/A'), (self.AI_X, self.AI_Y + 20), color[0])
+        self.draw_string(self.info_font, (('SCORING OPP (MLP): %d') % self.model_2_num_params), (self.AI_X, self.AI_Y + 40), color[2])
+        self.draw_string(self.info_font, (('DEFENSE ZONE (MLP): %d') % self.model_1_num_params), (self.AI_X, self.AI_Y + 60), color[1])
+
+
+
+
+    def draw_model(self, input_state):
+        self.draw_string(self.info_font, ('CURRENT MODEL:%s' % self.model_name), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y - 25), (0, 255, 0))
+        pygame.draw.rect(self.screen, (255,255,255), pygame.Rect(self.INPUT_TITLE_X - 5, self.INPUT_TITLE_Y - 5, self.INPUT_TITLE_X + 200, self.INPUT_TITLE_Y + 260), width=3)
+
+        
+        self.draw_string(self.info_font, 'INPUT', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 20), (0, 255, 0))
+
+        self.draw_string(self.info_font, ('P1 POS: (%.3f, %.3f)' % (input_state[0][0], input_state[0][1])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 40), (255, 255, 255))
+        self.draw_string(self.info_font, ('P1 VEL: (%.3f, %.3f)' % (input_state[0][2], input_state[0][3])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 60), (255, 255, 255))
+        self.draw_string(self.info_font, ('P2 POS: (%.3f, %.3f)' % (input_state[0][4], input_state[0][5])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 80), (255, 255, 255))
+        self.draw_string(self.info_font, ('P2 VEL: (%.3f, %.3f)' % (input_state[0][6], input_state[0][7])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 100), (255, 255, 255))
+        self.draw_string(self.info_font, ('PUCK POS: (%.3f, %.3f)' % (input_state[0][8], input_state[0][9])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 120), (255, 255, 255))
+        self.draw_string(self.info_font, ('PUCK VEL: (%.3f, %.3f)' % (input_state[0][10], input_state[0][11])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 140), (255, 255, 255))
+        self.draw_string(self.info_font, ('G2 POS: (%.3f, %.3f)' % (input_state[0][12], input_state[0][13])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 160), (255, 255, 255))
+        self.draw_string(self.info_font, ('P1/G1 HASPUCK: (%.1f, %.1f)' % (input_state[0][14], input_state[0][15])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 180), (255, 255, 255))
+
+        self.draw_string(self.info_font, 'OUTPUT', (self.AP_TITLE_X, self.AP_TITLE_Y + 20), (0, 255, 0))
+        self.draw_string(self.info_font, 'Action            Confidence', (self.AP_TITLE_X, self.AP_TITLE_Y + 40), (0, 255, 255))
+
+        if self.action_probabilities is None:
             return
 
-        y = self.AP_Y + 10
+        y = self.AP_TITLE_Y + 60
         for button in self.button_names:
             self.draw_string(self.font, button, (self.AP_X, y), (255, 255, 255))
             y += 30
 
-        y = self.AP_Y + 10
-        for prob in action_probabilities:
+        y = self.AP_TITLE_Y + 60
+        for prob in self.action_probabilities:
             self.draw_string(self.font, ('%f' % prob), (self.AP_X + 150, y), (255, 255, 255))
             y += 30
-
-    def draw_basic_info(self):
-        self.draw_string(self.info_font, 'ENV', (self.ENV_X, self.ENV_Y), (0, 255, 0))
-        self.draw_string(self.info_font, 'MODEL', (self.MODELDESC_X, self.MODELDESC_Y), (0, 255, 0))
-        self.draw_string(self.info_font, 'NUM PARAMETERS', (self.NUM_PARAMS_X, self.NUM_PARAMS_Y), (0, 255, 0))
-
-        self.draw_string(self.font, self.args.env, (self.ENV_X - 100, self.ENV_Y - 70), (255, 255, 255))
-        self.draw_string(self.info_font_big, self.nn_type, (self.MODELDESC_X, self.MODELDESC_Y - 70), (255, 255, 255))
-        self.draw_string(self.info_font_big, ('%d' % self.num_params), (self.NUM_PARAMS_X, self.NUM_PARAMS_Y - 70), (255, 255, 255))
-
-    def draw_ai_overview(self):
-        self.draw_string(self.info_font, 'MODEL      NUM PARAMS', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y), (0, 255, 0))
-
-        self.draw_string(self.info_font, ('P1 POS: (%d, %.3f)' % (140000, 2)), (self.AI_X, self.AI_Y + 20), (255, 255, 255))
-        self.draw_string(self.info_font, ('P1 VEL: (%.3f, %.3f)' % (140000, 2)), (self.AI_X, self.AI_Y + 40), (255, 255, 255))
-        self.draw_string(self.info_font, ('P2 POS: (%.3f, %.3f)' % (140000, 2)), (self.AI_X, self.AI_Y + 60), (255, 255, 255))
-
-
-
-    def draw_input(self, input_state):
-        # TODO fix input for MLPS
-        self.draw_string(self.info_font, 'INPUT', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y), (0, 255, 0))
-
-        self.draw_string(self.info_font, ('P1 POS: (%.3f, %.3f)' % (input_state[0][0], input_state[0][1])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 20), (255, 255, 255))
-        self.draw_string(self.info_font, ('P1 VEL: (%.3f, %.3f)' % (input_state[0][2], input_state[0][3])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 40), (255, 255, 255))
-        self.draw_string(self.info_font, ('P2 POS: (%.3f, %.3f)' % (input_state[0][4], input_state[0][5])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 60), (255, 255, 255))
-        self.draw_string(self.info_font, ('P2 VEL: (%.3f, %.3f)' % (input_state[0][6], input_state[0][7])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 80), (255, 255, 255))
-        self.draw_string(self.info_font, ('PUCK POS: (%.3f, %.3f)' % (input_state[0][8], input_state[0][9])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 100), (255, 255, 255))
-        self.draw_string(self.info_font, ('PUCK VEL: (%.3f, %.3f)' % (input_state[0][10], input_state[0][11])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 120), (255, 255, 255))
-        self.draw_string(self.info_font, ('G2 POS: (%.3f, %.3f)' % (input_state[0][12], input_state[0][13])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 140), (255, 255, 255))
-        self.draw_string(self.info_font, ('P1/G1 HASPUCK: (%.1f, %.1f)' % (input_state[0][14], input_state[0][15])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 160), (255, 255, 255))
 
         # self.draw_string(self.info_font, '84x84 pixels', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 20), (0, 255, 255))
         # self.draw_string(self.info_font, 'last 4 frames', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 40), (0, 255, 255))
@@ -331,7 +374,56 @@ class NHL94GameDisplayEnv(gym.Wrapper):
 
         self.action_probabilities = ai_sys.display_probs
         
-        return
+        if ai_sys:
+            self.model_1_num_params = ai_sys.model_1_num_params
+            self.model_2_num_params = ai_sys.model_2_num_params
+            self.model_in_use = ai_sys.model_in_use
+
+            
+
+            if self.model_in_use == 1:
+                self.model_name = "DEFENSE ZONE"
+            elif self.model_in_use == 2:
+                self.model_name = "SCORING OPP"
+            else:
+                self.model_name = "N/A"
+
+    def DrawFrameRewardHistogram(self, posX, posY, width, height):
+        
+
+        #plt.plot(self.frameRewardList, color=(0,1,0))
+
+        #self.frameRewardList = [1] * 200
+        #plt.plot(self.frameRewardList, color=(0,1,0))
+        #plt.hist(self.frameRewardList, bins=1, rwidth=0.8)
+        #plt.bar(self.frameRewardList, 50)
+
+        #plt.title(("Reward Mean: %d" % broadcast.rewardmean), color=(0,1,0))
+
+        
+
+
+        #draw buffer
+        #self.fig.canvas.draw()
+        width, height = self.fig.canvas.get_width_height()
+        buffer, size = self.fig.canvas.print_to_buffer()
+        #print(buffer)
+        image = np.fromstring(buffer, dtype='uint8').reshape(height, width, 4)
+        #self.final[posY:posY+height,posX:posX+width] = image[:,:,0:3]
+
+        #print(image[:,:,0:3])
+        #rf_img = np.transpose(image[:,:,0:3], (1,0,2))
+
+        #surf = pygame.surfarray.make_surface(rf_img)
+        #surf.fill((1, 1, 1))
+        #self.screen.blit(surf, (1280, 600))
+
+        #plt.close()
+
+        self.draw_string(self.info_font, 'REWARD FUNCTION', (1280, 600), (0, 255, 0))
+
+        self.frameListUpdated = False
+                
 
     def draw_frame(self, frame_img, action_probabilities, input_state, info):
         self.screen.fill((30, 30, 30))
@@ -341,10 +433,14 @@ class NHL94GameDisplayEnv(gym.Wrapper):
 
         self.screen.blit(pygame.transform.scale(surf,(self.GAME_WIDTH,self.GAME_HEIGHT)), (0, 0))
 
+        
         self.draw_contact_info()
         self.draw_basic_info()
-        self.draw_input(input_state)
-        self.draw_action_probabilties(self.action_probabilities)
+        self.draw_model(input_state)
+        #self.draw_action_probabilties(self.action_probabilities)
+        #self.DrawFrameRewardHistogram(self.GAME_WIDTH,400,100,20)
+
+        self.draw_ai_overview()
 
         pygame.display.flip()
 
@@ -377,4 +473,3 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         keystate = pygame.key.get_pressed()
 
         return keystate
-
