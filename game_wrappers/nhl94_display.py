@@ -14,6 +14,8 @@ import pygame.freetype
 import cv2
 import math
 import sys
+from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
+from game_wrappers.nhl94_gamestate import NHL94GameState
 #import matplotlib.pyplot as plt
 #import matplotlib as mpl
 #mpl.use('Agg')
@@ -187,8 +189,10 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.AP_TITLE_Y = 200
         self.INPUT_TITLE_X = self.GAME_WIDTH + 10
         self.INPUT_TITLE_Y = 200
-        self.STATS_X = self.GAME_WIDTH + 10
-        self.STATS_Y = 600
+        self.STATS_X = 600
+        self.STATS_Y = self.GAME_HEIGHT + 10
+        self.RF_X = self.GAME_WIDTH + 10
+        self.RF_Y = 700
 
         
 
@@ -224,7 +228,9 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.model_in_use = 0
         self.model_name = "N/A"
 
-        self.frameRewardList = [10] * 200
+        self.frameRewardList = [0.0] * 200
+
+        self.game_state = NHL94GameState()
         # self.fig = plt.figure(0)
         # self.fig.set_facecolor('black')
 
@@ -249,9 +255,35 @@ class NHL94GameDisplayEnv(gym.Wrapper):
 
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
+    
+    def set_reward(self, rew):
+        #self.frameListUpdated = True
+        #return
+        #print(rew)
+        self.reward = rew
+        self.frameRewardList.append(rew)
+        self.frameRewardList = self.frameRewardList[1:len(self.frameRewardList)]
+        #if rew != 0:
+        #    print(rew)
+
+        #self.frameListUpdated = True
 
     def step(self, ac):
         ob, rew, done, info = self.env.step(ac)
+
+        # get rewards for current model
+        rew = 0
+        self.game_state.BeginFrame(info[0])
+        if self.model_in_use == 1:
+            rew = rf_defensezone(self.game_state)
+        elif self.model_in_use == 2:
+            rew = rf_scoregoal(self.game_state)
+        
+        self.game_state.EndFrame()
+
+        self.set_reward(rew)
+
+
 
         framebuffer = self.render()
 
@@ -275,16 +307,16 @@ class NHL94GameDisplayEnv(gym.Wrapper):
 
     def draw_basic_info(self):
         self.draw_string(self.info_font, 'ENV', (self.ENV_X, self.ENV_Y), (0, 255, 0))
-        self.draw_string(self.info_font, 'AI', (self.MODELDESC_X, self.MODELDESC_Y), (0, 255, 0))
+        self.draw_string(self.info_font, 'GAME STATS', (self.MODELDESC_X, self.MODELDESC_Y), (0, 255, 0))
         #self.draw_string(self.info_font, 'NUM PARAMETERS', (self.NUM_PARAMS_X, self.NUM_PARAMS_Y), (0, 255, 0))
 
         self.draw_string(self.font, self.args.env, (self.ENV_X - 100, self.ENV_Y - 70), (255, 255, 255))
-        self.draw_string(self.info_font_big, '2xMLP', (self.MODELDESC_X, self.MODELDESC_Y - 70), (255, 255, 255))
+        #self.draw_string(self.info_font_big, '2xMLP', (self.MODELDESC_X, self.MODELDESC_Y - 70), (255, 255, 255))
         #self.draw_string(self.info_font_big, ('%d' % self.num_params), (self.NUM_PARAMS_X, self.NUM_PARAMS_Y - 70), (255, 255, 255))
 
     def draw_ai_overview(self):
 
-        pygame.draw.rect(self.screen, (255,255,255), pygame.Rect(self.AI_X - 5, self.AI_Y - 5, self.AI_X + 200, self.AI_Y + 70), width=3)
+        pygame.draw.rect(self.screen, (255,255,255), pygame.Rect(self.AI_X - 5, self.AI_Y - 5, 580, 100), width=3)
 
         self.draw_string(self.info_font, 'MODEL(TYPE): NUM PARAMS', (self.AI_X, self.AI_Y), (0, 255, 0))
 
@@ -302,19 +334,23 @@ class NHL94GameDisplayEnv(gym.Wrapper):
 
     def draw_model(self, input_state):
         self.draw_string(self.info_font, ('CURRENT MODEL:%s' % self.model_name), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y - 25), (0, 255, 0))
-        pygame.draw.rect(self.screen, (255,255,255), pygame.Rect(self.INPUT_TITLE_X - 5, self.INPUT_TITLE_Y - 5, self.INPUT_TITLE_X + 200, self.INPUT_TITLE_Y + 260), width=3)
+        pygame.draw.rect(self.screen, (255,255,255), pygame.Rect(self.INPUT_TITLE_X - 5, self.INPUT_TITLE_Y - 5, 580, 470), width=3)
 
         
         self.draw_string(self.info_font, 'INPUT', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 20), (0, 255, 0))
 
-        self.draw_string(self.info_font, ('P1 POS: (%.3f, %.3f)' % (input_state[0][0], input_state[0][1])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 40), (255, 255, 255))
-        self.draw_string(self.info_font, ('P1 VEL: (%.3f, %.3f)' % (input_state[0][2], input_state[0][3])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 60), (255, 255, 255))
-        self.draw_string(self.info_font, ('P2 POS: (%.3f, %.3f)' % (input_state[0][4], input_state[0][5])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 80), (255, 255, 255))
-        self.draw_string(self.info_font, ('P2 VEL: (%.3f, %.3f)' % (input_state[0][6], input_state[0][7])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 100), (255, 255, 255))
-        self.draw_string(self.info_font, ('PUCK POS: (%.3f, %.3f)' % (input_state[0][8], input_state[0][9])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 120), (255, 255, 255))
-        self.draw_string(self.info_font, ('PUCK VEL: (%.3f, %.3f)' % (input_state[0][10], input_state[0][11])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 140), (255, 255, 255))
-        self.draw_string(self.info_font, ('G2 POS: (%.3f, %.3f)' % (input_state[0][12], input_state[0][13])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 160), (255, 255, 255))
-        self.draw_string(self.info_font, ('P1/G1 HASPUCK: (%.1f, %.1f)' % (input_state[0][14], input_state[0][15])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 180), (255, 255, 255))
+        color = (255, 255, 255)
+        if self.model_in_use == 0:
+            color = (50, 50, 50)
+
+        self.draw_string(self.info_font, ('P1 POS: (%.3f, %.3f)' % (input_state[0][0], input_state[0][1])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 40), color)
+        self.draw_string(self.info_font, ('P1 VEL: (%.3f, %.3f)' % (input_state[0][2], input_state[0][3])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 60), color)
+        self.draw_string(self.info_font, ('P2 POS: (%.3f, %.3f)' % (input_state[0][4], input_state[0][5])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 80), color)
+        self.draw_string(self.info_font, ('P2 VEL: (%.3f, %.3f)' % (input_state[0][6], input_state[0][7])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 100), color)
+        self.draw_string(self.info_font, ('PUCK POS: (%.3f, %.3f)' % (input_state[0][8], input_state[0][9])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 120), color)
+        self.draw_string(self.info_font, ('PUCK VEL: (%.3f, %.3f)' % (input_state[0][10], input_state[0][11])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 140), color)
+        self.draw_string(self.info_font, ('G2 POS: (%.3f, %.3f)' % (input_state[0][12], input_state[0][13])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 160), color)
+        self.draw_string(self.info_font, ('P1/G1 HASPUCK: (%.1f, %.1f)' % (input_state[0][14], input_state[0][15])), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 180), color)
 
         self.draw_string(self.info_font, 'OUTPUT', (self.AP_TITLE_X, self.AP_TITLE_Y + 20), (0, 255, 0))
         self.draw_string(self.info_font, 'Action            Confidence', (self.AP_TITLE_X, self.AP_TITLE_Y + 40), (0, 255, 255))
@@ -324,12 +360,12 @@ class NHL94GameDisplayEnv(gym.Wrapper):
 
         y = self.AP_TITLE_Y + 60
         for button in self.button_names:
-            self.draw_string(self.font, button, (self.AP_X, y), (255, 255, 255))
+            self.draw_string(self.font, button, (self.AP_X, y), color)
             y += 30
 
         y = self.AP_TITLE_Y + 60
         for prob in self.action_probabilities:
-            self.draw_string(self.font, ('%f' % prob), (self.AP_X + 150, y), (255, 255, 255))
+            self.draw_string(self.font, ('%f' % prob), (self.AP_X + 150, y), color)
             y += 30
 
         # self.draw_string(self.info_font, '84x84 pixels', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 20), (0, 255, 255))
@@ -345,30 +381,20 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         # self.main_surf.blit(pygame.transform.rotozoom(surf, -90, 3), (self.INPUT_X, self.INPUT_Y))
 
     def draw_game_stats(self, info):
-        print(info)
-        p1_x = info.get('p1_x')
-        p1_y = info.get('p1_y')
-        puck_x = info.get('puck_x')
-        puck_y = info.get('puck_y')
+        #self.draw_string(self.info_font, 'GAME STATS', (self.STATS_X, self.STATS_Y), (0, 255, 0))
 
-        tmp = (p1_x - puck_x)**2 + (p1_y - puck_y)**2
-        distance = math.sqrt(tmp)
+        self.draw_string(self.info_font, ('P1 SHOTS: %d' %  info.get('p1_shots')), (self.STATS_X, self.STATS_Y), (0, 255, 255))
+        self.draw_string(self.info_font, ('P2 SHOTS: %d' %  info.get('p2_shots')), (self.STATS_X + 300, self.STATS_Y), (0, 255, 255))
 
+        self.draw_string(self.info_font, ('P1 ATKZONE: %d' %  info.get('p1_attackzone')), (self.STATS_X, self.STATS_Y + 20), (0, 255, 255))
+        self.draw_string(self.info_font, ('P2 ATKZONE: %d' %  info.get('p2_attackzone')), (self.STATS_X + 300, self.STATS_Y + 20), (0, 255, 255))
 
-        if distance > self.best_dist:
-            self.best_dist = distance
+        self.draw_string(self.info_font, ('P1 BODYCHECKS: %d' %  info.get('p1_passing')), (self.STATS_X, self.STATS_Y + 40), (0, 255, 255))
+        self.draw_string(self.info_font, ('P2 BODYCHECKS: %d' %  info.get('p2_passing')), (self.STATS_X + 300, self.STATS_Y + 40), (0, 255, 255))
 
-        self.draw_string(self.info_font, 'GAME STATS', (self.STATS_X, self.STATS_Y), (0, 255, 0))
+        self.draw_string(self.info_font, ('P1 FACEOFFWON: %d' %  info.get('p1_faceoffwon')), (self.STATS_X, self.STATS_Y + 60), (0, 255, 255))
+        self.draw_string(self.info_font, ('P2 FACEOFFWON: %d' %  info.get('p2_faceoffwon')), (self.STATS_X + 300, self.STATS_Y + 60), (0, 255, 255))
 
-        self.draw_string(self.info_font, ('P1 SHOTS: %d' %  info.get('p1_shots')), (self.STATS_X, self.STATS_Y + 40), (0, 255, 255))
-        self.draw_string(self.info_font, ('P2 SHOTS: %d' %  info.get('p2_shots')), (self.STATS_X + 300, self.STATS_Y + 40), (0, 255, 255))
-        self.draw_string(self.info_font, ('P1 PASSES: %d' %  info.get('p1_passing')), (self.STATS_X, self.STATS_Y + 60), (0, 255, 255))
-        self.draw_string(self.info_font, ('P2 PASSES: %d' %  info.get('p2_passing')), (self.STATS_X + 300, self.STATS_Y + 60), (0, 255, 255))
-        self.draw_string(self.info_font, ('P1 BODYCHECKS: %d' %  info.get('p1_passing')), (self.STATS_X, self.STATS_Y + 80), (0, 255, 255))
-        self.draw_string(self.info_font, ('P2 BODYCHECKS: %d' %  info.get('p2_passing')), (self.STATS_X + 300, self.STATS_Y + 80), (0, 255, 255))
-        self.draw_string(self.info_font, ('P1 FACEOFFWON: %d' %  info.get('p1_faceoffwon')), (self.STATS_X, self.STATS_Y + 100), (0, 255, 255))
-        self.draw_string(self.info_font, ('P2 FACEOFFWON: %d' %  info.get('p2_faceoffwon')), (self.STATS_X + 300, self.STATS_Y + 100), (0, 255, 255))
-        self.draw_string(self.info_font, ('PUCK DIST: %f' %  distance), (self.STATS_X + 300, self.STATS_Y + 120), (0, 255, 255))
 
     def set_ai_sys_info(self, ai_sys):
 
@@ -379,8 +405,6 @@ class NHL94GameDisplayEnv(gym.Wrapper):
             self.model_2_num_params = ai_sys.model_2_num_params
             self.model_in_use = ai_sys.model_in_use
 
-            
-
             if self.model_in_use == 1:
                 self.model_name = "DEFENSE ZONE"
             elif self.model_in_use == 2:
@@ -388,8 +412,26 @@ class NHL94GameDisplayEnv(gym.Wrapper):
             else:
                 self.model_name = "N/A"
 
+
     def DrawFrameRewardHistogram(self, posX, posY, width, height):
+
+        self.draw_string(self.info_font, ('REWARD FUNCTION:%f' % self.frameRewardList[-1]), (self.RF_X, self.RF_Y - 5), (0, 0, 255))
+
+
+        bar_height = 50
+
+        pygame.draw.line(self.screen, (255,255,255), (self.RF_X, self.RF_Y + 100), (self.RF_X + 600, self.RF_Y + 100))
+        pygame.draw.line(self.screen, (255,255,255), (self.RF_X, self.RF_Y + 100 - bar_height), (self.RF_X, self.RF_Y + 100 + bar_height))
+
+        i = 0
         
+        for r in self.frameRewardList:
+            i += 3
+            height = abs(r) * bar_height
+            y = (self.RF_Y + 100) if r < 0.0 else (self.RF_Y + 100 - height)
+            if r != 0:
+                pygame.draw.rect(self.screen, (0,255,0), pygame.Rect(self.RF_X + i, y, 2, height))
+
 
         #plt.plot(self.frameRewardList, color=(0,1,0))
 
@@ -405,10 +447,10 @@ class NHL94GameDisplayEnv(gym.Wrapper):
 
         #draw buffer
         #self.fig.canvas.draw()
-        width, height = self.fig.canvas.get_width_height()
-        buffer, size = self.fig.canvas.print_to_buffer()
+        #width, height = self.fig.canvas.get_width_height()
+        #buffer, size = self.fig.canvas.print_to_buffer()
         #print(buffer)
-        image = np.fromstring(buffer, dtype='uint8').reshape(height, width, 4)
+        #image = np.fromstring(buffer, dtype='uint8').reshape(height, width, 4)
         #self.final[posY:posY+height,posX:posX+width] = image[:,:,0:3]
 
         #print(image[:,:,0:3])
@@ -420,26 +462,26 @@ class NHL94GameDisplayEnv(gym.Wrapper):
 
         #plt.close()
 
-        self.draw_string(self.info_font, 'REWARD FUNCTION', (1280, 600), (0, 255, 0))
+        #self.draw_string(self.info_font, 'REWARD FUNCTION', (1280, 600), (0, 255, 0))
 
-        self.frameListUpdated = False
+        #self.frameListUpdated = False
                 
 
     def draw_frame(self, frame_img, action_probabilities, input_state, info):
+        
         self.screen.fill((30, 30, 30))
+        
+        # Draw game frame
         emu_screen = np.transpose(frame_img, (1,0,2))
-
         surf = pygame.surfarray.make_surface(emu_screen)
-
         self.screen.blit(pygame.transform.scale(surf,(self.GAME_WIDTH,self.GAME_HEIGHT)), (0, 0))
 
-        
+        # Draw info
         self.draw_contact_info()
         self.draw_basic_info()
         self.draw_model(input_state)
-        #self.draw_action_probabilties(self.action_probabilities)
-        #self.DrawFrameRewardHistogram(self.GAME_WIDTH,400,100,20)
-
+        self.DrawFrameRewardHistogram(self.GAME_WIDTH,400,100,20)
+        self.draw_game_stats(info[0])
         self.draw_ai_overview()
 
         pygame.display.flip()

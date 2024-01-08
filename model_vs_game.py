@@ -75,6 +75,7 @@ class ModelVsGame:
                 self.display_env.action_probabilities = []
             
             for i in range(4):
+                self.display_env.set_ai_sys_info(self.ai_sys)
                 state, reward, done, info = self.display_env.step(p1_actions)
                 total_rewards += reward
 
