@@ -1,5 +1,6 @@
 from game_wrappers.nhl94_obs_2p import NHL94Observation2PEnv
-from game_wrappers.nhl94_display import NHL94PvPGameDisplayEnv, NHL94GameDisplayEnv
+from game_wrappers.nhl94_display import NHL94GameDisplayEnv
+from game_wrappers.nhl94_display_pvp import NHL94PvPGameDisplayEnv
 from game_wrappers.pong_obs import PongObservationEnv
 from game_wrappers.display import PvPGameDisplayEnv, GameDisplayEnv
 from game_wrappers.nhl94_ai import NHL94AISystem

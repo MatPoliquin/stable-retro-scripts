@@ -75,7 +75,6 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         if self.prev_state != None and self.num_players == 2:
             self.prev_state.Flip()
-            p2_ac = self.ai_sys.Think_GotoRandomTarget(self.prev_state)
         
         #ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + p2_ac
         if self.b_button_pressed and ac[GameConsts.INPUT_B] == 1:
@@ -86,6 +85,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
         else:
             self.b_button_pressed = False
 
+        # Hack to allow for slapshots
         if ac[GameConsts.INPUT_MODE] != 1:
             if self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
                 ac[GameConsts.INPUT_C] = 0

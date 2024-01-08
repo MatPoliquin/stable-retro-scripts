@@ -16,151 +16,7 @@ import math
 import sys
 from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
 from game_wrappers.nhl94_gamestate import NHL94GameState
-#import matplotlib.pyplot as plt
-#import matplotlib as mpl
-#mpl.use('Agg')
 
-
-
-class NHL94PvPGameDisplayEnv(gym.Wrapper):
-    def __init__(self, env, args, model1_desc, model2_desc, model1_params, model2_params, button_names):
-        gym.Wrapper.__init__(self, env)
-
-
-        self.FB_WIDTH = args.display_width
-        self.FB_HEIGHT = args.display_height
-
-        self.GAME_WIDTH = 320 * 4
-        self.GAME_HEIGHT = 240 * 4
-        self.BASIC_INFO_X = (self.FB_WIDTH >> 1) - 50
-        self.BASIC_INFO_Y = self.GAME_HEIGHT + 10
-        self.AP_X = self.GAME_WIDTH + 100
-        self.AP_Y = 200
-        self.MODELDESC1_X = (self.FB_WIDTH - self.GAME_WIDTH) >> 1
-        self.MODELDESC1_Y = self.FB_HEIGHT - 20
-        self.NUM_PARAMS1_X = self.MODELDESC1_X + 200
-        self.NUM_PARAMS1_Y = self.FB_HEIGHT - 20
-        self.MODELDESC2_X = self.FB_WIDTH - ((self.FB_WIDTH - self.GAME_WIDTH) >> 1) - 50
-        self.MODELDESC2_Y = self.FB_HEIGHT - 20
-        self.NUM_PARAMS2_X = self.MODELDESC2_X - 350
-        self.NUM_PARAMS2_Y = self.FB_HEIGHT - 20
-        self.VS_X = (self.FB_WIDTH >> 1) - 50
-        self.VS_Y = self.FB_HEIGHT - 100
-
-        # Init Window
-        pygame.init()
-        self.screen = pygame.display.set_mode((args.display_width, args.display_height))
-        self.main_surf = pygame.Surface((FB_WIDTH, FB_HEIGHT))
-        self.main_surf.set_colorkey((0,0,0))
-        self.font = pygame.freetype.SysFont('symbol', 30)
-        self.info_font = pygame.freetype.SysFont('symbol', 20)
-        self.info_font_big = pygame.freetype.SysFont('symbol', 50)
-        self.vs_font = pygame.freetype.SysFont('symbol', 80)
-        self.args = args
-        self.button_names = button_names
-        self.model1_desc = model1_desc
-        self.model2_desc = model2_desc
-        self.model1_params = model1_params
-        self.model2_params = model2_params
-        self.p1_action_probabilities = [0] * 12
-        self.p2_action_probabilities = [0] * 12
-
-    def draw_string(self, font, str, pos, color):
-        text_rect = font.get_rect(str)
-        text_rect.topleft = pos
-        font.render_to(self.main_surf, text_rect.topleft, str, color)
-        return text_rect.bottom
-
-    def draw_contact_info(self):
-        text_rect = self.font.get_rect('stable-retro')
-        text_rect.topleft = (self.FB_WIDTH - text_rect.width, self.FB_HEIGHT - text_rect.height)
-        self.font.render_to(self.main_surf, text_rect.topleft, 'stable-retro', (255, 255, 255))
-
-    def draw_action_probabilties(self, pos_x, pos_y, action_probabilities):
-
-        #print(self.button_names)
-        y = pos_y + 10
-        for button in self.button_names:
-            self.draw_string(self.font, button, (pos_x, y), (255, 255, 255))
-            y += 30
-
-        y = pos_y + 10
-        for prob in action_probabilities:
-            self.draw_string(self.font, ('%f' % prob), (pos_x + 150, y), (255, 255, 255))
-            y += 30
-
-    def draw_basic_info(self):
-        bottom_y = self.draw_string(self.vs_font, 'VS', (self.VS_X, self.VS_Y), (0, 255, 0))
-        bottom_y = self.draw_string(self.font, self.args.env, (self.VS_X - 100, self.FB_HEIGHT - 30), (255, 255, 255))
-
-        # Model 1
-        self.draw_string(self.info_font, 'MODEL', (self.MODELDESC1_X, self.MODELDESC1_Y), (0, 255, 0))
-        self.draw_string(self.info_font, 'NUM PARAMETERS', (self.NUM_PARAMS1_X, self.NUM_PARAMS1_Y), (0, 255, 0))
-
-        self.draw_string(self.info_font_big, self.model1_desc, (self.MODELDESC1_X, self.MODELDESC1_Y - 60), (255, 255, 255))
-        self.draw_string(self.info_font_big, ('%d' % self.model1_params), (self.NUM_PARAMS1_X, self.NUM_PARAMS1_Y - 60), (255, 255, 255))
-
-        # Model 2
-        self.draw_string(self.info_font, 'MODEL', (self.MODELDESC2_X, self.MODELDESC2_Y), (0, 255, 0))
-        self.draw_string(self.info_font, 'NUM PARAMETERS', (self.NUM_PARAMS2_X, self.NUM_PARAMS2_Y), (0, 255, 0))
-
-        self.draw_string(self.info_font_big, self.model2_desc, (self.MODELDESC2_X, self.MODELDESC2_Y - 60), (255, 255, 255))
-        self.draw_string(self.info_font_big, ('%d' % self.model2_params), (self.NUM_PARAMS2_X, self.NUM_PARAMS2_Y - 60), (255, 255, 255))
-
-       
-
-    def draw_frame(self, frame_img):
-        self.main_surf.fill((0, 0, 0))
-        emu_screen = np.transpose(frame_img, (1,0,2))
-
-        surf = pygame.surfarray.make_surface(emu_screen)
-
-        #TODO draw input state
-        #input_state_surf = pygame.surfarray.make_surface(input_state)
-
-        game_x = (self.FB_WIDTH - self.GAME_WIDTH) >> 1
-        #self.main_surf.blit(pygame.transform.scale(surf,(self.GAME_WIDTH, self.GAME_HEIGHT)), (game_x, 0))
-        self.screen.blit(pygame.transform.smoothscale(surf,(self.args.display_width,self.args.display_height)), (0, 0))
-
-        #self.draw_contact_info()
-        #self.draw_basic_info()
-        #self.draw_action_probabilties(0, 100, self.p1_action_probabilities)
-        #self.draw_action_probabilties(self.GAME_WIDTH + game_x, 100, self.p2_action_probabilities)
-        #self.main_surf.set_colorkey(None)
-        
- 
-        pygame.display.flip()
-    
-    def ProcessKeyState(self, keystate):
-
-        if keystate[pygame.K_q] or keystate[pygame.K_ESCAPE]:
-            #logger.log('Exiting...')
-            exit()
-
-    def reset(self, **kwargs):
-        return self.env.reset(**kwargs)
-
-    def step(self, ac):
-        ob, rew, done, info = self.env.step(ac)
-
-        framebuffer = self.render()
-
-        self.draw_frame(framebuffer)
-
-        self.get_input()
-
-        keystate = self.get_input()
-        self.ProcessKeyState(keystate)
-       
-        return ob, rew, done, info
-
-    def seed(self, s):
-        self.rng.seed(s)
-
-    def get_input(self):
-        pygame.event.pump()
-        keystate = pygame.key.get_pressed()
-        return keystate
 
 class NHL94GameDisplayEnv(gym.Wrapper):
     def __init__(self, env, args, total_params, nn_type, button_names):
@@ -194,8 +50,6 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.RF_X = self.GAME_WIDTH + 10
         self.RF_Y = 700
 
-        
-
         # Init Window
         pygame.init()
         #pygame.joystick.init()
@@ -220,38 +74,13 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.action_probabilities = None
         self.player_actions = [0] * 12
 
-        self.best_dist = 0
-
-        #self.ai_sys = None
-        self.model_1_num_params = 0
-        self.model_2_num_params = 0
-        self.model_in_use = 0
-        self.model_name = "N/A"
-
         self.frameRewardList = [0.0] * 200
 
         self.game_state = NHL94GameState()
-        # self.fig = plt.figure(0)
-        # self.fig.set_facecolor('black')
 
-        # numYData = len(self.frameRewardList)
-        # plt.xlim([0,numYData])
-        # plt.ylim([-1,1])
-        # plt.tight_layout()
-  
-        # plt.grid(True)
-        # plt.rc('grid', color='w', linestyle='solid')
-
-
-        # self.fig.set_size_inches(200/80, 20/60, forward=True)
-
-        # ax = plt.gca()
-        # ax.set_facecolor("black")
-
-        # ax.tick_params(axis='x', colors='green')
-        # ax.tick_params(axis='y', colors='green')
-
-        # ax.get_xaxis().set_ticks([])
+        self.model_in_use = 0
+        self.model_params = [None, None, None]
+        self.model_names = ["CODE", "DEFENSE ZONE", "SCORING OPP"]
 
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
@@ -282,8 +111,6 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.game_state.EndFrame()
 
         self.set_reward(rew)
-
-
 
         framebuffer = self.render()
 
@@ -320,20 +147,19 @@ class NHL94GameDisplayEnv(gym.Wrapper):
 
         self.draw_string(self.info_font, 'MODEL(TYPE): NUM PARAMS', (self.AI_X, self.AI_Y), (0, 255, 0))
 
-        color = [(255, 255, 255), (255, 255, 255), (255, 255, 255)]
-        
-        color[self.model_in_use] = (0, 0, 255)
+        i = 0
+        for p in self.model_params:
+            name = self.model_names[i]
+            num_params = 'N/A' if p == None else p
+            color = (255, 255, 255)
+            if self.model_in_use == i:
+                color = (0, 0, 255)
 
-
-        self.draw_string(self.info_font, ('CODE: N/A'), (self.AI_X, self.AI_Y + 20), color[0])
-        self.draw_string(self.info_font, (('SCORING OPP (MLP): %d') % self.model_2_num_params), (self.AI_X, self.AI_Y + 40), color[2])
-        self.draw_string(self.info_font, (('DEFENSE ZONE (MLP): %d') % self.model_1_num_params), (self.AI_X, self.AI_Y + 60), color[1])
-
-
-
+            self.draw_string(self.info_font, ('%s: %s' % (name, num_params)), (self.AI_X, self.AI_Y + 20 + i * 20), color)
+            i += 1
 
     def draw_model(self, input_state):
-        self.draw_string(self.info_font, ('CURRENT MODEL:%s' % self.model_name), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y - 25), (0, 255, 0))
+        self.draw_string(self.info_font, ('CURRENT MODEL:%s' % self.model_names[self.model_in_use]), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y - 25), (0, 255, 0))
         pygame.draw.rect(self.screen, (255,255,255), pygame.Rect(self.INPUT_TITLE_X - 5, self.INPUT_TITLE_Y - 5, 580, 470), width=3)
 
         
@@ -368,18 +194,6 @@ class NHL94GameDisplayEnv(gym.Wrapper):
             self.draw_string(self.font, ('%f' % prob), (self.AP_X + 150, y), color)
             y += 30
 
-        # self.draw_string(self.info_font, '84x84 pixels', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 20), (0, 255, 255))
-        # self.draw_string(self.info_font, 'last 4 frames', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 40), (0, 255, 255))
-
-        # img = np.array(input_state[0])
-
-        # frame = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-        # frame = cv2.resize(frame, (84, 84), interpolation=cv2.INTER_AREA)
-        # frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
-
-        # surf = pygame.surfarray.make_surface(frame)
-        # self.main_surf.blit(pygame.transform.rotozoom(surf, -90, 3), (self.INPUT_X, self.INPUT_Y))
-
     def draw_game_stats(self, info):
         #self.draw_string(self.info_font, 'GAME STATS', (self.STATS_X, self.STATS_Y), (0, 255, 0))
 
@@ -401,17 +215,10 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.action_probabilities = ai_sys.display_probs
         
         if ai_sys:
-            self.model_1_num_params = ai_sys.model_1_num_params
-            self.model_2_num_params = ai_sys.model_2_num_params
+            self.model_params = ai_sys.model_params
             self.model_in_use = ai_sys.model_in_use
 
-            if self.model_in_use == 1:
-                self.model_name = "DEFENSE ZONE"
-            elif self.model_in_use == 2:
-                self.model_name = "SCORING OPP"
-            else:
-                self.model_name = "N/A"
-
+        #print(self.model_in_use)
 
     def DrawFrameRewardHistogram(self, posX, posY, width, height):
 
@@ -431,40 +238,6 @@ class NHL94GameDisplayEnv(gym.Wrapper):
             y = (self.RF_Y + 100) if r < 0.0 else (self.RF_Y + 100 - height)
             if r != 0:
                 pygame.draw.rect(self.screen, (0,255,0), pygame.Rect(self.RF_X + i, y, 2, height))
-
-
-        #plt.plot(self.frameRewardList, color=(0,1,0))
-
-        #self.frameRewardList = [1] * 200
-        #plt.plot(self.frameRewardList, color=(0,1,0))
-        #plt.hist(self.frameRewardList, bins=1, rwidth=0.8)
-        #plt.bar(self.frameRewardList, 50)
-
-        #plt.title(("Reward Mean: %d" % broadcast.rewardmean), color=(0,1,0))
-
-        
-
-
-        #draw buffer
-        #self.fig.canvas.draw()
-        #width, height = self.fig.canvas.get_width_height()
-        #buffer, size = self.fig.canvas.print_to_buffer()
-        #print(buffer)
-        #image = np.fromstring(buffer, dtype='uint8').reshape(height, width, 4)
-        #self.final[posY:posY+height,posX:posX+width] = image[:,:,0:3]
-
-        #print(image[:,:,0:3])
-        #rf_img = np.transpose(image[:,:,0:3], (1,0,2))
-
-        #surf = pygame.surfarray.make_surface(rf_img)
-        #surf.fill((1, 1, 1))
-        #self.screen.blit(surf, (1280, 600))
-
-        #plt.close()
-
-        #self.draw_string(self.info_font, 'REWARD FUNCTION', (1280, 600), (0, 255, 0))
-
-        #self.frameListUpdated = False
                 
 
     def draw_frame(self, frame_img, action_probabilities, input_state, info):
