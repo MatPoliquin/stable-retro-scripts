@@ -115,7 +115,7 @@ class NHL94AISystem():
         else:
             self.shooting = False
 
-            if state.p1_y < -80:
+            if state.p1_y < -80 and state.p2_haspuck:
                 p1_actions = self.get_puck_model.predict(model_input, deterministic=deterministic)[0][0]
                 self.model_in_use = 1
                 self.display_probs = get_model_probabilities(self.get_puck_model, model_input)[0]
