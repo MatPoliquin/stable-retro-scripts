@@ -71,6 +71,8 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.nn_type = nn_type
         self.button_names = button_names
 
+        self.scr_count = 0
+
         self.action_probabilities = None
         self.player_actions = [0] * 12
 
@@ -282,6 +284,12 @@ class NHL94GameDisplayEnv(gym.Wrapper):
         self.player_actions[9] = 1 if keystate[pygame.K_a] else 0
         self.player_actions[10] = 1 if keystate[pygame.K_s] else 0
         self.player_actions[11] = 1 if keystate[pygame.K_d] else 0
+
+
+        if keystate[pygame.K_i]:
+            self.scr_count += 1
+            pygame.image.save(self.screen, f"screenshot0{self.scr_count}.png")
+
 
     def get_input(self):
         pygame.event.pump()
