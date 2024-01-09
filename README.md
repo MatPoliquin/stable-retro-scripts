@@ -42,35 +42,13 @@ Currently there is two NHL 94 env in stable-retro: The original game and the '1 
 
 ## Examples
 
-For NHL94 specific page click [here](./NHL94-README.md)
+*   For NHL94 specific page click [here](./NHL94-README.md)
+*   For Wrestlemania the arcade game specific page click [here](./WWF-README.md)
 
-Train Yokozuna Model:
-```
-python3 model_trainer.py --env=WWFArcade-Genesis --state=VeryHard_YokozunaVsShawnMicheals --num_timesteps=5000000 --play
-```
-
-Train Shawn Micheals Model:
-```
-python3 model_trainer.py --env=WWFArcade-Genesis --state=VeryHard_ShawnMichealsVsYokozuna --num_timesteps=5000000 --play
-```
-
-The models (zip files) should reside in the output directory (by default in the /home directory)
-
-
-### Pit your two models against each other
-```
-python3 model_vs_model.py --env=WWFArcade-Genesis --load_p1_model=~/yokozuna.zip --load_p2_model=~/shawn_micheals.zip
-```
-
-### Game specific training script to beat WWF (Continental mode)
-```
-python3 wwf_trainer.py --play
-```
-
-
-### Play pre-trained model
-```
-python3 model_vs_game.py --env=WWFArcade-Genesis --state=VeryHard_YokozunaVsShawnMicheals --load_p1_model=~/yokozuna.zip
+### Train a model
+Note: Airstriker is a public domain rom and is already included in stable-retro
+```bash
+python3 model_trainer.py --env=Airstriker-Genesis --num_env=8 --num_timesteps=100_000_000 --play
 ```
 
 
