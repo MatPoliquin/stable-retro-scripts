@@ -51,7 +51,10 @@ class ModelVsGame:
         self.ai_sys = games.wrappers.ai_sys(args, self.p1_env, logger)
         if args.model_1 != '' or args.model_2 != '':
             models = [args.model_1, args.model_2]
-            self.ai_sys.SetModels(models)
+            try:
+                self.ai_sys.SetModels(models)
+            except AttributeError:
+                print("SetModels method not found in ai_sys")
         
         self.need_display = need_display
         self.args = args
@@ -70,7 +73,10 @@ class ModelVsGame:
             self.display_env.action_probabilities = []
             
             for i in range(4):
-                self.display_env.set_ai_sys_info(self.ai_sys)
+                try:
+                    self.display_env.set_ai_sys_info(self.ai_sys)
+                except AttributeError:
+                    pass
                 state, reward, done, info = self.display_env.step(p1_actions)
                 total_rewards += reward
 
