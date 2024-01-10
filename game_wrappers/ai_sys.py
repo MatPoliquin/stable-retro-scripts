@@ -12,11 +12,19 @@ class AISys():
         self.args = args
         self.use_model = True
         self.p1_model = None
-        if args.load_p1_model is '':
-            self.use_model = False
-        else:
-            self.p1_model = init_model(None, args.load_p1_model, args.alg, args, env, logger)
 
+        model_path = ''
+        try:
+            model_path = args.load_p1_model if args.load_p1_model != '' else args.model_1
+        except AttributeError:
+            try:
+                model_path = args.model_1
+            except AttributeError:
+                self.use_model = False
+                print('No model attribute found')
+
+        if model_path and self.use_model:
+            self.p1_model = init_model(None, model_path, args.alg, args, env, logger)
 
     def predict(self, state, info, deterministic):
         if self.use_model:
