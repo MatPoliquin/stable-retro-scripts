@@ -103,7 +103,9 @@ class NHL94PvPGameDisplayEnv(gym.Wrapper):
         self.draw_string(self.info_font_big, self.model2_desc, (self.MODELDESC2_X, self.MODELDESC2_Y - 60), (255, 255, 255))
         self.draw_string(self.info_font_big, ('%d' % self.model2_params), (self.NUM_PARAMS2_X, self.NUM_PARAMS2_Y - 60), (255, 255, 255))
 
-       
+    def set_ai_sys_info(self, ai_sys):
+
+        return   
 
     def draw_frame(self, frame_img):
         self.main_surf.fill((0, 0, 0))

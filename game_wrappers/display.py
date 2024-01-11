@@ -127,6 +127,10 @@ class PvPGameDisplayEnv(gym.Wrapper):
 
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
+    
+    def set_ai_sys_info(self, ai_sys):
+
+        return
 
     def step(self, ac):
         ob, rew, done, info = self.env.step(ac)
@@ -356,6 +360,10 @@ class GameDisplayEnv(gym.Wrapper):
         self.draw_string(self.info_font, 'REWARD FUNCTION', (1280, 600), (0, 255, 0))
 
         self.frameListUpdated = False
+
+    def set_ai_sys_info(self, ai_sys):
+
+        return
 
 
     def draw_frame(self, frame_img, action_probabilities, input_state, info):

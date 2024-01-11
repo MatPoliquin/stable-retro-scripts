@@ -8,20 +8,25 @@ from models import init_model
 
 class AISys():
     def __init__(self, args, env, logger):
+        print('HELLLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
         self.test = 0
         self.args = args
         self.use_model = True
-        self.p1_model = None
-        if args.load_p1_model is '':
-            self.use_model = False
-        else:
-            self.p1_model = init_model(None, args.load_p1_model, args.alg, args, env, logger)
+        self.model = None
+        
+        self.env = env
+        self.logger = logger
 
+        
+
+    def SetModels(self, model_paths):
+        if model_paths[0] != None:
+            self.model = init_model(None, model_paths[0], self.args.alg, self.args, self.env, self.logger)
 
     def predict(self, state, info, deterministic):
-        if self.use_model:
-            p1_actions = self.p1_model.predict(state, deterministic=deterministic)[0]
+        if self.model:
+            p1_actions = self.model.predict(state, deterministic=deterministic)[0]
         else:
-            p1_actions = [0] * GameConsts.INPUT_MAX
+            p1_actions = None
 
         return p1_actions

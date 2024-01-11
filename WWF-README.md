@@ -24,8 +24,7 @@ python3 model_vs_model.py --env=WWFArcade-Genesis --load_p1_model=~/yokozuna.zip
 python3 wwf_trainer.py --play
 ```
 
-
 ### Play pre-trained model
 ```
-python3 model_vs_game.py --env=WWFArcade-Genesis --state=VeryHard_YokozunaVsShawnMicheals --load_p1_model=~/yokozuna.zip
+python3 model_vs_game.py --env=WWFArcade-Genesis --state=VeryHard_YokozunaVsShawnMicheals --model_1=~/yokozuna.zip
 ```
