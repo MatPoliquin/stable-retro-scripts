@@ -34,4 +34,4 @@ python3 model_trainer.py --env=NHL941on1-Genesis --state=PenguinsVsSenators.Fron
 NHL94 Discord (with a subgroup dedicated for AI):
 https://discord.gg/SDnKEXujDs
 
-[![NHL94](https://img.youtube.com/vi/YUBXXn2amGUU/0.jpg)](https://www.youtube.com/watch?v=UBXXn2amGUU)
+[![NHL94](https://img.youtube.com/vi/YUBXXn2amGUU/hqdefault.jpg)](https://www.youtube.com/watch?v=UBXXn2amGUU)
