@@ -21,7 +21,7 @@ python3 model_vs_model.py --env=WWFArcade-Genesis --load_p1_model=~/yokozuna.zip
 
 ### Game specific training script to beat WWF (Continental mode)
 ```
-python3 wwf_trainer.py --play
+python3 -m custom_trainers.wwf_trainer --play
 ```
 
 ### Play pre-trained model
