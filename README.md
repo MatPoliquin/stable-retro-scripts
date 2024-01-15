@@ -7,8 +7,10 @@ Note: Migrated to pytorch and stable-baselines3. The old tensorflow + original s
 * Play against an improved AI opponent
 
 
-![screenshot 01](./screenshot01.png)
-![wwf vs](./vs_screenshot.png)
+NHL94 (1 on 1)           |  Wrestlemania: The Arcade game
+:-------------------------:|:-------------------------:
+![screenshot 01](./screenshot01.png)  |  ![wwf vs](./vs_screenshot.png)
+
 
 ## Installation
 
@@ -50,12 +52,3 @@ Note: Airstriker is a public domain rom and is already included in stable-retro
 ```bash
 python3 model_trainer.py --env=Airstriker-Genesis --num_env=8 --num_timesteps=100_000_000 --play
 ```
-
-
-## Devlog
-
-For NHL94:
-https://youtube.com/playlist?list=PLmwlWbdWpZVtH6NXqWbrnWOf6SWv9nJBY
-
-NHL94 Discord (with a subgroup dedicated for AI):
-https://discord.gg/SDnKEXujDs
