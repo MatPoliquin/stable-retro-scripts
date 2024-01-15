@@ -32,6 +32,8 @@ git clone https://github.com/MatPoliquin/stable-retro-scripts.git
 cd stable-retro-scripts
 ```
 
+Windows WSL2 + Ubuntu 22.04 setup guide: https://www.youtube.com/watch?v=vPnJiUR21Og
+
 ## Install roms
 You need to provide your own roms
 
