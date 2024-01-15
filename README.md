@@ -9,7 +9,7 @@ Note: Migrated to pytorch and stable-baselines3. The old tensorflow + original s
 
 NHL94 (1 on 1)           |  Wrestlemania: The Arcade game |  Virtua Fighter 1
 :-------------------------:|:-------------------------:|:-------------------------:
-![screenshot 01](./screenshot01.png)  |  ![wwf vs](./vs_screenshot.png) | ![vf](./virtua_fighter.png)
+![screenshot 01](./screenshots/nhl94.png)  |  ![wwf vs](./screenshots/wwf.png) | ![vf](./screenshots/virtua_fighter.png)
 
 
 ## Installation
