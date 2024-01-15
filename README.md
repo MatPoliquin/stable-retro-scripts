@@ -7,9 +7,9 @@ Note: Migrated to pytorch and stable-baselines3. The old tensorflow + original s
 * Play against an improved AI opponent
 
 
-NHL94 (1 on 1)           |  Wrestlemania: The Arcade game
-:-------------------------:|:-------------------------:
-![screenshot 01](./screenshot01.png)  |  ![wwf vs](./vs_screenshot.png)
+NHL94 (1 on 1)           |  Wrestlemania: The Arcade game |  Virtua Fighter 1
+:-------------------------:|:-------------------------:|:-------------------------:
+![screenshot 01](./screenshot01.png)  |  ![wwf vs](./vs_screenshot.png) | ![vf](./virtua_fighter.png)
 
 
 ## Installation

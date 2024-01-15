@@ -363,8 +363,9 @@ class GameDisplayEnv(gym.Wrapper):
 
     def set_ai_sys_info(self, ai_sys):
 
-        return
-
+        if ai_sys != None:
+            self.action_probabilities = ai_sys.display_probs
+            self.num_params = ai_sys.model_num_params
 
     def draw_frame(self, frame_img, action_probabilities, input_state, info):
         self.main_surf.fill((30, 30, 30))
