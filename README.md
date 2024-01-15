@@ -46,8 +46,8 @@ Currently there is two NHL 94 env in stable-retro: The original game and the '1 
 
 ## Examples
 
-*   For NHL94 specific page click [here](./NHL94-README.md)
-*   For Wrestlemania the arcade game specific page click [here](./WWF-README.md)
+*   For NHL94 specific page click [here](./readmes/NHL94-README.md)
+*   For Wrestlemania the arcade game specific page click [here](./readmes/WWF-README.md)
 
 ### Train a model
 Note: Airstriker is a public domain rom and is already included in stable-retro
