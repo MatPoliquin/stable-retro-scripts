@@ -8,7 +8,6 @@ from models import init_model, print_model_info, get_num_parameters, get_model_p
 
 class AISys():
     def __init__(self, args, env, logger):
-        print('HELLLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
         self.test = 0
         self.args = args
         self.use_model = True
