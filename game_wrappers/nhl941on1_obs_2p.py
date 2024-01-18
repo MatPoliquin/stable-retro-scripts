@@ -16,19 +16,17 @@ import gymnasium as gym
 from gymnasium import spaces, logger
 from gymnasium.utils import seeding
 
-from game_wrappers.nhl94_const import GameConsts
-from game_wrappers.nhl94_rf import register_functions
-from game_wrappers.nhl94_ai import NHL94AISystem
-from game_wrappers.nhl94_gamestate import NHL94GameState
+from game_wrappers.nhl941on1_const import GameConsts
+from game_wrappers.nhl941on1_rf import register_functions
+from game_wrappers.nhl941on1_ai import NHL941on1AISystem
+from game_wrappers.nhl941on1_gamestate import NHL941on1GameState
 
-NUM_PARAMS = 24
-
-class NHL94Observation2PEnv(gym.Wrapper):
+class NHL941on1Observation2PEnv(gym.Wrapper):
     def __init__(self, env, args, num_players, rf_name):
         gym.Wrapper.__init__(self, env)
 
-        low = np.array([-1] * NUM_PARAMS, dtype=np.float32)
-        high = np.array([1] * NUM_PARAMS, dtype=np.float32)
+        low = np.array([-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], dtype=np.float32)
+        high = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=np.float32)
         self.observation_space = spaces.Box(low, high, dtype=np.float32)
 
         self.reward_function = None
@@ -44,9 +42,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
         if num_players == 2:
             self.action_space = gym.spaces.MultiBinary(self.num_buttons)
 
-        self.game_state = NHL94GameState()
+        self.game_state = NHL941on1GameState()
 
-        self.ai_sys = NHL94AISystem(args, env, None)
+        self.ai_sys = NHL941on1AISystem(args, env, None)
 
         self.ram_inited = False
         self.b_button_pressed = False
@@ -62,9 +60,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
 
-        self.state = tuple([0] * NUM_PARAMS)
+        self.state = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
-        self.game_state = NHL94GameState()
+        self.game_state = NHL941on1GameState()
         self.ram_inited = False
         self.b_button_pressed = False
         self.c_button_pressed = False
@@ -121,27 +119,10 @@ class NHL94Observation2PEnv(gym.Wrapper):
        
         self.game_state.EndFrame()
 
-        
-
-        p1_x, p1_y = self.game_state.normalized_p1_x, self.game_state.normalized_p1_y
-        p1_vel_x, p1_vel_y = self.game_state.normalized_p1_velx, self.game_state.normalized_p1_vely
-        p1_2_x, p1_2_y = self.game_state.normalized_p1_2_x, self.game_state.normalized_p1_2_y
-        p1_2_vel_x, p1_2_vel_y = self.game_state.normalized_p1_2_velx, self.game_state.normalized_p1_2_vely
-
-        # First two slots is for pos/vel of player beeing controled (empty or full star)
-        # So swap them if necessary
-        if self.game_state.p1_control == 2:
-            p1_x, p1_2_x = p1_2_x, p1_x
-            p1_y, p1_2_y = p1_2_y, p1_y
-
-        self.state = (p1_x, p1_y, \
-                     p1_vel_x, p1_vel_y, \
-                     p1_2_x, p1_2_y, \
-                     p1_2_vel_x, p1_2_vel_y, \
+        self.state = (self.game_state.normalized_p1_x, self.game_state.normalized_p1_y, \
+                     self.game_state.normalized_p1_velx, self.game_state.normalized_p1_vely, \
                      self.game_state.normalized_p2_x, self.game_state.normalized_p2_y, \
                      self.game_state.normalized_p2_velx, self.game_state.normalized_p2_vely, \
-                     self.game_state.normalized_p2_2_x, self.game_state.normalized_p2_2_y, \
-                     self.game_state.normalized_p2_2_velx, self.game_state.normalized_p2_2_vely, \
                      self.game_state.normalized_puck_x, self.game_state.normalized_puck_y, \
                      self.game_state.normalized_puck_velx, self.game_state.normalized_puck_vely, \
                      self.game_state.normalized_g2_x, self.game_state.normalized_g2_y, \

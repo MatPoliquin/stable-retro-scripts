@@ -3,9 +3,9 @@ NHL94 Game State
 """
 
 import math
-from game_wrappers.nhl94_const import GameConsts
+from game_wrappers.nhl941on1_const import GameConsts
 
-class NHL94GameState():
+class NHL941on1GameState():
     def __init__(self):
         self.last_p1_score = 0
         self.last_p2_score = 0
@@ -22,12 +22,12 @@ class NHL94GameState():
         self.last_p1_passing = 0
         self.p1_x = 0
         self.p1_y = 0
-        self.p1_2_x = 0
-        self.p1_2_y = 0
         self.p2_x = 0
         self.p2_y = 0
-        self.p2_2_x = 0
-        self.p2_2_y = 0
+        self.rp1_x = 0
+        self.rp1_y = 0
+        self.rp2_x = 0
+        self.rp2_y = 0
         self.g1_x = 0
         self.g1_y = 0
         self.g2_x = 0
@@ -39,8 +39,6 @@ class NHL94GameState():
         self.time = 0
         self.last_havepuck_time = -1
         self.distToPuck = 0
-        self.p1_emptystar_x = 0
-        self.p1_emptystar_y = 0
         self.p1_fullstar_x = 0
         self.p1_fullstar_y = 0
         self.p2_fullstar_x = 0
@@ -51,12 +49,8 @@ class NHL94GameState():
         self.g2_haspuck = False
         self.p1_vel_x  = 0
         self.p1_vel_y  = 0
-        self.p1_2_vel_x  = 0
-        self.p1_2_vel_y  = 0
         self.p2_vel_x  = 0
         self.p2_vel_y  = 0
-        self.p2_2_vel_x  = 0
-        self.p2_2_vel_y  = 0
         self.puck_vel_x  = 0
         self.puck_vel_y  = 0
         self.puck_x = 0
@@ -64,12 +58,8 @@ class NHL94GameState():
 
         self.normalized_p1_x = 0
         self.normalized_p1_y = 0
-        self.normalized_p1_2_x = 0
-        self.normalized_p1_2_y = 0
         self.normalized_p2_x = 0
         self.normalized_p2_y = 0
-        self.normalized_p2_2_x = 0
-        self.normalized_p2_2_y = 0
         self.normalized_g1_x = 0
         self.normalized_g1_y = 0
         self.normalized_g2_x = 0
@@ -83,14 +73,8 @@ class NHL94GameState():
 
         self.normalized_p1_velx = 0.0
         self.normalized_p1_vely = 0.0
-        self.normalized_p1_2_velx = 0.0
-        self.normalized_p1_2_vely = 0.0
         self.normalized_p2_velx = 0.0
         self.normalized_p2_vely = 0.0
-        self.normalized_p2_2_velx = 0.0
-        self.normalized_p2_2_vely = 0.0
-
-        self.p1_control = 0 # 0 = g1, 1 = p1_1, 2 = p1_2
 
 
     def swap(self, x,y):
@@ -121,13 +105,6 @@ class NHL94GameState():
         tmp = (vec1[0] - vec2[0])**2 + (vec1[1] - vec2[1])**2
     
         return math.sqrt(tmp)
-    
-    def has_puck(self, pos_x, pos_y):
-        return (abs(pos_x - self.p1_fullstar_x) < 3 and abs(pos_y - self.p1_fullstar_y) < 3)
-    
-    def has_control(self, pos_x, pos_y):
-        return (abs(pos_x - self.p1_emptystar_x) < 3 and abs(pos_y - self.p1_emptystar_y) < 3)
-
 
     def BeginFrame(self, info):
         self.p1_score = info.get('p1_score')
@@ -141,12 +118,8 @@ class NHL94GameState():
         self.p1_passing = info.get('p1_passing')
         self.p1_x = info.get('p1_x')
         self.p1_y = info.get('p1_y')
-        self.p1_2_x = info.get('p1_2_x')
-        self.p1_2_y = info.get('p1_2_y')
         self.p2_x = info.get('p2_x')
         self.p2_y = info.get('p2_y')
-        self.p2_2_x = info.get('p2_2_x')
-        self.p2_2_y = info.get('p2_2_y')
         self.g1_x = info.get('g1_x')
         self.g1_y = info.get('g1_y')
         self.g2_x = info.get('g2_x')
@@ -158,18 +131,12 @@ class NHL94GameState():
         self.puck_vel_y = info.get('puck_vel_y')
         self.p1_vel_x = info.get('p1_vel_x')
         self.p1_vel_y = info.get('p1_vel_y')
-        self.p1_2_vel_x = info.get('p1_2_vel_x')
-        self.p1_2_vel_y = info.get('p1_2_vel_y')
         self.p2_vel_x = info.get('p2_vel_x')
         self.p2_vel_y = info.get('p2_vel_y')
-        self.p2_2_vel_x = info.get('p2_2_vel_x')
-        self.p2_2_vel_y = info.get('p2_2_vel_y')
         self.p1_fullstar_x = info.get('fullstar_x')
         self.p1_fullstar_y = info.get('fullstar_y')
         self.p2_fullstar_x = info.get('p2_fullstar_x')
         self.p2_fullstar_y = info.get('p2_fullstar_y')
-        self.p1_emptystar_x = info.get('p1_emptystar_x')
-        self.p1_emptystar_y = info.get('p1_emptystar_y')
 
         self.distToPuck = self.Distance((self.p1_x, self.p1_y), (self.puck_x, self.puck_y))
 
@@ -177,27 +144,25 @@ class NHL94GameState():
         # Knowing if the player has the puck is tricky since the fullstar in the game is not aligned with the player every frame
         # There is an offset of up to 2 sometimes
 
-        self.player_haspuck = self.has_puck(self.p1_x, self.p1_y) or self.has_puck(self.p1_2_x, self.p1_2_y)
-        self.p2_haspuck = self.has_puck(self.p2_x, self.p2_y)
-
-        self.goalie_haspuck = self.has_puck(self.g1_x, self.g1_y)
-        self.g2_haspuck = self.has_puck(self.g2_x, self.g2_y)
-
-        # TODO check which p1 player is beeing controlled
-        #self.p1_control
-
-        if self.goalie_haspuck:
-            self.p1_control = 0
-        elif self.player_haspuck:
-            if self.has_puck(self.p1_x, self.p1_y):
-                self.p1_control = 1
-            elif self.has_puck(self.p1_2_x, self.p1_2_y):
-                self.p1_control = 2
+        if(abs(self.p1_x - self.p1_fullstar_x) < 3 and abs(self.p1_y - self.p1_fullstar_y) < 3):
+            self.player_haspuck = True
         else:
-            if self.has_control(self.p1_x, self.p1_y):
-                self.p1_control = 1
-            elif self.has_control(self.p1_2_x, self.p1_2_y):
-                self.p1_control = 2
+            self.player_haspuck = False
+
+        if(abs(self.p2_x - self.p1_fullstar_x) < 3 and abs(self.p2_y - self.p1_fullstar_y) < 3):
+            self.p2_haspuck = True
+        else:
+            self.p2_haspuck = False
+            
+        if(abs(self.g1_x - self.p1_fullstar_x) < 3 and abs(self.g1_y - self.p1_fullstar_y) < 3):
+            self.goalie_haspuck = True
+        else:
+            self.goalie_haspuck = False
+
+        if(abs(self.g2_x - self.p1_fullstar_x) < 3 and abs(self.g2_y - self.p1_fullstar_y) < 3):
+            self.g2_haspuck = True
+        else:
+            self.g2_haspuck = False
 
     def EndFrame(self):
         self.counter += 1
@@ -221,28 +186,20 @@ class NHL94GameState():
 
 
         self.normalized_p1_x = self.p1_x / GameConsts.MAX_PLAYER_X
-        self.normalized_p1_y = self.p1_y / GameConsts.MAX_PLAYER_X
-        self.normalized_p1_2_x = self.p1_2_x / GameConsts.MAX_PLAYER_X
-        self.normalized_p1_2_y = self.p1_2_y / GameConsts.MAX_PLAYER_Y
+        self.normalized_p1_y = self.p1_y / GameConsts.MAX_PLAYER_Y
         self.normalized_p2_x = self.p2_x / GameConsts.MAX_PLAYER_X
         self.normalized_p2_y = self.p2_y / GameConsts.MAX_PLAYER_Y
-        self.normalized_p2_2_x = self.p2_2_x / GameConsts.MAX_PLAYER_X
-        self.normalized_p2_2_y = self.p2_2_y / GameConsts.MAX_PLAYER_Y
         self.normalized_g2_x = self.g2_x / GameConsts.MAX_PLAYER_X
         self.normalized_g2_y = self.g2_y / GameConsts.MAX_PLAYER_Y
         self.normalized_puck_x = self.puck_x / GameConsts.MAX_PUCK_X
         self.normalized_puck_y = self.puck_y / GameConsts.MAX_PUCK_Y
-        self.normalized_player_haspuck = 1.0 if self.player_haspuck else 0.0
-        self.normalized_goalie_haspuck = 1.0 if self.goalie_haspuck else 0.0
+        self.normalized_player_haspuck = 0.0 if self.player_haspuck else 1.0
+        self.normalized_goalie_haspuck = 0.0 if self.goalie_haspuck else 1.0
 
 
         self.normalized_p1_velx = self.p1_vel_x  / GameConsts.MAX_VEL_XY
         self.normalized_p1_vely = self.p1_vel_y  / GameConsts.MAX_VEL_XY
-        self.normalized_p1_2_velx = self.p1_2_vel_x  / GameConsts.MAX_VEL_XY
-        self.normalized_p1_2_vely = self.p1_2_vel_y  / GameConsts.MAX_VEL_XY
         self.normalized_p2_velx = self.p2_vel_x  / GameConsts.MAX_VEL_XY
         self.normalized_p2_vely = self.p2_vel_y  / GameConsts.MAX_VEL_XY
-        self.normalized_p2_2_velx = self.p2_2_vel_x  / GameConsts.MAX_VEL_XY
-        self.normalized_p2_2_vely = self.p2_2_vel_y  / GameConsts.MAX_VEL_XY
         self.normalized_puck_velx = self.puck_vel_x  / GameConsts.MAX_VEL_XY
         self.normalized_puck_vely = self.puck_vel_y  / GameConsts.MAX_VEL_XY

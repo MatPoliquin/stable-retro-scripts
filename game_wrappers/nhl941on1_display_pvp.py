@@ -14,11 +14,11 @@ import pygame.freetype
 import cv2
 import math
 import sys
-from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
-from game_wrappers.nhl94_gamestate import NHL94GameState
+from game_wrappers.nhl941on1_rf import rf_defensezone, rf_scoregoal
+from game_wrappers.nhl941on1_gamestate import NHL941on1GameState
 
 
-class NHL94PvPGameDisplayEnv(gym.Wrapper):
+class NHL941on1PvPGameDisplayEnv(gym.Wrapper):
     def __init__(self, env, args, model1_desc, model2_desc, model1_params, model2_params, button_names):
         gym.Wrapper.__init__(self, env)
 
@@ -103,7 +103,9 @@ class NHL94PvPGameDisplayEnv(gym.Wrapper):
         self.draw_string(self.info_font_big, self.model2_desc, (self.MODELDESC2_X, self.MODELDESC2_Y - 60), (255, 255, 255))
         self.draw_string(self.info_font_big, ('%d' % self.model2_params), (self.NUM_PARAMS2_X, self.NUM_PARAMS2_Y - 60), (255, 255, 255))
 
-       
+    def set_ai_sys_info(self, ai_sys):
+
+        return   
 
     def draw_frame(self, frame_img):
         self.main_surf.fill((0, 0, 0))
