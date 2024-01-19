@@ -1,9 +1,9 @@
-from game_wrappers.nhl941on1_obs_2p import NHL941on1Observation2PEnv
+from game_wrappers.nhl941on1_obs import NHL941on1Observation2PEnv
 from game_wrappers.nhl941on1_display import NHL941on1GameDisplayEnv
 from game_wrappers.nhl941on1_display_pvp import NHL941on1PvPGameDisplayEnv
 from game_wrappers.nhl941on1_ai import NHL941on1AISystem
 
-from game_wrappers.nhl94_obs_2p import NHL94Observation2PEnv
+from game_wrappers.nhl94_obs import NHL94Observation2PEnv
 from game_wrappers.nhl94_display import NHL94GameDisplayEnv
 from game_wrappers.nhl94_display_pvp import NHL94PvPGameDisplayEnv
 from game_wrappers.nhl94_ai import NHL94AISystem
