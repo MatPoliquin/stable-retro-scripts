@@ -26,7 +26,7 @@ sudo apt update
 sudo apt-get install python3 python3-pip git zlib1g-dev libopenmpi-dev ffmpeg cmake
 
 git clone https://github.com/Farama-Foundation/stable-retro.git
-cd stable-retro-scripts
+cd stable-retro
 pip3 install -e .
 
 pip3 install "stable_baselines3[extra]" pygame torchsummary
