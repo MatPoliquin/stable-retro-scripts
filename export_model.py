@@ -2,11 +2,14 @@
 # https://stable-baselines3.readthedocs.io/en/master/guide/export.html
 
 import torch as th
+import torchvision
 from typing import Tuple
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.policies import BasePolicy
 
+
+MODEL_PATH = "./models/ScoreGoal.zip"
 
 class OnnxableSB3Policy(th.nn.Module):
     def __init__(self, policy: BasePolicy):
@@ -23,7 +26,7 @@ class OnnxableSB3Policy(th.nn.Module):
 
 
 # Example: model = PPO("MlpPolicy", "Pendulum-v1")
-model = PPO.load("./models/ScoreGoal.zip", device="cpu")
+model = PPO.load(MODEL_PATH, device="cpu")
 
 onnx_policy = OnnxableSB3Policy(model.policy)
 
@@ -48,13 +51,23 @@ frozen_module = th.jit.freeze(traced_module)
 frozen_module = th.jit.optimize_for_inference(frozen_module)
 th.jit.save(frozen_module, jit_path)
 
+#test resnet
+resnet_model = torchvision.models.resnet18()
+example = th.rand(1, 3, 224, 224)
+traced_script_module = th.jit.trace(resnet_model, example)
+traced_script_module.save("traced_resnet_model.pt")
+
 ##### Load and test with torch
+print(th.__version__)
 
-import torch as th
-
-dummy_input = th.randn(1, *observation_size)
+dummy_input = th.zeros(1, *observation_size)
 loaded_module = th.jit.load(jit_path)
 action_jit = loaded_module(dummy_input)
+print("Pytorch test")
+print(observation_size)
+print(dummy_input)
+print(action_jit)
+print("=========================")
 
 ##### Load and test with onnx
 
