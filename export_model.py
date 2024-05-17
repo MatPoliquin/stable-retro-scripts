@@ -9,7 +9,12 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.policies import BasePolicy
 
 
-MODEL_PATH = "./models/ScoreGoal.zip"
+#MODEL_PATH = "./models/ScoreGoal.zip"
+#jit_path = "ScoreGoal.pt"
+
+MODEL_PATH = "./models/DefenseZone.zip"
+jit_path = "DefenseZone.pt"
+
 
 class OnnxableSB3Policy(th.nn.Module):
     def __init__(self, policy: BasePolicy):
@@ -43,7 +48,7 @@ th.onnx.export(
 
 # Pytorch JIT
 # See "ONNX export" for imports and OnnxablePolicy
-jit_path = "ppo_traced.pt"
+
 
 # Trace and optimize the module
 traced_module = th.jit.trace(onnx_policy.eval(), dummy_input)
