@@ -1,0 +1,6 @@
+# expect variable DIR
+FILE(GLOB CLEANDIRS "${DIR}/sandbox-*.d[0-9]*")
+IF (CLEANDIRS)
+  MESSAGE(STATUS "Removing ${CLEANDIRS}")
+  FILE(REMOVE_RECURSE ${CLEANDIRS})
+ENDIF()

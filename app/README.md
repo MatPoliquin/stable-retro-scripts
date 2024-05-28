@@ -1,0 +1,40 @@
+# stable-retro play
+Emulator frontend that supports Machine Learning models to control players. The source code is based on OpenAI's gym-retro-integration tool.
+
+This is a prototype version so only NHL94 (1 on 1 Sega Genesis version) is supported for now.
+
+## Building the app
+
+```
+git clone https://github.com/MatPoliquin/stable-retro-scripts.git
+```
+
+Download pytorch C++ lib:
+```
+cd stable-retro-scripts/app/third-party
+wget https://download.pytorch.org/libtorch/nightly/cpu/libtorch-shared-with-deps-latest.zip
+unzip libtorch-shared-with-deps-latest.zip
+```
+
+Generate makefiles and compile
+```
+cmake . -DBUILD_UI=ON -UPYLIB_DIRECTORY -DCMAKE_PREFIX_PATH=./third-party/libtorch ..
+make
+```
+
+## Example
+Launch the app
+```
+./sr-play
+```
+
+Load NHL94 1on1
+*   On the top right menu, click: Game->Load Game
+*   Open your rom file in app/retro/data/NHL941on1-Genesis
+
+Load 2 player state
+*   On the top right menu, click: Game->Load State
+*   Open the following state: app/retro/data/NHL941on1-Genesis/PenguinsVsSenators.2P.state
+
+You should now be able to play againsts the custom AI. You control player 2 and the AI controls player 1.
+You might need to config the inputs using Windows->Controls menu
