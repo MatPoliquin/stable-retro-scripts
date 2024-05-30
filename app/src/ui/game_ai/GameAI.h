@@ -13,8 +13,6 @@ public:
 
 class GameAI {
 public:
-        void Test_Pytorch();
-
         virtual void Init(std::filesystem::path dir) {};
         RetroModel * LoadModel(std::string path);
 

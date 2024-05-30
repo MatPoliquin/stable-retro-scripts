@@ -57,10 +57,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/mat/github/sr-player2
+CMAKE_SOURCE_DIR = /home/mat/github/stable-retro-scripts/app
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/mat/github/sr-player2
+CMAKE_BINARY_DIR = /home/mat/github/stable-retro-scripts/app
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -68,7 +68,7 @@ CMAKE_BINARY_DIR = /home/mat/github/sr-player2
 # Special rule for the target package
 package: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Run CPack packaging tool..."
-	cd /home/mat/github/sr-player2 && /usr/bin/cpack --config ./CPackConfig.cmake
+	cd /home/mat/github/stable-retro-scripts/app && /usr/bin/cpack --config ./CPackConfig.cmake
 .PHONY : package
 
 # Special rule for the target package
@@ -78,22 +78,12 @@ package/fast: package
 # Special rule for the target package_source
 package_source:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Run CPack packaging tool for source..."
-	cd /home/mat/github/sr-player2 && /usr/bin/cpack --config ./CPackSourceConfig.cmake /home/mat/github/sr-player2/CPackSourceConfig.cmake
+	cd /home/mat/github/stable-retro-scripts/app && /usr/bin/cpack --config ./CPackSourceConfig.cmake /home/mat/github/stable-retro-scripts/app/CPackSourceConfig.cmake
 .PHONY : package_source
 
 # Special rule for the target package_source
 package_source/fast: package_source
 .PHONY : package_source/fast
-
-# Special rule for the target test
-test:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
-	/usr/bin/ctest --force-new-ctest-process $(ARGS)
-.PHONY : test
-
-# Special rule for the target test
-test/fast: test
-.PHONY : test/fast
 
 # Special rule for the target edit_cache
 edit_cache:
@@ -117,7 +107,7 @@ rebuild_cache/fast: rebuild_cache
 
 # Special rule for the target list_install_components
 list_install_components:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\" \"gym-retro-integration\""
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\" \"sr-play\""
 .PHONY : list_install_components
 
 # Special rule for the target list_install_components
@@ -162,14 +152,14 @@ install/strip/fast: preinstall/fast
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/mat/github/sr-player2 && $(CMAKE_COMMAND) -E cmake_progress_start /home/mat/github/sr-player2/CMakeFiles /home/mat/github/sr-player2/src/ui//CMakeFiles/progress.marks
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/ui/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/mat/github/sr-player2/CMakeFiles 0
+	cd /home/mat/github/stable-retro-scripts/app && $(CMAKE_COMMAND) -E cmake_progress_start /home/mat/github/stable-retro-scripts/app/CMakeFiles /home/mat/github/stable-retro-scripts/app/src/ui//CMakeFiles/progress.marks
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/ui/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/mat/github/stable-retro-scripts/app/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/ui/clean
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/ui/clean
 .PHONY : clean
 
 # The main clean target
@@ -178,53 +168,53 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/ui/preinstall
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/ui/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/ui/preinstall
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/ui/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/mat/github/sr-player2 && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/mat/github/stable-retro-scripts/app && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
-src/ui/CMakeFiles/gym-retro-integration.dir/rule:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/ui/CMakeFiles/gym-retro-integration.dir/rule
-.PHONY : src/ui/CMakeFiles/gym-retro-integration.dir/rule
+src/ui/CMakeFiles/sr-play.dir/rule:
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/ui/CMakeFiles/sr-play.dir/rule
+.PHONY : src/ui/CMakeFiles/sr-play.dir/rule
 
 # Convenience name for target.
-gym-retro-integration: src/ui/CMakeFiles/gym-retro-integration.dir/rule
-.PHONY : gym-retro-integration
+sr-play: src/ui/CMakeFiles/sr-play.dir/rule
+.PHONY : sr-play
 
 # fast build rule for target.
-gym-retro-integration/fast:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/build
-.PHONY : gym-retro-integration/fast
+sr-play/fast:
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/build
+.PHONY : sr-play/fast
 
 # Convenience name for target.
-src/ui/CMakeFiles/gym-retro-integration_autogen.dir/rule:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/ui/CMakeFiles/gym-retro-integration_autogen.dir/rule
-.PHONY : src/ui/CMakeFiles/gym-retro-integration_autogen.dir/rule
+src/ui/CMakeFiles/sr-play_autogen.dir/rule:
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/ui/CMakeFiles/sr-play_autogen.dir/rule
+.PHONY : src/ui/CMakeFiles/sr-play_autogen.dir/rule
 
 # Convenience name for target.
-gym-retro-integration_autogen: src/ui/CMakeFiles/gym-retro-integration_autogen.dir/rule
-.PHONY : gym-retro-integration_autogen
+sr-play_autogen: src/ui/CMakeFiles/sr-play_autogen.dir/rule
+.PHONY : sr-play_autogen
 
 # fast build rule for target.
-gym-retro-integration_autogen/fast:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration_autogen.dir/build.make src/ui/CMakeFiles/gym-retro-integration_autogen.dir/build
-.PHONY : gym-retro-integration_autogen/fast
+sr-play_autogen/fast:
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play_autogen.dir/build.make src/ui/CMakeFiles/sr-play_autogen.dir/build
+.PHONY : sr-play_autogen/fast
 
 CheatModel.o: CheatModel.cpp.o
 .PHONY : CheatModel.o
 
 # target to build an object file
 CheatModel.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/CheatModel.cpp.o
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/CheatModel.cpp.o
 .PHONY : CheatModel.cpp.o
 
 CheatModel.i: CheatModel.cpp.i
@@ -232,7 +222,7 @@ CheatModel.i: CheatModel.cpp.i
 
 # target to preprocess a source file
 CheatModel.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/CheatModel.cpp.i
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/CheatModel.cpp.i
 .PHONY : CheatModel.cpp.i
 
 CheatModel.s: CheatModel.cpp.s
@@ -240,7 +230,7 @@ CheatModel.s: CheatModel.cpp.s
 
 # target to generate assembly for a file
 CheatModel.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/CheatModel.cpp.s
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/CheatModel.cpp.s
 .PHONY : CheatModel.cpp.s
 
 ControlsWidget.o: ControlsWidget.cpp.o
@@ -248,7 +238,7 @@ ControlsWidget.o: ControlsWidget.cpp.o
 
 # target to build an object file
 ControlsWidget.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/ControlsWidget.cpp.o
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/ControlsWidget.cpp.o
 .PHONY : ControlsWidget.cpp.o
 
 ControlsWidget.i: ControlsWidget.cpp.i
@@ -256,7 +246,7 @@ ControlsWidget.i: ControlsWidget.cpp.i
 
 # target to preprocess a source file
 ControlsWidget.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/ControlsWidget.cpp.i
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/ControlsWidget.cpp.i
 .PHONY : ControlsWidget.cpp.i
 
 ControlsWidget.s: ControlsWidget.cpp.s
@@ -264,7 +254,7 @@ ControlsWidget.s: ControlsWidget.cpp.s
 
 # target to generate assembly for a file
 ControlsWidget.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/ControlsWidget.cpp.s
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/ControlsWidget.cpp.s
 .PHONY : ControlsWidget.cpp.s
 
 DoneNodeWidget.o: DoneNodeWidget.cpp.o
@@ -272,7 +262,7 @@ DoneNodeWidget.o: DoneNodeWidget.cpp.o
 
 # target to build an object file
 DoneNodeWidget.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/DoneNodeWidget.cpp.o
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/DoneNodeWidget.cpp.o
 .PHONY : DoneNodeWidget.cpp.o
 
 DoneNodeWidget.i: DoneNodeWidget.cpp.i
@@ -280,7 +270,7 @@ DoneNodeWidget.i: DoneNodeWidget.cpp.i
 
 # target to preprocess a source file
 DoneNodeWidget.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/DoneNodeWidget.cpp.i
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/DoneNodeWidget.cpp.i
 .PHONY : DoneNodeWidget.cpp.i
 
 DoneNodeWidget.s: DoneNodeWidget.cpp.s
@@ -288,7 +278,7 @@ DoneNodeWidget.s: DoneNodeWidget.cpp.s
 
 # target to generate assembly for a file
 DoneNodeWidget.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/DoneNodeWidget.cpp.s
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/DoneNodeWidget.cpp.s
 .PHONY : DoneNodeWidget.cpp.s
 
 DoneSpecWidget.o: DoneSpecWidget.cpp.o
@@ -296,7 +286,7 @@ DoneSpecWidget.o: DoneSpecWidget.cpp.o
 
 # target to build an object file
 DoneSpecWidget.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/DoneSpecWidget.cpp.o
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/DoneSpecWidget.cpp.o
 .PHONY : DoneSpecWidget.cpp.o
 
 DoneSpecWidget.i: DoneSpecWidget.cpp.i
@@ -304,7 +294,7 @@ DoneSpecWidget.i: DoneSpecWidget.cpp.i
 
 # target to preprocess a source file
 DoneSpecWidget.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/DoneSpecWidget.cpp.i
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/DoneSpecWidget.cpp.i
 .PHONY : DoneSpecWidget.cpp.i
 
 DoneSpecWidget.s: DoneSpecWidget.cpp.s
@@ -312,7 +302,7 @@ DoneSpecWidget.s: DoneSpecWidget.cpp.s
 
 # target to generate assembly for a file
 DoneSpecWidget.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/DoneSpecWidget.cpp.s
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/DoneSpecWidget.cpp.s
 .PHONY : DoneSpecWidget.cpp.s
 
 EmulatorController.o: EmulatorController.cpp.o
@@ -320,7 +310,7 @@ EmulatorController.o: EmulatorController.cpp.o
 
 # target to build an object file
 EmulatorController.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/EmulatorController.cpp.o
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/EmulatorController.cpp.o
 .PHONY : EmulatorController.cpp.o
 
 EmulatorController.i: EmulatorController.cpp.i
@@ -328,7 +318,7 @@ EmulatorController.i: EmulatorController.cpp.i
 
 # target to preprocess a source file
 EmulatorController.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/EmulatorController.cpp.i
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/EmulatorController.cpp.i
 .PHONY : EmulatorController.cpp.i
 
 EmulatorController.s: EmulatorController.cpp.s
@@ -336,39 +326,15 @@ EmulatorController.s: EmulatorController.cpp.s
 
 # target to generate assembly for a file
 EmulatorController.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/EmulatorController.cpp.s
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/EmulatorController.cpp.s
 .PHONY : EmulatorController.cpp.s
-
-GameAI.o: GameAI.cpp.o
-.PHONY : GameAI.o
-
-# target to build an object file
-GameAI.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/GameAI.cpp.o
-.PHONY : GameAI.cpp.o
-
-GameAI.i: GameAI.cpp.i
-.PHONY : GameAI.i
-
-# target to preprocess a source file
-GameAI.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/GameAI.cpp.i
-.PHONY : GameAI.cpp.i
-
-GameAI.s: GameAI.cpp.s
-.PHONY : GameAI.s
-
-# target to generate assembly for a file
-GameAI.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/GameAI.cpp.s
-.PHONY : GameAI.cpp.s
 
 GameDataModel.o: GameDataModel.cpp.o
 .PHONY : GameDataModel.o
 
 # target to build an object file
 GameDataModel.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/GameDataModel.cpp.o
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/GameDataModel.cpp.o
 .PHONY : GameDataModel.cpp.o
 
 GameDataModel.i: GameDataModel.cpp.i
@@ -376,7 +342,7 @@ GameDataModel.i: GameDataModel.cpp.i
 
 # target to preprocess a source file
 GameDataModel.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/GameDataModel.cpp.i
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/GameDataModel.cpp.i
 .PHONY : GameDataModel.cpp.i
 
 GameDataModel.s: GameDataModel.cpp.s
@@ -384,7 +350,7 @@ GameDataModel.s: GameDataModel.cpp.s
 
 # target to generate assembly for a file
 GameDataModel.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/GameDataModel.cpp.s
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/GameDataModel.cpp.s
 .PHONY : GameDataModel.cpp.s
 
 MainWindow.o: MainWindow.cpp.o
@@ -392,7 +358,7 @@ MainWindow.o: MainWindow.cpp.o
 
 # target to build an object file
 MainWindow.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/MainWindow.cpp.o
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/MainWindow.cpp.o
 .PHONY : MainWindow.cpp.o
 
 MainWindow.i: MainWindow.cpp.i
@@ -400,7 +366,7 @@ MainWindow.i: MainWindow.cpp.i
 
 # target to preprocess a source file
 MainWindow.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/MainWindow.cpp.i
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/MainWindow.cpp.i
 .PHONY : MainWindow.cpp.i
 
 MainWindow.s: MainWindow.cpp.s
@@ -408,7 +374,7 @@ MainWindow.s: MainWindow.cpp.s
 
 # target to generate assembly for a file
 MainWindow.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/MainWindow.cpp.s
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/MainWindow.cpp.s
 .PHONY : MainWindow.cpp.s
 
 RewardSpecWidget.o: RewardSpecWidget.cpp.o
@@ -416,7 +382,7 @@ RewardSpecWidget.o: RewardSpecWidget.cpp.o
 
 # target to build an object file
 RewardSpecWidget.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/RewardSpecWidget.cpp.o
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/RewardSpecWidget.cpp.o
 .PHONY : RewardSpecWidget.cpp.o
 
 RewardSpecWidget.i: RewardSpecWidget.cpp.i
@@ -424,7 +390,7 @@ RewardSpecWidget.i: RewardSpecWidget.cpp.i
 
 # target to preprocess a source file
 RewardSpecWidget.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/RewardSpecWidget.cpp.i
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/RewardSpecWidget.cpp.i
 .PHONY : RewardSpecWidget.cpp.i
 
 RewardSpecWidget.s: RewardSpecWidget.cpp.s
@@ -432,7 +398,7 @@ RewardSpecWidget.s: RewardSpecWidget.cpp.s
 
 # target to generate assembly for a file
 RewardSpecWidget.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/RewardSpecWidget.cpp.s
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/RewardSpecWidget.cpp.s
 .PHONY : RewardSpecWidget.cpp.s
 
 ScenarioEditor.o: ScenarioEditor.cpp.o
@@ -440,7 +406,7 @@ ScenarioEditor.o: ScenarioEditor.cpp.o
 
 # target to build an object file
 ScenarioEditor.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/ScenarioEditor.cpp.o
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/ScenarioEditor.cpp.o
 .PHONY : ScenarioEditor.cpp.o
 
 ScenarioEditor.i: ScenarioEditor.cpp.i
@@ -448,7 +414,7 @@ ScenarioEditor.i: ScenarioEditor.cpp.i
 
 # target to preprocess a source file
 ScenarioEditor.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/ScenarioEditor.cpp.i
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/ScenarioEditor.cpp.i
 .PHONY : ScenarioEditor.cpp.i
 
 ScenarioEditor.s: ScenarioEditor.cpp.s
@@ -456,7 +422,7 @@ ScenarioEditor.s: ScenarioEditor.cpp.s
 
 # target to generate assembly for a file
 ScenarioEditor.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/ScenarioEditor.cpp.s
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/ScenarioEditor.cpp.s
 .PHONY : ScenarioEditor.cpp.s
 
 Screen.o: Screen.cpp.o
@@ -464,7 +430,7 @@ Screen.o: Screen.cpp.o
 
 # target to build an object file
 Screen.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/Screen.cpp.o
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/Screen.cpp.o
 .PHONY : Screen.cpp.o
 
 Screen.i: Screen.cpp.i
@@ -472,7 +438,7 @@ Screen.i: Screen.cpp.i
 
 # target to preprocess a source file
 Screen.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/Screen.cpp.i
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/Screen.cpp.i
 .PHONY : Screen.cpp.i
 
 Screen.s: Screen.cpp.s
@@ -480,7 +446,7 @@ Screen.s: Screen.cpp.s
 
 # target to generate assembly for a file
 Screen.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/Screen.cpp.s
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/Screen.cpp.s
 .PHONY : Screen.cpp.s
 
 SearchModel.o: SearchModel.cpp.o
@@ -488,7 +454,7 @@ SearchModel.o: SearchModel.cpp.o
 
 # target to build an object file
 SearchModel.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/SearchModel.cpp.o
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/SearchModel.cpp.o
 .PHONY : SearchModel.cpp.o
 
 SearchModel.i: SearchModel.cpp.i
@@ -496,7 +462,7 @@ SearchModel.i: SearchModel.cpp.i
 
 # target to preprocess a source file
 SearchModel.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/SearchModel.cpp.i
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/SearchModel.cpp.i
 .PHONY : SearchModel.cpp.i
 
 SearchModel.s: SearchModel.cpp.s
@@ -504,7 +470,7 @@ SearchModel.s: SearchModel.cpp.s
 
 # target to generate assembly for a file
 SearchModel.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/SearchModel.cpp.s
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/SearchModel.cpp.s
 .PHONY : SearchModel.cpp.s
 
 SearchResultsModel.o: SearchResultsModel.cpp.o
@@ -512,7 +478,7 @@ SearchResultsModel.o: SearchResultsModel.cpp.o
 
 # target to build an object file
 SearchResultsModel.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/SearchResultsModel.cpp.o
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/SearchResultsModel.cpp.o
 .PHONY : SearchResultsModel.cpp.o
 
 SearchResultsModel.i: SearchResultsModel.cpp.i
@@ -520,7 +486,7 @@ SearchResultsModel.i: SearchResultsModel.cpp.i
 
 # target to preprocess a source file
 SearchResultsModel.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/SearchResultsModel.cpp.i
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/SearchResultsModel.cpp.i
 .PHONY : SearchResultsModel.cpp.i
 
 SearchResultsModel.s: SearchResultsModel.cpp.s
@@ -528,39 +494,63 @@ SearchResultsModel.s: SearchResultsModel.cpp.s
 
 # target to generate assembly for a file
 SearchResultsModel.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/SearchResultsModel.cpp.s
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/SearchResultsModel.cpp.s
 .PHONY : SearchResultsModel.cpp.s
 
-gym-retro-integration_autogen/mocs_compilation.o: gym-retro-integration_autogen/mocs_compilation.cpp.o
-.PHONY : gym-retro-integration_autogen/mocs_compilation.o
+game_ai/GameAI.o: game_ai/GameAI.cpp.o
+.PHONY : game_ai/GameAI.o
 
 # target to build an object file
-gym-retro-integration_autogen/mocs_compilation.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/gym-retro-integration_autogen/mocs_compilation.cpp.o
-.PHONY : gym-retro-integration_autogen/mocs_compilation.cpp.o
+game_ai/GameAI.cpp.o:
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/game_ai/GameAI.cpp.o
+.PHONY : game_ai/GameAI.cpp.o
 
-gym-retro-integration_autogen/mocs_compilation.i: gym-retro-integration_autogen/mocs_compilation.cpp.i
-.PHONY : gym-retro-integration_autogen/mocs_compilation.i
+game_ai/GameAI.i: game_ai/GameAI.cpp.i
+.PHONY : game_ai/GameAI.i
 
 # target to preprocess a source file
-gym-retro-integration_autogen/mocs_compilation.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/gym-retro-integration_autogen/mocs_compilation.cpp.i
-.PHONY : gym-retro-integration_autogen/mocs_compilation.cpp.i
+game_ai/GameAI.cpp.i:
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/game_ai/GameAI.cpp.i
+.PHONY : game_ai/GameAI.cpp.i
 
-gym-retro-integration_autogen/mocs_compilation.s: gym-retro-integration_autogen/mocs_compilation.cpp.s
-.PHONY : gym-retro-integration_autogen/mocs_compilation.s
+game_ai/GameAI.s: game_ai/GameAI.cpp.s
+.PHONY : game_ai/GameAI.s
 
 # target to generate assembly for a file
-gym-retro-integration_autogen/mocs_compilation.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/gym-retro-integration_autogen/mocs_compilation.cpp.s
-.PHONY : gym-retro-integration_autogen/mocs_compilation.cpp.s
+game_ai/GameAI.cpp.s:
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/game_ai/GameAI.cpp.s
+.PHONY : game_ai/GameAI.cpp.s
+
+game_ai/nhl94.o: game_ai/nhl94.cpp.o
+.PHONY : game_ai/nhl94.o
+
+# target to build an object file
+game_ai/nhl94.cpp.o:
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/game_ai/nhl94.cpp.o
+.PHONY : game_ai/nhl94.cpp.o
+
+game_ai/nhl94.i: game_ai/nhl94.cpp.i
+.PHONY : game_ai/nhl94.i
+
+# target to preprocess a source file
+game_ai/nhl94.cpp.i:
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/game_ai/nhl94.cpp.i
+.PHONY : game_ai/nhl94.cpp.i
+
+game_ai/nhl94.s: game_ai/nhl94.cpp.s
+.PHONY : game_ai/nhl94.s
+
+# target to generate assembly for a file
+game_ai/nhl94.cpp.s:
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/game_ai/nhl94.cpp.s
+.PHONY : game_ai/nhl94.cpp.s
 
 main.o: main.cpp.o
 .PHONY : main.o
 
 # target to build an object file
 main.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/main.cpp.o
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/main.cpp.o
 .PHONY : main.cpp.o
 
 main.i: main.cpp.i
@@ -568,7 +558,7 @@ main.i: main.cpp.i
 
 # target to preprocess a source file
 main.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/main.cpp.i
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/main.cpp.i
 .PHONY : main.cpp.i
 
 main.s: main.cpp.s
@@ -576,32 +566,32 @@ main.s: main.cpp.s
 
 # target to generate assembly for a file
 main.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/main.cpp.s
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/main.cpp.s
 .PHONY : main.cpp.s
 
-nhl94.o: nhl94.cpp.o
-.PHONY : nhl94.o
+sr-play_autogen/mocs_compilation.o: sr-play_autogen/mocs_compilation.cpp.o
+.PHONY : sr-play_autogen/mocs_compilation.o
 
 # target to build an object file
-nhl94.cpp.o:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/nhl94.cpp.o
-.PHONY : nhl94.cpp.o
+sr-play_autogen/mocs_compilation.cpp.o:
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/sr-play_autogen/mocs_compilation.cpp.o
+.PHONY : sr-play_autogen/mocs_compilation.cpp.o
 
-nhl94.i: nhl94.cpp.i
-.PHONY : nhl94.i
+sr-play_autogen/mocs_compilation.i: sr-play_autogen/mocs_compilation.cpp.i
+.PHONY : sr-play_autogen/mocs_compilation.i
 
 # target to preprocess a source file
-nhl94.cpp.i:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/nhl94.cpp.i
-.PHONY : nhl94.cpp.i
+sr-play_autogen/mocs_compilation.cpp.i:
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/sr-play_autogen/mocs_compilation.cpp.i
+.PHONY : sr-play_autogen/mocs_compilation.cpp.i
 
-nhl94.s: nhl94.cpp.s
-.PHONY : nhl94.s
+sr-play_autogen/mocs_compilation.s: sr-play_autogen/mocs_compilation.cpp.s
+.PHONY : sr-play_autogen/mocs_compilation.s
 
 # target to generate assembly for a file
-nhl94.cpp.s:
-	cd /home/mat/github/sr-player2 && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/gym-retro-integration.dir/build.make src/ui/CMakeFiles/gym-retro-integration.dir/nhl94.cpp.s
-.PHONY : nhl94.cpp.s
+sr-play_autogen/mocs_compilation.cpp.s:
+	cd /home/mat/github/stable-retro-scripts/app && $(MAKE) $(MAKESILENT) -f src/ui/CMakeFiles/sr-play.dir/build.make src/ui/CMakeFiles/sr-play.dir/sr-play_autogen/mocs_compilation.cpp.s
+.PHONY : sr-play_autogen/mocs_compilation.cpp.s
 
 # Help Target
 help:
@@ -617,9 +607,8 @@ help:
 	@echo "... package"
 	@echo "... package_source"
 	@echo "... rebuild_cache"
-	@echo "... test"
-	@echo "... gym-retro-integration_autogen"
-	@echo "... gym-retro-integration"
+	@echo "... sr-play_autogen"
+	@echo "... sr-play"
 	@echo "... CheatModel.o"
 	@echo "... CheatModel.i"
 	@echo "... CheatModel.s"
@@ -635,9 +624,6 @@ help:
 	@echo "... EmulatorController.o"
 	@echo "... EmulatorController.i"
 	@echo "... EmulatorController.s"
-	@echo "... GameAI.o"
-	@echo "... GameAI.i"
-	@echo "... GameAI.s"
 	@echo "... GameDataModel.o"
 	@echo "... GameDataModel.i"
 	@echo "... GameDataModel.s"
@@ -659,15 +645,18 @@ help:
 	@echo "... SearchResultsModel.o"
 	@echo "... SearchResultsModel.i"
 	@echo "... SearchResultsModel.s"
-	@echo "... gym-retro-integration_autogen/mocs_compilation.o"
-	@echo "... gym-retro-integration_autogen/mocs_compilation.i"
-	@echo "... gym-retro-integration_autogen/mocs_compilation.s"
+	@echo "... game_ai/GameAI.o"
+	@echo "... game_ai/GameAI.i"
+	@echo "... game_ai/GameAI.s"
+	@echo "... game_ai/nhl94.o"
+	@echo "... game_ai/nhl94.i"
+	@echo "... game_ai/nhl94.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
-	@echo "... nhl94.o"
-	@echo "... nhl94.i"
-	@echo "... nhl94.s"
+	@echo "... sr-play_autogen/mocs_compilation.o"
+	@echo "... sr-play_autogen/mocs_compilation.i"
+	@echo "... sr-play_autogen/mocs_compilation.s"
 .PHONY : help
 
 
@@ -679,6 +668,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/mat/github/sr-player2 && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/mat/github/stable-retro-scripts/app && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

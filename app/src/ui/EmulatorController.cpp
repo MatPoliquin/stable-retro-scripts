@@ -49,19 +49,13 @@ void EmulatorController::initCorePath() {
 
 void EmulatorController::InitGameAI(const QString& path)
 {
-	//gameAI = new NHL94GameAI();
-
-	
-
-	gameAI = GameAI::CreateGameAI("NHL94-Genesis");
-
 	std::filesystem::path base_dir = path.toStdString();
+	
+	gameAI = GameAI::CreateGameAI(base_dir.parent_path().filename());
+
 	gameAI->Init(base_dir.remove_filename());
 
 	frameCount = 0;
-
-	//gameAI->Test_Pytorch();
-
 }
 
 bool EmulatorController::loadGame(const QString& path) {
