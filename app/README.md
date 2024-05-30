@@ -6,6 +6,11 @@ This is a prototype version so only NHL94 (1 on 1 Sega Genesis version) is suppo
 ## Building the app
 
 ```
+sudo apt update
+sudo apt install git cmake unzip libqt5opengl5-dev qtbase5-dev zlib1g-dev python3 python3-pip build-essential
+```
+
+```
 git clone https://github.com/MatPoliquin/stable-retro-scripts.git
 ```
 
