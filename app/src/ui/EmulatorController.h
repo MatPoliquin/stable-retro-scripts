@@ -13,7 +13,7 @@
 #include "data.h"
 #include "emulator.h"
 #include "movie.h"
-#include "game_ai/GameAI.h"
+#include "../../../lib/GameAI.h"
 
 struct Cheat {
 	QString name;

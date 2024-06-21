@@ -93,5 +93,9 @@ private:
 	bool m_romLoaded = false;
 	std::string m_core;
 	std::string m_romPath;
+
+public:
+	void * ram_ptr;
+	size_t ram_size;
 };
 }

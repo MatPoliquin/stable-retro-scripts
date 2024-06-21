@@ -17,9 +17,14 @@
 
 #include "zlib.h"
 
+#include <dlfcn.h>
+#include "../../../lib/GameAI.h"
 
 QSettings EmulatorController::s_settings;
 QString EmulatorController::s_path;
+
+static creategameai_t CreateGameAI = nullptr; 
+static testfunc_t TestFunc = nullptr;
 
 EmulatorController::EmulatorController(QObject* parent)
 	: QObject(parent), gameAI(nullptr) {
@@ -34,6 +39,16 @@ EmulatorController::EmulatorController(QObject* parent)
 	}
 	m_scheduler.setInterval(16);
 	connect(&m_scheduler, &QTimer::timeout, this, &EmulatorController::runOnce);
+
+
+	//load game ai lib
+	void *myso = dlopen("/home/mat/github/stable-retro-scripts/lib/libgame_ai.so", RTLD_NOW);
+    assert(myso);
+
+	CreateGameAI = reinterpret_cast<creategameai_t>(dlsym(myso, "CreateGameAI"));
+	assert(CreateGameAI);
+	TestFunc = reinterpret_cast<testfunc_t>(dlsym(myso, "testfunc"));
+	assert(TestFunc);
 }
 
 void EmulatorController::initCorePath() {
@@ -45,15 +60,28 @@ void EmulatorController::initCorePath() {
 	hint = QString("%1/retro").arg(appPath);
 #endif
 	Retro::corePath(hint.toStdString()); // Set hint
+
+
 }
 
 void EmulatorController::InitGameAI(const QString& path)
 {
 	std::filesystem::path base_dir = path.toStdString();
-	
-	gameAI = GameAI::CreateGameAI(base_dir.parent_path().filename());
 
-	gameAI->Init(base_dir.remove_filename());
+	assert(CreateGameAI);
+	assert(TestFunc);
+
+	std::cout << TestFunc << std::endl;
+
+	TestFunc();
+
+	//std::cout << path.toStdString() << std::endl;
+	//gameAI = CreateGameAI(base_dir.parent_path().filename());
+	gameAI = CreateGameAI("NHL941on1-Genesis");
+	
+	assert(gameAI);
+
+	gameAI->Init(base_dir.remove_filename(),m_re.ram_ptr, m_re.ram_size);
 
 	frameCount = 0;
 }
@@ -568,30 +596,26 @@ void EmulatorController::runOneStep() {
 	}
 
 
-	
 	if (this->frameCount >= 3)
 	{
-		this->gameAI->Think(ai_buttons, *m_data);
-
+		//this->gameAI->Think(ai_buttons, *m_data);
+		if(this->gameAI)
+		{
+			this->gameAI->Think(ai_buttons);
+		}
+		
 		this->frameCount=0;
 	}
 	else{
 		this->frameCount++;
 	}
-		
 	
-
 	//Apply game ai input
 	for (auto b=0; b < 16; b++) {
 		m_re.setKey(0, b, ai_buttons[b]);
 	}
 
-
-	//m_re.setKey(p, button, down);
-
 	m_re.run();
-
-	
 
 	m_data->updateRam();
 	emit dataUpdated();

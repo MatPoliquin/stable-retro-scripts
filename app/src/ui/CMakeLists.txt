@@ -8,7 +8,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
-file(GLOB SRC "*.cpp" "game_ai/*.cpp")
+file(GLOB SRC "*.cpp")
 
 
 set(RETRO_EXTRA)

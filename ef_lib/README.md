@@ -1,0 +1,31 @@
+# stable-retro lib
+Library to be used with emulator frontends to enable ML models to overide player input.
+Warning: Still in early prototype version
+
+## Building the lib
+
+```
+sudo apt update
+sudo apt install git cmake unzip libqt5opengl5-dev qtbase5-dev zlib1g-dev python3 python3-pip build-essential
+```
+
+```
+git clone https://github.com/MatPoliquin/stable-retro-scripts.git
+```
+
+Download pytorch C++ lib:
+```
+cd stable-retro-scripts/ef_lib/
+wget https://download.pytorch.org/libtorch/nightly/cpu/libtorch-shared-with-deps-latest.zip
+unzip libtorch-shared-with-deps-latest.zip
+```
+
+Generate makefiles and compile
+```
+cmake . -DCMAKE_PREFIX_PATH=../third-party/libtorch
+make
+```
+
+## Test lib
+You can test this lib the prototype app in /app
+

@@ -1,5 +1,4 @@
 #include "nhl94.h"
-#include "memory.h"
 #include <cstdlib> 
 #include <iostream>
 
@@ -132,6 +131,9 @@ public:
 
     void Init(const Retro::GameData & data)
     {
+        
+
+        #if 1
         // players
         p1_x = data.lookupValue("p1_x").cast<int>();
         p1_y = data.lookupValue("p1_y").cast<int>();
@@ -183,22 +185,46 @@ public:
         else
             g2_haspuck = false;
 
-
+#endif
     }
 };
 
-void NHL94GameAI::Init(std::filesystem::path dir)
+void NHL94GameAI::Init(std::filesystem::path dir, void * ram_ptr, int ram_size)
 {
+    std::cout << "HELLO" << std::endl;
     std::cout << dir << std::endl;
 
     std::filesystem::path scoreModelPath = dir;
     scoreModelPath += "ScoreGoal.pt";
     std::filesystem::path defenseModelPath = dir;
     defenseModelPath += "DefenseZone.pt";
+    std::filesystem::path memDataPath = dir;
+    memDataPath += "data.json";
+    std::filesystem::path sysDataPath = dir;
+    sysDataPath += "sys.json";
 
 
     ScoreGoalModel = this->LoadModel(scoreModelPath);
     DefenseModel = this->LoadModel(defenseModelPath);
+
+    //retro_data.load()
+    std::cout << memDataPath << std::endl;
+    retro_data.load(memDataPath);
+
+    
+    Retro::AddressSpace* m_addressSpace = nullptr;
+    m_addressSpace = &retro_data.addressSpace();
+	m_addressSpace->reset();
+	//Retro::configureData(data, m_core);
+	//reconfigureAddressSpace();
+    retro_data.addressSpace().setOverlay(Retro::MemoryOverlay{ '=', '>', 2 });
+
+    
+	
+	m_addressSpace->addBlock(16711680, ram_size, ram_ptr);
+    std::cout << "RAM size:" << ram_size << std::endl;
+    std::cout << "RAM ptr:" << ram_ptr << std::endl;
+    
 
     //ScoreGoalModel = this->LoadModel("/home/mat/github/stable-retro-scripts/models/ScoreGoal.pt");
     //DefenseModel = this->LoadModel("/home/mat/github/stable-retro-scripts/models/DefenseZone.pt");
@@ -250,7 +276,7 @@ void NHL94GameAI::GotoTarget(std::vector<float> & input, int vec_x, int vec_y)
 
 
 
-void NHL94GameAI::Think(std::bitset<16> & buttons, const Retro::GameData & retro_data)
+void NHL94GameAI::Think(std::bitset<16> & buttons)
 {
     /*for (auto b=0; b < 16; b++) {
 		buttons[b] = std::rand() % 2;
@@ -268,11 +294,11 @@ void NHL94GameAI::Think(std::bitset<16> & buttons, const Retro::GameData & retro
 
     if (data.p1_haspuck)
     {
-        std::cout << "have puck" << std::endl;
+        //std::cout << "have puck" << std::endl;
 
         if (data.p1_y >= NHL94Const::ATACKZONE_POS_Y)
         {
-            std::cout << "      in attackzone" << std::endl;
+            //std::cout << "      in attackzone" << std::endl;
             ScoreGoalModel->Forward(output, input);
             output[NHL94Buttons::INPUT_C] = 0;
             output[NHL94Buttons::INPUT_B] = 0;
@@ -304,7 +330,7 @@ void NHL94GameAI::Think(std::bitset<16> & buttons, const Retro::GameData & retro
     }
     else
     {
-        std::cout << "Don't have puck" << std::endl;
+        //std::cout << "Don't have puck" << std::endl;
         isShooting = false;
 
         if (data.p1_y < NHL94Const::DEFENSEZONE_POS_Y && data.p2_haspuck)
@@ -321,7 +347,7 @@ void NHL94GameAI::Think(std::bitset<16> & buttons, const Retro::GameData & retro
         if (isShooting)
         {
             //output[NHL94Buttons::INPUT_MODE] = 1;
-            std::cout << "Shooting" << std::endl;
+            //std::cout << "Shooting" << std::endl;
             output[NHL94Buttons::INPUT_C] = 1;
         }
     }
@@ -336,8 +362,8 @@ void NHL94GameAI::Think(std::bitset<16> & buttons, const Retro::GameData & retro
     }
 
 
-    if (buttons[NHL94Buttons::INPUT_B] >= 1 || buttons[NHL94Buttons::INPUT_C] >= 1)
-        std::cout << "B,A" << buttons[NHL94Buttons::INPUT_B] << "," << buttons[NHL94Buttons::INPUT_C] << std::endl;
+   //if (buttons[NHL94Buttons::INPUT_B] >= 1 || buttons[NHL94Buttons::INPUT_C] >= 1)
+   //     std::cout << "B,A" << buttons[NHL94Buttons::INPUT_B] << "," << buttons[NHL94Buttons::INPUT_C] << std::endl;
 
 
     buttons[NHL94Buttons::INPUT_START] = 0;

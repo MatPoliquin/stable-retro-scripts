@@ -3,6 +3,28 @@
 #include <torch/script.h>
 
 
+
+extern "C" GameAI * CreateGameAI(std::string name)
+{
+  std::cout << name << std::endl;
+
+  if(name == "NHL941on1-Genesis")
+  {
+    NHL94GameAI * ptr = new NHL94GameAI();
+    return ptr;
+  }
+  
+  return NULL;
+}
+
+extern "C" int testfunc()
+{
+
+  return 8;
+}
+
+
+
 class RetroModelPytorch : public RetroModel {
 public:
         virtual void LoadModel(std::string);
@@ -47,18 +69,6 @@ void RetroModelPytorch::Forward(std::vector<float> & output, const std::vector<f
     }
 }
 
-GameAI * GameAI::CreateGameAI(std::string name)
-{
-  std::cout << name << std::endl;
-
-  if(name == "NHL941on1-Genesis")
-  {
-    NHL94GameAI * ptr = new NHL94GameAI();
-    return ptr;
-  }
-  
-  return NULL;
-}
 
 RetroModel * GameAI::LoadModel(std::string path)
 {

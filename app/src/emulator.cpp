@@ -449,6 +449,9 @@ void Emulator::configureData(GameData* data) {
 	if (m_addressSpace->blocks().empty() && retro_get_memory_size(RETRO_MEMORY_SYSTEM_RAM)) {
 		m_addressSpace->addBlock(Retro::ramBase(m_core), retro_get_memory_size(RETRO_MEMORY_SYSTEM_RAM), retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM));
 	}
+
+	ram_ptr = retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
+	ram_size = retro_get_memory_size(RETRO_MEMORY_SYSTEM_RAM);
 }
 
 vector<string> Emulator::buttons() const {

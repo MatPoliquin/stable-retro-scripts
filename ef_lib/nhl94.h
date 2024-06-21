@@ -1,20 +1,23 @@
 #pragma once
 
 #include "GameAI.h"
-
+#include "memory.h"
+#include "data.h"
 
 class NHL94Data;
 
 class NHL94GameAI : public GameAI {
 public:
-    virtual void Init(std::filesystem::path dir);
+    virtual void Init(std::filesystem::path dir, void * ram_ptr, int ram_size);
 
     void SetModelInputs(std::vector<float> & input, const NHL94Data & data);
-    virtual void Think(std::bitset<16> & buttons, const Retro::GameData & retro_data);
+    virtual void Think(std::bitset<16> & buttons);
     void GotoTarget(std::vector<float> & input, int vec_x, int vec_y);
 
 private:
     RetroModel * ScoreGoalModel;
     RetroModel * DefenseModel;
     bool isShooting;
+
+    Retro::GameData retro_data;
 };
