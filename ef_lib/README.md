@@ -2,7 +2,7 @@
 Library to be used with emulator frontends to enable ML models to overide player input.
 Warning: Still in early prototype version
 
-## Building the lib
+## Building the lib for linux
 
 ```
 sudo apt update
@@ -22,10 +22,10 @@ unzip libtorch-shared-with-deps-latest.zip
 
 Generate makefiles and compile
 ```
-cmake . -DCMAKE_PREFIX_PATH=../third-party/libtorch
+cmake . -DCMAKE_PREFIX_PATH=./libtorch
 make
 ```
 
 ## Test lib
-You can test this lib the prototype app in /app
+You can test this dynamic lib with the prototype app in /app
 
