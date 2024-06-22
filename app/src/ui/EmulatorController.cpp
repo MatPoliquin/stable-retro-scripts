@@ -18,7 +18,6 @@
 #include "zlib.h"
 
 #include <dlfcn.h>
-#include "../../../lib/GameAI.h"
 
 QSettings EmulatorController::s_settings;
 QString EmulatorController::s_path;
@@ -42,7 +41,16 @@ EmulatorController::EmulatorController(QObject* parent)
 
 
 	//load game ai lib
-	void *myso = dlopen("/home/mat/github/stable-retro-scripts/lib/libgame_ai.so", RTLD_NOW);
+	int max_size = 512;
+	char bin_path[max_size];
+	getcwd(bin_path, max_size );
+
+	std::string lib_path = bin_path;
+	lib_path += "/../ef_lib/libgame_ai.so";
+
+	std::cout << lib_path << std::endl;
+
+	void *myso = dlopen(lib_path.c_str(), RTLD_NOW);
     assert(myso);
 
 	CreateGameAI = reinterpret_cast<creategameai_t>(dlsym(myso, "CreateGameAI"));
