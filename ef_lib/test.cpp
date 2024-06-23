@@ -14,6 +14,7 @@ void test_loadlibrary()
     assert(func);
 
     GameAI * ga = func("NHL941on1-Genesis");
+    assert(ga);
 }
 
 

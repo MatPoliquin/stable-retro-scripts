@@ -6,24 +6,29 @@
 #include <vector>
 //#include "data.h"
 
+
+
 class RetroModel {
 public:
         virtual void Forward(std::vector<float> & output, const std::vector<float> & input)=0;
 
 };
 
+
+#define GAMEAI_MAX_BUTTONS 16
+
 class GameAI {
 public:
-        virtual void Init(std::filesystem::path dir, void * ram_ptr, int ram_size) {};
-        RetroModel * LoadModel(std::string path);
+        virtual void Init(const char * dir, void * ram_ptr, int ram_size) {};
+        RetroModel * LoadModel(const char * path);
 
-        virtual void Think(std::bitset<16> & buttons) {};
+        virtual void Think(bool buttons[GAMEAI_MAX_BUTTONS]) {};
 
         
 };
 
 
-typedef GameAI * (*creategameai_t)(std::string);
+typedef GameAI * (*creategameai_t)(const char *);
 typedef int (*testfunc_t)();
 
 //extern "C" GameAI * CreateGameAI(std::string name);

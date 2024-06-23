@@ -131,7 +131,7 @@ private:
 
 	GameAI * gameAI;
 	int frameCount;
-	std::bitset<16> ai_buttons;
+	bool ai_buttons[GAMEAI_MAX_BUTTONS];
 
 	static QSettings s_settings;
 	static QString s_path;

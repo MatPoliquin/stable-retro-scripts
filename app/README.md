@@ -14,16 +14,10 @@ sudo apt install git cmake unzip libqt5opengl5-dev qtbase5-dev zlib1g-dev python
 git clone https://github.com/MatPoliquin/stable-retro-scripts.git
 ```
 
-Download pytorch C++ lib:
-```
-cd stable-retro-scripts/app/third-party
-wget https://download.pytorch.org/libtorch/nightly/cpu/libtorch-shared-with-deps-latest.zip
-unzip libtorch-shared-with-deps-latest.zip
-```
-
 Generate makefiles and compile
 ```
-cmake . -DBUILD_UI=ON -UPYLIB_DIRECTORY -DCMAKE_PREFIX_PATH=./third-party/libtorch ..
+cd app
+cmake . -DBUILD_UI=ON -UPYLIB_DIRECTORY ..
 make
 ```
 

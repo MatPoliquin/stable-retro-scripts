@@ -89,7 +89,7 @@ void EmulatorController::InitGameAI(const QString& path)
 	
 	assert(gameAI);
 
-	gameAI->Init(base_dir.remove_filename(),m_re.ram_ptr, m_re.ram_size);
+	gameAI->Init(base_dir.remove_filename().c_str(),m_re.ram_ptr, m_re.ram_size);
 
 	frameCount = 0;
 }

@@ -189,7 +189,7 @@ public:
     }
 };
 
-void NHL94GameAI::Init(std::filesystem::path dir, void * ram_ptr, int ram_size)
+void NHL94GameAI::Init(const char * dir, void * ram_ptr, int ram_size)
 {
     std::cout << "HELLO" << std::endl;
     std::cout << dir << std::endl;
@@ -204,8 +204,8 @@ void NHL94GameAI::Init(std::filesystem::path dir, void * ram_ptr, int ram_size)
     sysDataPath += "sys.json";
 
 
-    ScoreGoalModel = this->LoadModel(scoreModelPath);
-    DefenseModel = this->LoadModel(defenseModelPath);
+    ScoreGoalModel = this->LoadModel(scoreModelPath.c_str());
+    DefenseModel = this->LoadModel(defenseModelPath.c_str());
 
     //retro_data.load()
     std::cout << memDataPath << std::endl;
@@ -276,13 +276,14 @@ void NHL94GameAI::GotoTarget(std::vector<float> & input, int vec_x, int vec_y)
 
 
 
-void NHL94GameAI::Think(std::bitset<16> & buttons)
+void NHL94GameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS])
 {
     /*for (auto b=0; b < 16; b++) {
 		buttons[b] = std::rand() % 2;
 	}*/
 
-    buttons.reset();
+    //buttons.reset();
+    buttons[GAMEAI_MAX_BUTTONS] = {0};
 
     NHL94Data data;
     data.Init(retro_data);

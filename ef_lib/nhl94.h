@@ -8,10 +8,10 @@ class NHL94Data;
 
 class NHL94GameAI : public GameAI {
 public:
-    virtual void Init(std::filesystem::path dir, void * ram_ptr, int ram_size);
+    virtual void Init(const char * dir, void * ram_ptr, int ram_size);
 
     void SetModelInputs(std::vector<float> & input, const NHL94Data & data);
-    virtual void Think(std::bitset<16> & buttons);
+    virtual void Think(bool buttons[GAMEAI_MAX_BUTTONS]);
     void GotoTarget(std::vector<float> & input, int vec_x, int vec_y);
 
 private:

@@ -4,11 +4,11 @@
 
 
 
-extern "C" GameAI * CreateGameAI(std::string name)
+extern "C" GameAI * CreateGameAI(const char * name)
 {
-  std::cout << name << std::endl;
+  //std::cout << name << std::endl;
 
-  if(name == "NHL941on1-Genesis")
+  if(std::string(name) == "NHL941on1-Genesis")
   {
     NHL94GameAI * ptr = new NHL94GameAI();
     return ptr;
@@ -70,11 +70,11 @@ void RetroModelPytorch::Forward(std::vector<float> & output, const std::vector<f
 }
 
 
-RetroModel * GameAI::LoadModel(std::string path)
+RetroModel * GameAI::LoadModel(const char * path)
 {
     RetroModelPytorch * model = new RetroModelPytorch();
 
-    model->LoadModel(path);
+    model->LoadModel(std::string(path));
 
     return dynamic_cast<RetroModel*>(model);
 }

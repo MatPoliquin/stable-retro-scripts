@@ -30,7 +30,6 @@ else()
 endif()
 
 find_package(Git QUIET)
-find_package(Torch REQUIRED)
 
 file(READ "${CMAKE_SOURCE_DIR}/retro/VERSION.txt" PROJECT_VERSION)
 string(REGEX REPLACE "\n$" "" PROJECT_VERSION "${PROJECT_VERSION}")
@@ -58,7 +57,6 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 
-option(BUILD_PYTORCH "Should tests be built" ON)
 option(BUILD_UI "Should integration UI be built" OFF)
 option(BUILD_LUAJIT "Should static LuaJIT be used instead of system Lua" ON)
 option(BUILD_MANYLINUX "Should use static libraries compatible with manylinux1"
@@ -82,7 +80,6 @@ endif()
 find_package(ZLIB REQUIRED)
 find_package(PkgConfig)
 
-find_package(Torch REQUIRED)
 
 pkg_search_module(LIBZIP QUIET libzip)
 
@@ -290,7 +287,7 @@ add_library(
   src/zipfile.cpp
   ${LUA_LIBRARY})
 target_link_libraries(retro-base ${ZLIB_LIBRARY} ${LIBZIP_LIBRARIES}
-                      ${LUA_LIBRARY} ${LUA_LIBRRAY} "${TORCH_LIBRARIES}")
+                      ${LUA_LIBRARY} ${LUA_LIBRRAY})
 add_dependencies(retro-base ${CORE_TARGETS})
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -326,11 +323,6 @@ if(BUILD_PYTHON)
   target_link_libraries(retro retro-base ${PYBIND_LIBS} ${STATIC_LDFLAGS})
 endif()
 
-
-
-#if(BUILD_PYTORCH)
-#  add_subdirectory(third-party/libtorch)
-#endif()
 
 if(BUILD_UI)
   add_subdirectory(src/ui)

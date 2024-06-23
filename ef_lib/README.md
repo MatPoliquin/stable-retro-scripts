@@ -16,8 +16,8 @@ git clone https://github.com/MatPoliquin/stable-retro-scripts.git
 Download pytorch C++ lib:
 ```
 cd stable-retro-scripts/ef_lib/
-wget https://download.pytorch.org/libtorch/nightly/cpu/libtorch-shared-with-deps-latest.zip
-unzip libtorch-shared-with-deps-latest.zip
+wget https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.3.1%2Bcpu.zip
+unzip libtorch-shared-with-deps-2.3.1+cpu.zip
 ```
 
 Generate makefiles and compile
