@@ -1,5 +1,5 @@
 # stable-retro lib
-Library to be used with emulator frontends to enable ML models to overide player input.
+Library to be used with emulator frontends (such as RetroArch) to enable ML models to overide player input.
 Warning: Still in early prototype version
 
 ## Building the lib for linux
@@ -26,6 +26,8 @@ cmake . -DCMAKE_PREFIX_PATH=./libtorch
 make
 ```
 
-## Test lib
+## Test the lib
 You can test this dynamic lib with the prototype app in /app
 
+If you want to use it with RetroArch I added support of the lib in this fork:
+https://github.com/MatPoliquin/RetroArchML
