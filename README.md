@@ -1,10 +1,9 @@
 # stable-retro scripts
 
-Note: Migrated to pytorch and stable-baselines3. The old tensorflow + original stable-baselines is now in TF1 branch.
-
 * Train models on retro games
 * Pit two models against each other on PvP retro games such as NHL94, Mortal Kombat or WWF Wrestlemania: The Arcade Game
 * Play against an improved AI opponent
+* Emulator Frontend library using Pytorch C++ to able to play against stable-retro models in apps like RetroArch
 
 
 NHL94 (1 on 1)           |  Wrestlemania: The Arcade game |  Virtua Fighter 1
