@@ -26,7 +26,7 @@ cmake . -DCMAKE_PREFIX_PATH=./libtorch
 make
 ```
 
-# Windows
+## Windows
 
 Clone stable-retro-scripts repo
 
