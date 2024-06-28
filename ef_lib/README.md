@@ -26,6 +26,23 @@ cmake . -DCMAKE_PREFIX_PATH=./libtorch
 make
 ```
 
+# Windows
+
+Clone stable-retro-scripts repo
+
+Download pytorch C++ lib for Windows:
+```
+wget https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.3.1%2Bcpu.zip -o libtorch_win.zip
+Expand-Archive libtorch_win.zip
+```
+
+Generate makefiles and compile
+```
+cd stable-retro-scripts
+cmake . -DCMAKE_PREFIX_PATH=Absolute\path\to\libtorch_win
+cmake --build . --config Release
+```
+
 ## Test the lib
 You can test this dynamic lib with the prototype app in /app
 
