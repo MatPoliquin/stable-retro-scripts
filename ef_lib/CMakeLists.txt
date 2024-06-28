@@ -10,3 +10,13 @@ add_library(game_ai SHARED GameAI.cpp nhl94.cpp data.cpp memory.cpp utils.cpp)
 target_link_libraries(game_ai "${TORCH_LIBRARIES}")
 
 set_property(TARGET test PROPERTY CXX_STANDARD 17)
+set_property(TARGET game_ai PROPERTY CXX_STANDARD 17)
+
+if (MSVC)
+  file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
+  add_custom_command(TARGET test
+                     POST_BUILD
+                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                     ${TORCH_DLLS}
+                     $<TARGET_FILE_DIR:test>)
+endif (MSVC)
