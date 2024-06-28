@@ -19,11 +19,8 @@ extern "C" GameAI * CreateGameAI(const char * name)
 
 extern "C" int testfunc()
 {
-
   return 8;
 }
-
-
 
 class RetroModelPytorch : public RetroModel {
 public:

@@ -1,7 +1,7 @@
 #include "nhl94.h"
 #include <cstdlib> 
 #include <iostream>
-
+#include <assert.h>
 
 enum NHL94Buttons {
     INPUT_B = 0,
@@ -18,17 +18,6 @@ enum NHL94Buttons {
     INPUT_Z = 11,
     INPUT_MAX = 12
 };
-
-/*
-self.state = (self.game_state.normalized_p1_x, self.game_state.normalized_p1_y, \
-                     self.game_state.normalized_p1_velx, self.game_state.normalized_p1_vely, \
-                     self.game_state.normalized_p2_x, self.game_state.normalized_p2_y, \
-                     self.game_state.normalized_p2_velx, self.game_state.normalized_p2_vely, \
-                     self.game_state.normalized_puck_x, self.game_state.normalized_puck_y, \
-                     self.game_state.normalized_puck_velx, self.game_state.normalized_puck_vely, \
-                     self.game_state.normalized_g2_x, self.game_state.normalized_g2_y, \
-                     self.game_state.normalized_player_haspuck, self.game_state.normalized_goalie_haspuck)
-*/
 
 enum NHL94NeuralNetInput {
     P1_X = 0,
@@ -63,39 +52,6 @@ enum NHL94Const {
     DEFENSEZONE_POS_Y = -80
 };
 
-/*
-        self.normalized_p1_x = self.p1_x / GameConsts.MAX_PLAYER_X
-        self.normalized_p1_y = self.p1_y / GameConsts.MAX_PLAYER_Y
-        self.normalized_p2_x = self.p2_x / GameConsts.MAX_PLAYER_X
-        self.normalized_p2_y = self.p2_y / GameConsts.MAX_PLAYER_Y
-        self.normalized_g2_x = self.g2_x / GameConsts.MAX_PLAYER_X
-        self.normalized_g2_y = self.g2_y / GameConsts.MAX_PLAYER_Y
-        self.normalized_puck_x = self.puck_x / GameConsts.MAX_PUCK_X
-        self.normalized_puck_y = self.puck_y / GameConsts.MAX_PUCK_Y
-        self.normalized_player_haspuck = 0.0 if self.player_haspuck else 1.0
-        self.normalized_goalie_haspuck = 0.0 if self.goalie_haspuck else 1.0
-
-
-        self.normalized_p1_velx = self.p1_vel_x  / GameConsts.MAX_VEL_XY
-        self.normalized_p1_vely = self.p1_vel_y  / GameConsts.MAX_VEL_XY
-        self.normalized_p2_velx = self.p2_vel_x  / GameConsts.MAX_VEL_XY
-        self.normalized_p2_vely = self.p2_vel_y  / GameConsts.MAX_VEL_XY
-        self.normalized_puck_velx = self.puck_vel_x  / GameConsts.MAX_VEL_XY
-        self.normalized_puck_vely = self.puck_vel_y  / GameConsts.MAX_VEL_XY
-
-*/
-
-/*
-    MAX_PLAYER_X = 120
-    MAX_PLAYER_Y = 270
-
-    MAX_PUCK_X = 130
-    MAX_PUCK_Y = 270
-
-    MAX_VEL_XY = 50
-
-*/
-
 class NHL94Data {
 public:
     int p1_x;
@@ -127,13 +83,8 @@ public:
     bool p2_haspuck;
     bool g2_haspuck;
 
-
-
     void Init(const Retro::GameData & data)
     {
-        
-
-        #if 1
         // players
         p1_x = data.lookupValue("p1_x").cast<int>();
         p1_y = data.lookupValue("p1_y").cast<int>();
@@ -185,24 +136,23 @@ public:
         else
             g2_haspuck = false;
 
-#endif
+
+        //std::cout << p1_x << "," << p1_y << "/" << puck_x << "," << puck_y << std::endl;
     }
 };
 
 void NHL94GameAI::Init(const char * dir, void * ram_ptr, int ram_size)
 {
-    std::cout << "HELLO" << std::endl;
-    std::cout << dir << std::endl;
+    //std::cout << dir << std::endl;
 
     std::filesystem::path scoreModelPath = dir;
-    scoreModelPath += "ScoreGoal.pt";
+    scoreModelPath += "/ScoreGoal.pt";
     std::filesystem::path defenseModelPath = dir;
-    defenseModelPath += "DefenseZone.pt";
+    defenseModelPath += "/DefenseZone.pt";
     std::filesystem::path memDataPath = dir;
-    memDataPath += "data.json";
+    memDataPath += "/data.json";
     std::filesystem::path sysDataPath = dir;
-    sysDataPath += "sys.json";
-
+    sysDataPath += "/sys.json";
 
     ScoreGoalModel = this->LoadModel(scoreModelPath.c_str());
     DefenseModel = this->LoadModel(defenseModelPath.c_str());
@@ -210,7 +160,6 @@ void NHL94GameAI::Init(const char * dir, void * ram_ptr, int ram_size)
     //retro_data.load()
     std::cout << memDataPath << std::endl;
     retro_data.load(memDataPath);
-
     
     Retro::AddressSpace* m_addressSpace = nullptr;
     m_addressSpace = &retro_data.addressSpace();
@@ -219,22 +168,14 @@ void NHL94GameAI::Init(const char * dir, void * ram_ptr, int ram_size)
 	//reconfigureAddressSpace();
     retro_data.addressSpace().setOverlay(Retro::MemoryOverlay{ '=', '>', 2 });
 
-    
-	
 	m_addressSpace->addBlock(16711680, ram_size, ram_ptr);
     std::cout << "RAM size:" << ram_size << std::endl;
     std::cout << "RAM ptr:" << ram_ptr << std::endl;
     
-
-    //ScoreGoalModel = this->LoadModel("/home/mat/github/stable-retro-scripts/models/ScoreGoal.pt");
-    //DefenseModel = this->LoadModel("/home/mat/github/stable-retro-scripts/models/DefenseZone.pt");
-
     static_assert(NHL94NeuralNetInput::NN_INPUT_MAX == 16);
 
     isShooting = false;
 }
-
-
 
 void NHL94GameAI::SetModelInputs(std::vector<float> & input, const NHL94Data & data)
 {
@@ -278,13 +219,6 @@ void NHL94GameAI::GotoTarget(std::vector<float> & input, int vec_x, int vec_y)
 
 void NHL94GameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS])
 {
-    /*for (auto b=0; b < 16; b++) {
-		buttons[b] = std::rand() % 2;
-	}*/
-
-    //buttons.reset();
-    buttons[GAMEAI_MAX_BUTTONS] = {0};
-
     NHL94Data data;
     data.Init(retro_data);
 
@@ -308,13 +242,13 @@ void NHL94GameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS])
             {
                 if (data.p1_vel_x >= 30 && data.puck_x > -23 && data.puck_x < 0)
                 {
-                    std::cout << "Shoot" << std::endl;
+                    //std::cout << "Shoot" << std::endl;
                     output[NHL94Buttons::INPUT_C] = 1;
                     isShooting = true;
                 }
                 else if(data.p1_vel_x <= -30 && data.puck_x < 23 && data.puck_x > 0)
                 {
-                    std::cout << "Shoot" << std::endl;
+                    //std::cout << "Shoot" << std::endl;
                     output[NHL94Buttons::INPUT_C] = 1;
                     isShooting = true;
                 }
@@ -353,20 +287,13 @@ void NHL94GameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS])
         }
     }
 
-
-    
-   
-
+    assert(output.size() <= 16);
     for (int i=0; i < output.size(); i++)
     {
         buttons[i] = output[i] >= 1.0 ? 1 : 0;
     }
 
-
-   //if (buttons[NHL94Buttons::INPUT_B] >= 1 || buttons[NHL94Buttons::INPUT_C] >= 1)
-   //     std::cout << "B,A" << buttons[NHL94Buttons::INPUT_B] << "," << buttons[NHL94Buttons::INPUT_C] << std::endl;
-
-
+   
     buttons[NHL94Buttons::INPUT_START] = 0;
     buttons[NHL94Buttons::INPUT_MODE] = 0;
     buttons[NHL94Buttons::INPUT_A] = 0;
@@ -375,43 +302,4 @@ void NHL94GameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS])
     buttons[NHL94Buttons::INPUT_X] = 0;
     buttons[NHL94Buttons::INPUT_Y] = 0;
     buttons[NHL94Buttons::INPUT_Z] = 0;
-
-    
-
-    /*for (const auto& element : input) {
-        std::cout << element << " ";
-    }
-
-    for (const auto& element : output) {
-        std::cout << element << " ";
-    }
-
-    std::cout << std::endl;*/
-
-    /*int v_x = data.p2_x - data.p1_x;
-    int v_y = data.p2_y - data.p1_y;
-
-
-    if (v_x > 0)
-        buttons[NHL94Buttons::INPUT_RIGHT] = 1;
-    else
-        buttons[NHL94Buttons::INPUT_LEFT] = 1;
-
-    if (v_y > 0)
-        buttons[NHL94Buttons::INPUT_UP] = 1;
-    else
-        buttons[NHL94Buttons::INPUT_DOWN] = 1;*/
-
-
-
-    //std::cout << p2_x.cast<int>() << "," << p2_y.cast<int>() << "\n";
-
-
-    /*buttons[NHL94Buttons::INPUT_B] = std::rand() % 2;
-    buttons[NHL94Buttons::INPUT_A] = std::rand() % 2;
-    buttons[NHL94Buttons::INPUT_UP] = std::rand() % 2;
-    buttons[NHL94Buttons::INPUT_DOWN] = std::rand() % 2;
-    buttons[NHL94Buttons::INPUT_LEFT] = std::rand() % 2;
-    buttons[NHL94Buttons::INPUT_RIGHT] = std::rand() % 2;*/
-
 }

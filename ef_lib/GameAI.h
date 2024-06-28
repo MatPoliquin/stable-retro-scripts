@@ -23,12 +23,8 @@ public:
         RetroModel * LoadModel(const char * path);
 
         virtual void Think(bool buttons[GAMEAI_MAX_BUTTONS]) {};
-
-        
 };
 
 
 typedef GameAI * (*creategameai_t)(const char *);
 typedef int (*testfunc_t)();
-
-//extern "C" GameAI * CreateGameAI(std::string name);
