@@ -14,10 +14,13 @@
 #include <fcntl.h>
 #ifndef _WIN32
 #include <sys/mman.h>
+#include <unistd.h>
 #else
 #include <windows.h>
-#endif
 #include "unistd.h"
+#endif
+
+
 
 #ifdef VOID
 #undef VOID
