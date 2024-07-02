@@ -1,10 +1,16 @@
+#include <torch/script.h>
 #include "GameAI.h"
 #include "nhl94.h"
-#include <torch/script.h>
 
 
+#if _WIN32
+#define DllExport   __declspec( dllexport )
+#else
+#define DllExport
+#endif
 
-extern "C" GameAI * CreateGameAI(const char * name)
+
+extern "C"  DllExport GameAI * CreateGameAI(const char * name)
 {
   //std::cout << name << std::endl;
 
@@ -17,7 +23,7 @@ extern "C" GameAI * CreateGameAI(const char * name)
   return NULL;
 }
 
-extern "C" int testfunc()
+extern "C" DllExport int testfunc()
 {
   return 8;
 }

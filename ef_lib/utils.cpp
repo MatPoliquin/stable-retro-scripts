@@ -42,7 +42,9 @@ int64_t calculate(Operation op, int64_t reference, int64_t value) {
 	return 0;
 }
 
-string drillUp(const vector<string>& targets, const string& fail, const string& hint) {
+string drillUp(const vector<string>& targets, const string& fail, const string& hint)
+{
+	#if 0
 	char rpath[PATH_MAX];
 	string path(".");
 #ifndef _WIN32
@@ -81,5 +83,9 @@ string drillUp(const vector<string>& targets, const string& fail, const string& 
 		return fail + "/" + targets[0];
 	}
 	return {};
+
+#else
+return {};
+#endif
 }
 }

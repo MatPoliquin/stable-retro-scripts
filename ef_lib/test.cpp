@@ -19,11 +19,14 @@ void test_loadlibrary()
     HINSTANCE hinstLib; 
     BOOL fFreeResult, fRunTimeLinkSuccess = FALSE;
 
-    hinstLib = LoadLibrary(TEXT("libgame_ai.dll"));
+    hinstLib = LoadLibrary(TEXT("game_ai.dll"));
+    assert(hinstLib);
 
     if (hinstLib != NULL) 
     { 
         creategameai_t func  = (creategameai_t) GetProcAddress(hinstLib, "CreateGameAI"); 
+
+        assert(func);
  
         // If the function address is valid, call the function.
         if (NULL != func) 

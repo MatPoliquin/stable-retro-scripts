@@ -154,12 +154,12 @@ void NHL94GameAI::Init(const char * dir, void * ram_ptr, int ram_size)
     std::filesystem::path sysDataPath = dir;
     sysDataPath += "/sys.json";
 
-    ScoreGoalModel = this->LoadModel(scoreModelPath.c_str());
-    DefenseModel = this->LoadModel(defenseModelPath.c_str());
+    ScoreGoalModel = this->LoadModel(scoreModelPath.string().c_str());
+    DefenseModel = this->LoadModel(defenseModelPath.string().c_str());
 
     //retro_data.load()
     std::cout << memDataPath << std::endl;
-    retro_data.load(memDataPath);
+    retro_data.load(memDataPath.string());
     
     Retro::AddressSpace* m_addressSpace = nullptr;
     m_addressSpace = &retro_data.addressSpace();

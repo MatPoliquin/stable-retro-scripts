@@ -39,12 +39,14 @@ Expand-Archive libtorch_win.zip
 Generate makefiles and compile
 ```
 cd stable-retro-scripts
-cmake . -DCMAKE_PREFIX_PATH=Absolute\path\to\libtorch_win
+mkdir build
+cd build
+cmake .. -DCMAKE_PREFIX_PATH=Absolute\path\to\libtorch_win
 cmake --build . --config Release
 ```
 
 ## Test the lib
-You can test this dynamic lib with the prototype app in /app
+You can test the linux version of this dynamic lib with the prototype app in /app
 
 If you want to use it with RetroArch I added support of the lib in this fork:
 https://github.com/MatPoliquin/RetroArchML

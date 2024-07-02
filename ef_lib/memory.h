@@ -17,7 +17,7 @@
 #else
 #include <windows.h>
 #endif
-#include <unistd.h>
+#include "unistd.h"
 
 #ifdef VOID
 #undef VOID
