@@ -21,8 +21,8 @@ class GameAI {
 public:
         virtual void Init(const char * dir, void * ram_ptr, int ram_size) {};
         RetroModel * LoadModel(const char * path);
-
-        virtual void Think(bool buttons[GAMEAI_MAX_BUTTONS]) {};
+        
+        virtual void Think(bool buttons[GAMEAI_MAX_BUTTONS], int player=0) {};
 };
 
 

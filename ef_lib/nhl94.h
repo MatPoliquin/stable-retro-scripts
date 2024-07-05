@@ -11,7 +11,7 @@ public:
     virtual void Init(const char * dir, void * ram_ptr, int ram_size);
 
     void SetModelInputs(std::vector<float> & input, const NHL94Data & data);
-    virtual void Think(bool buttons[GAMEAI_MAX_BUTTONS]);
+    virtual void Think(bool buttons[GAMEAI_MAX_BUTTONS], int player=0);
     void GotoTarget(std::vector<float> & input, int vec_x, int vec_y);
 
 private:
