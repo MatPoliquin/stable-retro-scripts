@@ -83,7 +83,15 @@ RetroModel * GameAI::LoadModel(const char * path)
 }
 
 
+void GameAI::DebugPrint(const char * msg)
+{
+    if (showDebug && debugLogFunc)
+    {
+        std::cout << msg << std::endl;
 
+        debugLogFunc(0, msg);
+    }
+}
 
 
 //=======================================================

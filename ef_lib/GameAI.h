@@ -14,15 +14,30 @@ public:
 
 };
 
+typedef void (*debug_log_t)(int level, const char *fmt, ...);
+
 
 #define GAMEAI_MAX_BUTTONS 16
 
 class GameAI {
 public:
+        GameAI():showDebug(false),
+                debugLogFunc(nullptr){};
+
         virtual void Init(const char * dir, void * ram_ptr, int ram_size) {};
         RetroModel * LoadModel(const char * path);
         
         virtual void Think(bool buttons[GAMEAI_MAX_BUTTONS], int player=0) {};
+
+        void SetShowDebug(const bool show){ this->showDebug = show; };
+
+        void SetDebugLog(debug_log_t func){debugLogFunc = func;};
+
+protected:
+        void DebugPrint(const char * msg);
+
+        bool            showDebug;
+        debug_log_t     debugLogFunc;
 };
 
 

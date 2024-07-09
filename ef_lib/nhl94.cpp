@@ -314,23 +314,31 @@ bool isInsideDefenseZone(NHL94Data & data)
     return false;
 }
 
-void DebugPrint(const char * msg)
-{
-    std::cout << msg << std::endl;
-}
+
 
 void NHL94GameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS], int player)
 {
     NHL94Data data;
     data.Init(retro_data);
 
-    data.Flip();
-
-    if(data.period % 2 == 0)
+    if(player == 1)
     {
-        data.FlipZones();
-    }
+        data.Flip();
 
+        if(data.period % 2 == 0)
+        {
+            data.FlipZones();
+        }
+    }
+    else if (player == 0)
+    {
+        if(data.period % 2 == 1)
+        {
+            data.FlipZones();
+        }
+    }
+    
+    
     std::vector<float> input(16);
     std::vector<float> output(12);
 
@@ -413,7 +421,7 @@ void NHL94GameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS], int player)
     buttons[NHL94Buttons::INPUT_Z] = 0;
 
     //Flip directions
-    if(data.period % 2 == 0)
+    if(data.period % 2 != player)
     {
         std::swap(buttons[NHL94Buttons::INPUT_UP], buttons[NHL94Buttons::INPUT_DOWN]);
         std::swap(buttons[NHL94Buttons::INPUT_LEFT], buttons[NHL94Buttons::INPUT_RIGHT]);
