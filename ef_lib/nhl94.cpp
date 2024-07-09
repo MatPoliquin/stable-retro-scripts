@@ -2,6 +2,7 @@
 #include <cstdlib> 
 #include <iostream>
 #include <assert.h>
+#include <random>
 
 enum NHL94Buttons {
     INPUT_B = 0,
@@ -378,7 +379,8 @@ void NHL94GameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS], int player)
     }
     else if (data.g1_haspuck)
     {
-        output[NHL94Buttons::INPUT_B] = 1;
+        if (rand() > (RAND_MAX / 2))
+            output[NHL94Buttons::INPUT_B] = 1;
     }
     else
     {
