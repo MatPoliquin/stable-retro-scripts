@@ -317,7 +317,7 @@ bool isInsideDefenseZone(NHL94Data & data)
 
 
 
-void NHL94GameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS], int player)
+void NHL94GameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS], int player, const void *frame_data, unsigned int frame_width, unsigned int frame_height, unsigned int frame_pitch)
 {
     NHL94Data data;
     data.Init(retro_data);

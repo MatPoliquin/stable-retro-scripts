@@ -7,11 +7,19 @@
 //#include "data.h"
 
 
+class RetroModelFrameData
+{
+public:
+        void *data;
+        unsigned int width;
+        unsigned int height;
+        unsigned int pitch;
+};
 
 class RetroModel {
 public:
         virtual void Forward(std::vector<float> & output, const std::vector<float> & input)=0;
-
+        virtual void Forward(std::vector<float> & output, RetroModelFrameData & input)=0;
 };
 
 typedef void (*debug_log_t)(int level, const char *fmt, ...);
@@ -27,7 +35,7 @@ public:
         virtual void Init(const char * dir, void * ram_ptr, int ram_size) {};
         RetroModel * LoadModel(const char * path);
         
-        virtual void Think(bool buttons[GAMEAI_MAX_BUTTONS], int player=0) {};
+        virtual void Think(bool buttons[GAMEAI_MAX_BUTTONS], int player, const void *frame_data, unsigned int frame_width, unsigned int frame_height, unsigned int frame_pitch) {};
 
         void SetShowDebug(const bool show){ this->showDebug = show; };
 

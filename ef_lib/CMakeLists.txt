@@ -5,9 +5,9 @@ find_package(Torch REQUIRED)
 
 add_executable(test test.cpp)
 
-add_library(game_ai SHARED GameAI.cpp nhl94.cpp data.cpp memory.cpp utils.cpp)
+add_library(game_ai SHARED GameAI.cpp nhl94.cpp DefaultGameAI.cpp data.cpp memory.cpp utils.cpp)
 
-target_link_libraries(game_ai "${TORCH_LIBRARIES}")
+target_link_libraries(game_ai "${TORCH_LIBRARIES}" ${OpenCV_LIBS})
 
 set_property(TARGET test PROPERTY CXX_STANDARD 17)
 set_property(TARGET game_ai PROPERTY CXX_STANDARD 17)
