@@ -2,11 +2,11 @@
 Library to be used with emulator frontends (such as RetroArch) to enable ML models to overide player input.
 Warning: Still in early prototype version
 
-## Building the lib for linux
+## Build for Linux
 
 ```
 sudo apt update
-sudo apt install git cmake unzip libqt5opengl5-dev qtbase5-dev zlib1g-dev python3 python3-pip build-essential
+sudo apt install git cmake unzip libqt5opengl5-dev qtbase5-dev zlib1g-dev python3 python3-pip build-essential libopencv-dev
 ```
 
 ```
@@ -26,7 +26,7 @@ cmake . -DCMAKE_PREFIX_PATH=./libtorch
 make
 ```
 
-## Windows
+## Build for Windows
 
 Clone stable-retro-scripts repo
 
