@@ -1,4 +1,5 @@
 #include <torch/script.h>
+#include <opencv2/opencv.hpp>
 #include "GameAI.h"
 #include "nhl94.h"
 #include "DefaultGameAI.h"
@@ -140,17 +141,22 @@ void RetroModelPytorch::Forward(std::vector<float> & output, const std::vector<f
     }
 }
 
+
+
 void RetroModelPytorch::Forward(std::vector<float> & output, RetroModelFrameData & input)
 {
     std::vector<torch::jit::IValue> inputs;
 
 
-    /*for(int i=0; i < 16; i++)
-    {
-        tmp[0][i] = input[i];
-    }*/
 
-    
+    cv::Mat cv_test(cv::Size(input.width, input.height), CV_8UC3, input.data);
+
+    cv::namedWindow("Display Image", cv::WINDOW_NORMAL);
+    cv::imshow("Display Image", cv_test);
+
+    cv::waitKey(0);
+
+
     //std::vector<torch::jit::IValue> inputs;
     //inputs.push_back(torch::ones({1, 3, 224, 224}));
     at::Tensor test = torch::ones({1, 1, 84, 84});
