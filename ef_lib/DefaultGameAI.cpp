@@ -51,31 +51,38 @@ void DefaultGameAI::Init(const char * dir, void * ram_ptr, int ram_size)
 }
 
 
-void DefaultGameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS], int player, const void *frame_data, unsigned int frame_width, unsigned int frame_height, unsigned int frame_pitch)
+void DefaultGameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS], int player, const void *frame_data, unsigned int frame_width, unsigned int frame_height, unsigned int frame_pitch, unsigned int pixel_format)
 {
 
     //std::vector<float> input(16);
     std::vector<float> output(12);
 
-    RetroModelFrameData input;
+    
     input.data = (void *) frame_data;
     input.width = frame_width;
     input.height = frame_height;
     input.pitch = frame_pitch;
+    input.format = pixel_format;
 
     model->Forward(output, input);
 
-    std::cout << "::Think" << std::endl;
+    //std::cout << "::Think" << std::endl;
+
+
+    for (int i=0; i < output.size(); i++)
+    {
+        buttons[i] = output[i] >= 1.0 ? 1 : 0;
+    }
 
 
     buttons[DefaultButtons::INPUT_START] = 0;
     buttons[DefaultButtons::INPUT_MODE] = 0;
-    buttons[DefaultButtons::INPUT_A] = 0;
+    /*buttons[DefaultButtons::INPUT_A] = 0;
     buttons[DefaultButtons::INPUT_B] = 0;
     buttons[DefaultButtons::INPUT_C] = 1;
     buttons[DefaultButtons::INPUT_X] = 0;
     buttons[DefaultButtons::INPUT_Y] = 0;
     buttons[DefaultButtons::INPUT_Z] = 0;
 
-    buttons[DefaultButtons::INPUT_RIGHT] = 1;
+    buttons[DefaultButtons::INPUT_RIGHT] = 1;*/
 }

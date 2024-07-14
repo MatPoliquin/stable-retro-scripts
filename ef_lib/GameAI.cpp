@@ -147,14 +147,29 @@ void RetroModelPytorch::Forward(std::vector<float> & output, RetroModelFrameData
 {
     std::vector<torch::jit::IValue> inputs;
 
+    
 
+    cv::Mat image(cv::Size(input.width, input.height), CV_8UC2, input.data);
+    cv::Mat rgb;  
+    cv::Mat gray;
+    cv::Mat result;
 
-    cv::Mat cv_test(cv::Size(input.width, input.height), CV_8UC3, input.data);
+    //image.type();
 
-    cv::namedWindow("Display Image", cv::WINDOW_NORMAL);
-    cv::imshow("Display Image", cv_test);
+    //std::cout << image.channels() << std::endl;
+    //cv::cvtColor(image, rgb, cv::COLOR_BGR5652BGR);
+    cv::cvtColor(image, gray, cv::COLOR_BGR5652GRAY);
 
-    cv::waitKey(0);
+    cv::resize(gray, result, cv::Size(84,84), cv::INTER_AREA);
+
+    result = result.t();
+
+    //input.stack.
+
+    /*cv::namedWindow("Display Image", cv::WINDOW_NORMAL);
+    cv::imshow("Display Image", result);
+
+    cv::waitKey(0);*/
 
 
     //std::vector<torch::jit::IValue> inputs;
@@ -166,17 +181,21 @@ void RetroModelPytorch::Forward(std::vector<float> & output, RetroModelFrameData
     //std::cout << input.width << std::endl;
     //std::cout << input.height << std::endl;
 
-    test[0][0][0][0] = 0.0;
-    test[0][0][0][83] = 0.0;
+    //test[0][0][0][0] = 0.0;
+    //test[0][0][0][83] = 0.0;
+
+    test[0][0] = torch::from_blob(result.data, { result.rows, result.cols }, at::kByte);
 
 
-    inputs.push_back(torch::zeros({1, 1, 84, 84}));
+    inputs.push_back(test);
 
     // Execute the model and turn its output into a tensor.
     torch::jit::IValue ret = module.forward(inputs);
     //float v = 
-    ret.dump();
-    //std::cout << ret.toTuple()[0] << std::endl;
+    //ret.dump();
+    //ret.toTuple().
+    at::Tensor actions = ret.toTuple()->elements()[0].toTensor();
+    //std::cout <<  actions[0][0].item<float>() << std::endl;
 
     //at::Tensor output2 = module.forward(inputs).toTensor();
     
@@ -185,10 +204,10 @@ void RetroModelPytorch::Forward(std::vector<float> & output, RetroModelFrameData
     
     //at::Tensor result = module.forward(inputs).toTensor();
 
-    /*for(int i=0; i < 9; i++)
+    for(int i=0; i < 9; i++)
     {
-        output[i] = result[0][i].item<float>();
-    }*/
+        output[i] = actions[0][i].item<float>();
+    }
 }
 
 

@@ -4,17 +4,11 @@
 #include <string>
 #include <filesystem>
 #include <vector>
+#include <queue>
 //#include "data.h"
 
 
-class RetroModelFrameData
-{
-public:
-        void *data;
-        unsigned int width;
-        unsigned int height;
-        unsigned int pitch;
-};
+class RetroModelFrameData;
 
 class RetroModel {
 public:
@@ -35,7 +29,7 @@ public:
         virtual void Init(const char * dir, void * ram_ptr, int ram_size) {};
         RetroModel * LoadModel(const char * path);
         
-        virtual void Think(bool buttons[GAMEAI_MAX_BUTTONS], int player, const void *frame_data, unsigned int frame_width, unsigned int frame_height, unsigned int frame_pitch) {};
+        virtual void Think(bool buttons[GAMEAI_MAX_BUTTONS], int player, const void *frame_data, unsigned int frame_width, unsigned int frame_height, unsigned int frame_pitch, unsigned int pixel_format) {};
 
         void SetShowDebug(const bool show){ this->showDebug = show; };
 
