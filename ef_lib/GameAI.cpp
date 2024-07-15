@@ -160,11 +160,13 @@ void RetroModelPytorch::Forward(std::vector<float> & output, RetroModelFrameData
     //cv::cvtColor(image, rgb, cv::COLOR_BGR5652BGR);
     cv::cvtColor(image, gray, cv::COLOR_BGR5652GRAY);
 
+    cv::Mat * newFrame = input.PushNewFrameOnStack();
+
     cv::resize(gray, result, cv::Size(84,84), cv::INTER_AREA);
 
-    result = result.t();
+    result.copyTo(*newFrame);
 
-    //input.stack.
+    //result = result.t();
 
     /*cv::namedWindow("Display Image", cv::WINDOW_NORMAL);
     cv::imshow("Display Image", result);
@@ -174,7 +176,7 @@ void RetroModelPytorch::Forward(std::vector<float> & output, RetroModelFrameData
 
     //std::vector<torch::jit::IValue> inputs;
     //inputs.push_back(torch::ones({1, 3, 224, 224}));
-    at::Tensor test = torch::ones({1, 1, 84, 84});
+    at::Tensor test = torch::ones({1, 4, 84, 84});
     //test.toTensor();
     //test.toTuple();
 
@@ -184,7 +186,20 @@ void RetroModelPytorch::Forward(std::vector<float> & output, RetroModelFrameData
     //test[0][0][0][0] = 0.0;
     //test[0][0][0][83] = 0.0;
 
-    test[0][0] = torch::from_blob(result.data, { result.rows, result.cols }, at::kByte);
+#if 1
+    test[0][3] = torch::from_blob(input.stack[0]->data, { result.rows, result.cols }, at::kByte);
+    if(input.stack[1]->data)
+      test[0][2] = torch::from_blob(input.stack[1]->data, { result.rows, result.cols }, at::kByte);
+    if(input.stack[2]->data)
+      test[0][1] = torch::from_blob(input.stack[2]->data, { result.rows, result.cols }, at::kByte);
+    if(input.stack[3]->data)
+      test[0][0] = torch::from_blob(input.stack[3]->data, { result.rows, result.cols }, at::kByte);
+#else
+    test[0][0] = torch::from_blob(newFrame->data, { result.rows, result.cols }, at::kByte);
+    test[0][1] = torch::from_blob(newFrame->data, { result.rows, result.cols }, at::kByte);
+    test[0][2] = torch::from_blob(newFrame->data, { result.rows, result.cols }, at::kByte);
+    test[0][3] = torch::from_blob(newFrame->data, { result.rows, result.cols }, at::kByte);
+#endif
 
 
     inputs.push_back(test);
