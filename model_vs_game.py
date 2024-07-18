@@ -47,12 +47,7 @@ class ModelVsGame:
     def __init__(self, args, logger, need_display=True):
 
         self.p1_env = init_env(None, 1, args.state, 1, args, True)
-        print('================================ init_play_env =================================')
-        traceback.print_stack(file=sys.stdout)
-        print(need_display)
         self.display_env = init_play_env(args, 1, False, need_display, False)
-        print(self.display_env)
-        print('=================================================================')
 
         self.ai_sys = games.wrappers.ai_sys(args, self.p1_env, logger)
         if args.model_1 != '' or args.model_2 != '':
