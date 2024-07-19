@@ -48,17 +48,12 @@ void RetroModelPytorch::Forward(std::vector<float> & output, RetroModelFrameData
 {
     std::vector<torch::jit::IValue> inputs;
 
-    
-
     cv::Mat image(cv::Size(input.width, input.height), CV_8UC2, input.data);
     cv::Mat rgb;  
     cv::Mat gray;
     cv::Mat result;
 
-    //image.type();
 
-    //std::cout << image.channels() << std::endl;
-    //cv::cvtColor(image, rgb, cv::COLOR_BGR5652BGR);
     cv::cvtColor(image, gray, cv::COLOR_BGR5652GRAY);
 
     cv::Mat * newFrame = input.PushNewFrameOnStack();
@@ -74,19 +69,8 @@ void RetroModelPytorch::Forward(std::vector<float> & output, RetroModelFrameData
 
     cv::waitKey(0);*/
 
-
-    //std::vector<torch::jit::IValue> inputs;
-    //inputs.push_back(torch::ones({1, 3, 224, 224}));
     at::Tensor test = torch::ones({1, 4, 84, 84});
-    //test.toTensor();
-    //test.toTuple();
-
-    //std::cout << input.width << std::endl;
-    //std::cout << input.height << std::endl;
-
-    //test[0][0][0][0] = 0.0;
-    //test[0][0][0][83] = 0.0;
-
+ 
 #if 1
     test[0][3] = torch::from_blob(input.stack[0]->data, { result.rows, result.cols }, at::kByte);
     if(input.stack[1]->data)
@@ -102,23 +86,11 @@ void RetroModelPytorch::Forward(std::vector<float> & output, RetroModelFrameData
     test[0][3] = torch::from_blob(newFrame->data, { result.rows, result.cols }, at::kByte);
 #endif
 
-
     inputs.push_back(test);
 
     // Execute the model and turn its output into a tensor.
     torch::jit::IValue ret = module.forward(inputs);
-    //float v = 
-    //ret.dump();
-    //ret.toTuple().
     at::Tensor actions = ret.toTuple()->elements()[0].toTensor();
-    //std::cout <<  actions[0][0].item<float>() << std::endl;
-
-    //at::Tensor output2 = module.forward(inputs).toTensor();
-    
-
-    //inputs.push_back(tmp);
-    
-    //at::Tensor result = module.forward(inputs).toTensor();
 
     for(int i=0; i < 12; i++)
     {

@@ -1,7 +1,7 @@
 
 #include "GameAI.h"
-#include "nhl94.h"
-#include "DefaultGameAI.h"
+#include "./games/NHL94GameAI.h"
+#include "./games/DefaultGameAI.h"
 
 #if _WIN32
 #define DllExport   __declspec( dllexport )
@@ -49,7 +49,7 @@ extern "C"  DllExport GameAI * CreateGameAI(const char * name)
 }
 
 //=======================================================
-// RetroModelPytorch::Forward
+// GameAILocal::LoadModel
 //=======================================================
 RetroModel * GameAILocal::LoadModel(const char * path)
 {
@@ -61,7 +61,7 @@ RetroModel * GameAILocal::LoadModel(const char * path)
 }
 
 //=======================================================
-// RetroModelPytorch::Forward
+// GameAILocal::DebugPrint
 //=======================================================
 void GameAILocal::DebugPrint(const char * msg)
 {

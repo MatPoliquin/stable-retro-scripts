@@ -8,7 +8,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 add_executable(test test.cpp)
 target_link_libraries(test ${OpenCV_LIBS})
 
-add_library(game_ai SHARED GameAILocal.cpp RetroModel.cpp nhl94.cpp DefaultGameAI.cpp data.cpp memory.cpp utils.cpp)
+add_library(game_ai SHARED GameAILocal.cpp RetroModel.cpp games/NHL94GameAI.cpp games/DefaultGameAI.cpp utils/data.cpp utils/memory.cpp utils/utils.cpp)
 
 target_link_libraries(game_ai "${TORCH_LIBRARIES}" ${OpenCV_LIBS})
 

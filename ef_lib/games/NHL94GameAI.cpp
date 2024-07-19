@@ -1,4 +1,4 @@
-#include "nhl94.h"
+#include "NHL94GameAI.h"
 #include <cstdlib> 
 #include <iostream>
 #include <assert.h>
@@ -205,7 +205,7 @@ public:
 };
 
 //=======================================================
-// RetroModelPytorch::Forward
+// NHL94GameAI::Init
 //=======================================================
 void NHL94GameAI::Init(void * ram_ptr, int ram_size)
 {
@@ -245,7 +245,7 @@ void NHL94GameAI::Init(void * ram_ptr, int ram_size)
 }
 
 //=======================================================
-// RetroModelPytorch::Forward
+// NHL94GameAI::SetModelInputs
 //=======================================================
 void NHL94GameAI::SetModelInputs(std::vector<float> & input, const NHL94Data & data)
 {
@@ -272,7 +272,7 @@ void NHL94GameAI::SetModelInputs(std::vector<float> & input, const NHL94Data & d
 }
 
 //=======================================================
-// RetroModelPytorch::Forward
+// NHL94GameAI::GotoTarget
 //=======================================================
 void NHL94GameAI::GotoTarget(std::vector<float> & input, int vec_x, int vec_y)
 {
@@ -288,7 +288,7 @@ void NHL94GameAI::GotoTarget(std::vector<float> & input, int vec_x, int vec_y)
 }
 
 //=======================================================
-// RetroModelPytorch::Forward
+// isInsideAttackZone
 //=======================================================
 bool isInsideAttackZone(NHL94Data & data)
 {
@@ -305,7 +305,7 @@ bool isInsideAttackZone(NHL94Data & data)
 }
 
 //=======================================================
-// RetroModelPytorch::Forward
+// isInsideScoreZone
 //=======================================================
 bool isInsideScoreZone(NHL94Data & data)
 {
@@ -318,7 +318,7 @@ bool isInsideScoreZone(NHL94Data & data)
 }
 
 //=======================================================
-// RetroModelPytorch::Forward
+// isInsideDefenseZone
 //=======================================================
 bool isInsideDefenseZone(NHL94Data & data)
 {
@@ -336,7 +336,7 @@ bool isInsideDefenseZone(NHL94Data & data)
 
 
 //=======================================================
-// RetroModelPytorch::Forward
+// NHL94GameAI::Think
 //=======================================================
 void NHL94GameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS], int player, const void *frame_data, unsigned int frame_width, unsigned int frame_height, unsigned int frame_pitch, unsigned int pixel_format)
 {
