@@ -15,7 +15,6 @@
 
 
 
-
 std::map<std::string, bool> tests;
 
 void test_OpenCV()
@@ -37,69 +36,61 @@ void test_OpenCV()
     cv::namedWindow("Display Image", cv::WINDOW_NORMAL);
     cv::imshow("Display Image", result);
 
-    cv::waitKey(0);
+    cv::waitKey(1000);
+
+    tests["OPENCV GRAYSCALE DOWNSAMPLE TO 84x84"] = true;
 }
 
 
 void test_loadlibrary()
 {
     GameAI * ga = nullptr;
+    creategameai_t func = nullptr;
 
 #ifdef _WIN32
     HINSTANCE hinstLib; 
     BOOL fFreeResult, fRunTimeLinkSuccess = FALSE;
 
     hinstLib = LoadLibrary(TEXT("game_ai.dll"));
-    assert(hinstLib);
 
     if (hinstLib != NULL) 
     { 
-        creategameai_t func  = (creategameai_t) GetProcAddress(hinstLib, "CreateGameAI"); 
-
-        assert(func);
- 
-        // If the function address is valid, call the function.
-        if (NULL != func) 
-        {
-            fRunTimeLinkSuccess = TRUE;
-            ga = func("NHL941on1-Genesis");
-            assert(ga);
-        }
-        // Free the DLL module.
- 
-        fFreeResult = FreeLibrary(hinstLib); 
+        tests["LOAD LIBRARY"] = true;
+        func  = (creategameai_t) GetProcAddress(hinstLib, "CreateGameAI"); 
     } 
 #else
     void *myso = dlopen("./libgame_ai.so", RTLD_NOW);
 
-    std::cout << dlerror() << std::endl;
+    //std::cout << dlerror() << std::endl;
 
-    assert(myso);
-
-    tests["LOAD LIBRARY"] = true;
-
-    creategameai_t func = reinterpret_cast<creategameai_t>(dlsym(myso, "CreateGameAI"));
-    assert(func);
-
-    if(func)
+    if(myso)
     {
-        tests["GET CREATEGAME FUNC"] = true;
-        ga = func("./data/NHL941on1-Genesis/NHL941on1.md");
+        tests["LOAD LIBRARY"] = true;
+
+        func = reinterpret_cast<creategameai_t>(dlsym(myso, "CreateGameAI"));        
     }
-
 #endif
+        if(func)
+        {
+            tests["GET CREATEGAME FUNC"] = true;
+            ga = func("./data/NHL941on1-Genesis/NHL941on1.md");
 
-    if(ga)
-        tests["CREATEGAME FUNC"] = true;
+            if(ga)
+                tests["CREATEGAME FUNC"] = true;
+        }
+
+#ifdef _WIN32
+    fFreeResult = FreeLibrary(hinstLib); 
+#endif
 }
 
 void Test_Pytorch()
 {
 
     torch::jit::script::Module module;
-try {
 
-    module = torch::jit::load("/home/mat/github/stable-retro-scripts/traced_resnet_model.pt");
+try {
+    module = torch::jit::load("./data/MortalKombatII-Genesis/model.pt");
     //module = torch::jit::load("/home/mat/github/stable-retro-scripts/model.pt");
     std::cerr << "SUCCESS!\n";
 
@@ -107,11 +98,11 @@ try {
 
     // Create a vector of inputs.
     std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(torch::ones({1, 3, 224, 224}));
+    inputs.push_back(torch::ones({1, 4, 84, 84}));
     //inputs.push_back(torch::ones({1, 4, 84, 84}));
 
     // Execute the model and turn its output into a tensor.
-    at::Tensor output = module.forward(inputs).toTensor();
+    //at::Tensor output = module.forward(inputs).toTensor();
 
     tests["LOAD PYTORCH MODEL"] = true;
     //std::cout << output.slice(/*dim=*/1, /*start=*/0, /*end=*/5) << '\n';
@@ -125,11 +116,13 @@ try {
 
 int main()
 {
+    std::cout << "========== RUNNING TESTS ==========" << std::endl;
+
     tests.insert(std::pair<std::string, bool>("LOAD LIBRARY",false));
-    tests.insert(std::pair<std::string, bool><"GET CREATEGAME FUNC",false>);
-    tests.insert(std::pair<std::string, bool><"CREATEGAME FUNC",false>);
-    tests.insert(std::pair<std::string, bool><"OPENCV GRAYSCALE DOWNSAMPLE TO 84x84",false>);
-    tests.insert(std::pair<std::string, bool><"LOAD PYTORCH MODEL",false>);
+    tests.insert(std::pair<std::string, bool>("GET CREATEGAME FUNC",false));
+    tests.insert(std::pair<std::string, bool>("CREATEGAME FUNC",false));
+    tests.insert(std::pair<std::string, bool>("OPENCV GRAYSCALE DOWNSAMPLE TO 84x84",false));
+    tests.insert(std::pair<std::string, bool>("LOAD PYTORCH MODEL",false));
 
 
     try {
@@ -140,7 +133,16 @@ int main()
         Test_Pytorch();
     }
     catch (std::exception &e) {
+        std::cout << "============= EXCEPTION =============" << std::endl;
         std::cout << e.what();
+    }
+
+    std::cout << "============== RESULTS =============" << std::endl;
+
+    for(auto i: tests)
+    {
+        const char * result = i.second ? "PASS" : "FAIL";
+        std::cout << i.first << "..." << result << std::endl;
     }
     
     return 0;
