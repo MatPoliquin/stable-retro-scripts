@@ -20,14 +20,17 @@ enum DefaultButtons {
     INPUT_MAX = 12
 };
 
-void DefaultGameAI::Init(const char * dir, void * ram_ptr, int ram_size)
+//=======================================================
+// RetroModelPytorch::Forward
+//=======================================================
+void DefaultGameAI::Init(void * ram_ptr, int ram_size)
 {
     //std::cout << dir << std::endl;
 
-    std::filesystem::path modelPath = dir;
+    std::filesystem::path modelPath = dir_path;
     modelPath += "/model.pt";
     //modelPath += "/traced_resnet_model.pt";
-    std::filesystem::path memDataPath = dir;
+    std::filesystem::path memDataPath = dir_path;
     memDataPath += "/data.json";
 
     model = this->LoadModel(modelPath.string().c_str());
@@ -50,7 +53,9 @@ void DefaultGameAI::Init(const char * dir, void * ram_ptr, int ram_size)
     std::cout << "::Init" << std::endl;
 }
 
-
+//=======================================================
+// RetroModelPytorch::Forward
+//=======================================================
 void DefaultGameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS], int player, const void *frame_data, unsigned int frame_width, unsigned int frame_height, unsigned int frame_pitch, unsigned int pixel_format)
 {
 

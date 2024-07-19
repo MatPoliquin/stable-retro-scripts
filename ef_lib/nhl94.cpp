@@ -204,17 +204,21 @@ public:
     }
 };
 
-void NHL94GameAI::Init(const char * dir, void * ram_ptr, int ram_size)
+//=======================================================
+// RetroModelPytorch::Forward
+//=======================================================
+void NHL94GameAI::Init(void * ram_ptr, int ram_size)
 {
     //std::cout << dir << std::endl;
 
-    std::filesystem::path scoreModelPath = dir;
+
+    std::filesystem::path scoreModelPath = dir_path;
     scoreModelPath += "/ScoreGoal.pt";
-    std::filesystem::path defenseModelPath = dir;
+    std::filesystem::path defenseModelPath = dir_path;
     defenseModelPath += "/DefenseZone.pt";
-    std::filesystem::path memDataPath = dir;
+    std::filesystem::path memDataPath = dir_path;
     memDataPath += "/data.json";
-    std::filesystem::path sysDataPath = dir;
+    std::filesystem::path sysDataPath = dir_path;
     sysDataPath += "/sys.json";
 
     ScoreGoalModel = this->LoadModel(scoreModelPath.string().c_str());
@@ -240,6 +244,9 @@ void NHL94GameAI::Init(const char * dir, void * ram_ptr, int ram_size)
     isShooting = false;
 }
 
+//=======================================================
+// RetroModelPytorch::Forward
+//=======================================================
 void NHL94GameAI::SetModelInputs(std::vector<float> & input, const NHL94Data & data)
 {
     // players
@@ -264,6 +271,9 @@ void NHL94GameAI::SetModelInputs(std::vector<float> & input, const NHL94Data & d
     input[NHL94NeuralNetInput::G1_HASPUCK] = data.g1_haspuck ? 0.0 : 1.0; 
 }
 
+//=======================================================
+// RetroModelPytorch::Forward
+//=======================================================
 void NHL94GameAI::GotoTarget(std::vector<float> & input, int vec_x, int vec_y)
 {
     if (vec_x > 0)
@@ -277,6 +287,9 @@ void NHL94GameAI::GotoTarget(std::vector<float> & input, int vec_x, int vec_y)
         input[NHL94Buttons::INPUT_UP] = 1;
 }
 
+//=======================================================
+// RetroModelPytorch::Forward
+//=======================================================
 bool isInsideAttackZone(NHL94Data & data)
 {
     if (data.attack_zone_y > 0 && data.p1_y >= data.attack_zone_y)
@@ -291,6 +304,9 @@ bool isInsideAttackZone(NHL94Data & data)
     return false;
 }
 
+//=======================================================
+// RetroModelPytorch::Forward
+//=======================================================
 bool isInsideScoreZone(NHL94Data & data)
 {
     if (data.p1_y < data.score_zone_top && data.p1_y > data.score_zone_bottom)
@@ -301,6 +317,9 @@ bool isInsideScoreZone(NHL94Data & data)
     return false;
 }
 
+//=======================================================
+// RetroModelPytorch::Forward
+//=======================================================
 bool isInsideDefenseZone(NHL94Data & data)
 {
     if (data.defense_zone_y > 0 && data.p1_y >= data.defense_zone_y)
@@ -316,7 +335,9 @@ bool isInsideDefenseZone(NHL94Data & data)
 }
 
 
-
+//=======================================================
+// RetroModelPytorch::Forward
+//=======================================================
 void NHL94GameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS], int player, const void *frame_data, unsigned int frame_width, unsigned int frame_height, unsigned int frame_pitch, unsigned int pixel_format)
 {
     NHL94Data data;
