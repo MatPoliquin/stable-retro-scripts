@@ -8,8 +8,7 @@
 #include <filesystem>
 #include <vector>
 #include <queue>
-//#include "data.h"
-
+#include "utils/data.h"
 
 
 
@@ -19,17 +18,21 @@ public:
                 debugLogFunc(nullptr){};
 
 
-        RetroModel * LoadModel(const char * path);
-        
-        void SetShowDebug(const bool show){ this->showDebug = show; };
-
-        void SetDebugLog(debug_log_t func){debugLogFunc = func;};
+        RetroModel *    LoadModel(const char * path);
+        void            SetShowDebug(const bool show){ this->showDebug = show; };
+        void            SetDebugLog(debug_log_t func){debugLogFunc = func;};
+        void            DebugPrint(const char * msg);
 
 protected:
-        void DebugPrint(const char * msg);
+        void            InitRAM(void * ram_ptr, int ram_size);
+        void            LoadConfig();
+
 
         bool            showDebug;
         debug_log_t     debugLogFunc;
+        Retro::GameData retro_data;
+
+        std::map<std::string, RetroModel*> models;
 
 public:
         std::string full_path;

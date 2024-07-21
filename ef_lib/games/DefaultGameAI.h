@@ -15,7 +15,5 @@ public:
 private:
     RetroModel * model;
 
-    Retro::GameData retro_data;
-
     RetroModelFrameData input;
 };

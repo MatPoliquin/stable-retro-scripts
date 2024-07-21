@@ -1,10 +1,7 @@
 #pragma once
 
 #include "../GameAILocal.h"
-#include "memory.h"
-#include "../utils/data.h"
-
-class NHL94Data;
+#include "NHL94GameData.h"
 
 class NHL94GameAI : public GameAILocal {
 public:
@@ -15,9 +12,5 @@ public:
     void GotoTarget(std::vector<float> & input, int vec_x, int vec_y);
 
 private:
-    RetroModel * ScoreGoalModel;
-    RetroModel * DefenseModel;
     bool isShooting;
-
-    Retro::GameData retro_data;
 };

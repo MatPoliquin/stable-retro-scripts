@@ -1,0 +1,14 @@
+{
+  "p1":{
+      "models":{
+          "ScoreGoal": "ScoreGoal.pt",
+          "DefenseZone": "DefenseZone.pt"
+      }
+  },
+  "p2":{
+      "models":{
+          "ScoreGoal": "ScoreGoal.pt",
+          "DefenseZone": "DefenseZone.pt"
+      }
+  }
+}

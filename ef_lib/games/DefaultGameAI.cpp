@@ -28,26 +28,10 @@ void DefaultGameAI::Init(void * ram_ptr, int ram_size)
     std::filesystem::path modelPath = dir_path;
     modelPath += "/model.pt";
     //modelPath += "/traced_resnet_model.pt";
-    std::filesystem::path memDataPath = dir_path;
-    memDataPath += "/data.json";
 
     model = this->LoadModel(modelPath.string().c_str());
 
-    std::cout << memDataPath << std::endl;
-    retro_data.load(memDataPath.string());
-    
-    Retro::AddressSpace* m_addressSpace = nullptr;
-    m_addressSpace = &retro_data.addressSpace();
-	m_addressSpace->reset();
-	//Retro::configureData(data, m_core);
-	//reconfigureAddressSpace();
-    //retro_data.addressSpace().setOverlay(Retro::MemoryOverlay{ '=', '>', 2 });
-
-	m_addressSpace->addBlock(0, ram_size, ram_ptr);
-    std::cout << "RAM size:" << ram_size << std::endl;
-    std::cout << "RAM ptr:" << ram_ptr << std::endl;
-
-    std::cout << "::Init" << std::endl;
+    InitRAM(ram_ptr, ram_size);
 }
 
 //=======================================================
