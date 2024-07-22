@@ -90,7 +90,7 @@ void Test_Pytorch()
     torch::jit::script::Module module;
 
 try {
-    module = torch::jit::load("./data/MortalKombatII-Genesis/model.pt");
+    module = torch::jit::load("./data/VirtuaFighter-32x/Akira.pt");
     //module = torch::jit::load("/home/mat/github/stable-retro-scripts/model.pt");
     std::cerr << "SUCCESS!\n";
 

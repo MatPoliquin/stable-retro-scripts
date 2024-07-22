@@ -45,14 +45,14 @@ Download and Extract OpenCV for Windows:
 https://sourceforge.net/projects/opencvlibrary/files/4.10.0/
 ```
 The DLLs will be found here:
-\opencv\build\x64\vc16\lib
+YourOpenCVFolder\opencv\build\x64\vc16\lib
 
 Generate makefiles and compile
 ```
 cd stable-retro-scripts
 mkdir build
 cd build
-cmake .. -DCMAKE_PREFIX_PATH=Absolute\path\to\libtorch_win
+cmake .. -DCMAKE_PREFIX_PATH=Absolute\path\to\libtorch_win -DOpenCV_DIR=Absolute\path\to\opencv\build\x64\vc16\lib
 cmake --build . --config Release
 ```
 
