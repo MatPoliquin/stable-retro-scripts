@@ -1,0 +1,12 @@
+{
+  "p1":{
+      "models":{
+          "Model": "Akira.pt"
+      }
+  },
+  "p2":{
+    "models":{
+        "Model": "Akira.pt"
+    }
+  }
+}
