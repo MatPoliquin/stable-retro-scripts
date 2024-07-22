@@ -40,6 +40,13 @@ https://github.com/pytorch/pytorch/issues/124009
 So you can use nightly build instead and it fixes the issue:
 wget https://download.pytorch.org/libtorch/nightly/cpu/libtorch-win-shared-with-deps-latest.zip -o libtorch_win.zip
 
+Download and Extract OpenCV for Windows:
+```
+https://sourceforge.net/projects/opencvlibrary/files/4.10.0/
+```
+The DLLs will be found here:
+\opencv\build\x64\vc16\lib
+
 Generate makefiles and compile
 ```
 cd stable-retro-scripts
