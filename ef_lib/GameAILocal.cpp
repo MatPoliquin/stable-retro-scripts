@@ -19,7 +19,7 @@
 extern "C"  DllExport GameAI * CreateGameAI(const char * name)
 {
     std::filesystem::path path = name;
-    std::string game_name = path.parent_path().filename();
+    std::string game_name = path.parent_path().filename().string();
     
     GameAILocal * ptr = nullptr;
 
@@ -106,7 +106,7 @@ void GameAILocal::LoadConfig()
 
   std::filesystem::path configPath = dir_path;
   configPath += "/config.json";
-  DebugPrint(configPath.c_str());
+  DebugPrint(configPath.string().c_str());
 
   std::ifstream file;
   try {
