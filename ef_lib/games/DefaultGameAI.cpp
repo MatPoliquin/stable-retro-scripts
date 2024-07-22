@@ -25,11 +25,7 @@ enum DefaultButtons {
 //=======================================================
 void DefaultGameAI::Init(void * ram_ptr, int ram_size)
 {
-    std::filesystem::path modelPath = dir_path;
-    modelPath += "/model.pt";
-    //modelPath += "/traced_resnet_model.pt";
-
-    model = this->LoadModel(modelPath.string().c_str());
+    LoadConfig();
 
     InitRAM(ram_ptr, ram_size);
 }
@@ -47,7 +43,7 @@ void DefaultGameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS], int player, const vo
     input.pitch = frame_pitch;
     input.format = pixel_format;
 
-    model->Forward(output, input);
+    models["Model"]->Forward(output, input);
 
     for (int i=0; i < output.size(); i++)
     {

@@ -1,0 +1,12 @@
+{
+  "p1":{
+      "models":{
+          "Model": "LiuKang.pt"
+      }
+  },
+  "p2":{
+    "models":{
+        "Model": "LiuKang.pt"
+    }
+  }
+}

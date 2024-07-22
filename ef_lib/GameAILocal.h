@@ -9,6 +9,7 @@
 #include <vector>
 #include <queue>
 #include "utils/data.h"
+#include "./utils/json.hpp"
 
 
 
@@ -26,6 +27,7 @@ public:
 protected:
         void            InitRAM(void * ram_ptr, int ram_size);
         void            LoadConfig();
+        void            LoadConfig_Player(const nlohmann::detail::iter_impl<const nlohmann::json> &player);
 
 
         bool            showDebug;

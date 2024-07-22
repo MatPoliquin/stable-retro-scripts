@@ -4,7 +4,7 @@
 #include "GameAI.h"
 #include "./games/NHL94GameAI.h"
 #include "./games/DefaultGameAI.h"
-#include "./utils/json.hpp"
+
 
 #if _WIN32
 #define DllExport   __declspec( dllexport )
@@ -72,6 +72,32 @@ void GameAILocal::InitRAM(void * ram_ptr, int ram_size)
 }
 
 //=======================================================
+// GameAILocal::LoadConfig_Player
+//=======================================================
+void GameAILocal::LoadConfig_Player(const nlohmann::detail::iter_impl<const nlohmann::json> &player)
+{
+  for (auto var = player->cbegin(); var != player->cend(); ++var)
+  {
+    if(var.key() == "models")
+    {
+      for (auto model = var.value().cbegin(); model != var.value().cend(); ++model)
+      {
+        std::filesystem::path modelPath = dir_path;
+        modelPath += "/";
+        modelPath += model.value().get<std::string>();
+
+        RetroModel * load_model = this->LoadModel(modelPath.string().c_str());
+
+        if (models.count(model.key()) == 0)
+        {
+          models.insert(std::pair<std::string, RetroModel*>(model.key(), load_model));
+        }        
+      }
+    }
+  }
+}
+
+//=======================================================
 // GameAILocal::LoadConfig
 //=======================================================
 void GameAILocal::LoadConfig()
@@ -115,22 +141,20 @@ void GameAILocal::LoadConfig()
     return;
 	}
 
-  for (auto var = p1->cbegin(); var != p1->cend(); ++var)
+  LoadConfig_Player(p1);
+
+  const auto& p2 = const_cast<const json&>(manifest).find("p2");
+	if (p2 == manifest.cend())
   {
-    if(var.key() == "models")
-    {
-      for (auto model = var.value().cbegin(); model != var.value().cend(); ++model)
-      {
-        std::filesystem::path modelPath = dir_path;
-        modelPath += "/";
-        modelPath += model.value().get<std::string>();
+		DebugPrint("Error Loading config, no p1");
+    return;
+	}
 
-        RetroModel * load_model = this->LoadModel(modelPath.string().c_str());
+  LoadConfig_Player(p2);
 
-        models.insert(std::pair<std::string, RetroModel*>(model.key(), load_model));
-      }
-    }
-  }
+
+
+  
 }
 
 //=======================================================
