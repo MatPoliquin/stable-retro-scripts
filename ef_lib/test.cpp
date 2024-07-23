@@ -6,6 +6,7 @@
 #include <opencv2/opencv.hpp>
 #include <torch/script.h>
 #include "GameAI.h"
+#include "RetroModel.h"
 
 #ifdef _WIN32
 #include <windows.h> 
@@ -15,9 +16,61 @@
 
 
 
-std::map<std::string, bool> tests;
+#if 0
+/*
+#include "onnxruntime_cxx_api.h"
 
-void test_OpenCV()
+void Test_ONNX()
+{
+
+// Load the model and create InferenceSession
+Ort::Env env;
+std::string model_path = "path/to/your/onnx/model";
+Ort::Session session(env, model_path, Ort::SessionOptions{ nullptr });
+// Load and preprocess the input image to inputTensor
+...
+// Run inference
+std::vector outputTensors =
+session.Run(Ort::RunOptions{nullptr}, inputNames.data(), &inputTensor, 
+  inputNames.size(), outputNames.data(), outputNames.size());
+const float* outputDataPtr = outputTensors[0].GetTensorMutableData();
+std::cout << outputDataPtr[0] << std::endl;
+
+
+}*/
+
+void Test_Resnet()
+{
+
+    torch::jit::script::Module module;
+try {
+
+    module = torch::jit::load("/home/mat/github/stable-retro-scripts/traced_resnet_model.pt");
+    //module = torch::jit::load("/home/mat/github/stable-retro-scripts/model.pt");
+    std::cerr << "SUCCESS!\n";
+
+    module.eval();
+
+    // Create a vector of inputs.
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(torch::ones({1, 3, 224, 224}));
+    //inputs.push_back(torch::ones({1, 4, 84, 84}));
+
+    // Execute the model and turn its output into a tensor.
+    at::Tensor output = module.forward(inputs).toTensor();
+    //std::cout << output.slice(/*dim=*/1, /*start=*/0, /*end=*/5) << '\n';
+  }
+  catch (const c10::Error& e) {
+    std::cerr << "error loading the model\n";
+    return;
+  }
+}
+#endif
+
+//=======================================================
+// test_opencv
+//=======================================================
+void test_opencv(std::map<std::string, bool> & tests)
 {
     cv::Mat image;
     cv::Mat grey;
@@ -41,8 +94,10 @@ void test_OpenCV()
     tests["OPENCV GRAYSCALE DOWNSAMPLE TO 84x84"] = true;
 }
 
-
-void test_loadlibrary()
+//=======================================================
+// test_loadlibrary
+//=======================================================
+void test_loadlibrary(std::map<std::string, bool> & tests)
 {
     GameAI * ga = nullptr;
     creategameai_t func = nullptr;
@@ -84,28 +139,25 @@ void test_loadlibrary()
 #endif
 }
 
-void Test_Pytorch()
+//=======================================================
+// test_pytorch
+//=======================================================
+void test_pytorch(std::map<std::string, bool> & tests)
 {
 
-    torch::jit::script::Module module;
-
 try {
-    module = torch::jit::load("./data/VirtuaFighter-32x/Akira.pt");
-    //module = torch::jit::load("/home/mat/github/stable-retro-scripts/model.pt");
-    std::cerr << "SUCCESS!\n";
+    RetroModelPytorch * model = new RetroModelPytorch();
 
-    module.eval();
+    model->LoadModel(std::string("./data/NHL941on1-Genesis/ScoreGoal.pt"));
 
-    // Create a vector of inputs.
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(torch::ones({1, 4, 84, 84}));
-    //inputs.push_back(torch::ones({1, 4, 84, 84}));
+    std::vector<float> input(16);
+    std::vector<float> output(12);
 
-    // Execute the model and turn its output into a tensor.
-    //at::Tensor output = module.forward(inputs).toTensor();
+    model->Forward(output, input);
 
+    //TODO validate output
     tests["LOAD PYTORCH MODEL"] = true;
-    //std::cout << output.slice(/*dim=*/1, /*start=*/0, /*end=*/5) << '\n';
+
   }
   catch (const c10::Error& e) {
     //std::cerr << "error loading the model\n";
@@ -116,7 +168,7 @@ try {
 
 int main()
 {
-    std::cout << "========== RUNNING TESTS ==========" << std::endl;
+    std::map<std::string, bool> tests;
 
     tests.insert(std::pair<std::string, bool>("LOAD LIBRARY",false));
     tests.insert(std::pair<std::string, bool>("GET CREATEGAME FUNC",false));
@@ -124,13 +176,14 @@ int main()
     tests.insert(std::pair<std::string, bool>("OPENCV GRAYSCALE DOWNSAMPLE TO 84x84",false));
     tests.insert(std::pair<std::string, bool>("LOAD PYTORCH MODEL",false));
 
+    std::cout << "========== RUNNING TESTS ==========" << std::endl;
 
     try {
-        test_loadlibrary();
+        test_loadlibrary(tests);
 
-        test_OpenCV();
+        test_opencv(tests);
 
-        Test_Pytorch();
+        test_pytorch(tests);
     }
     catch (std::exception &e) {
         std::cout << "============= EXCEPTION =============" << std::endl;
