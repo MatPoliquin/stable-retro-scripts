@@ -5,7 +5,7 @@ find_package(Torch REQUIRED)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-add_executable(test test.cpp)
+add_executable(test test.cpp RetroModel.cpp)
 target_link_libraries(test "${TORCH_LIBRARIES}" ${OpenCV_LIBS})
 
 add_library(game_ai SHARED GameAILocal.cpp RetroModel.cpp games/NHL94GameAI.cpp games/NHL94GameData.cpp games/DefaultGameAI.cpp utils/data.cpp utils/memory.cpp utils/utils.cpp)
