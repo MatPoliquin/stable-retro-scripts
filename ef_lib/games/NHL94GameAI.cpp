@@ -64,7 +64,7 @@ void NHL94GameAI::GotoTarget(std::vector<float> & input, int vec_x, int vec_y)
 //=======================================================
 // isInsideAttackZone
 //=======================================================
-bool isInsideAttackZone(NHL94Data & data)
+static bool isInsideAttackZone(NHL94Data & data)
 {
     if (data.attack_zone_y > 0 && data.p1_y >= data.attack_zone_y)
     {
@@ -81,7 +81,7 @@ bool isInsideAttackZone(NHL94Data & data)
 //=======================================================
 // isInsideScoreZone
 //=======================================================
-bool isInsideScoreZone(NHL94Data & data)
+static bool isInsideScoreZone(NHL94Data & data)
 {
     if (data.p1_y < data.score_zone_top && data.p1_y > data.score_zone_bottom)
     {
@@ -94,7 +94,7 @@ bool isInsideScoreZone(NHL94Data & data)
 //=======================================================
 // isInsideDefenseZone
 //=======================================================
-bool isInsideDefenseZone(NHL94Data & data)
+static bool isInsideDefenseZone(NHL94Data & data)
 {
     if (data.defense_zone_y > 0 && data.p1_y >= data.defense_zone_y)
     {
@@ -107,7 +107,6 @@ bool isInsideDefenseZone(NHL94Data & data)
 
     return false;
 }
-
 
 //=======================================================
 // NHL94GameAI::Think

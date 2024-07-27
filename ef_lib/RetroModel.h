@@ -61,7 +61,6 @@ public:
         virtual void Forward(std::vector<float> & output, const std::vector<float> & input);
         virtual void Forward(std::vector<float> & output, RetroModelFrameData & input);
 
-
 private:
     torch::jit::script::Module module;
 };

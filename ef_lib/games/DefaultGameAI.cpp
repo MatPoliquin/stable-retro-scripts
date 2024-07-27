@@ -35,7 +35,7 @@ void DefaultGameAI::Init(void * ram_ptr, int ram_size)
 //=======================================================
 void DefaultGameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS], int player, const void *frame_data, unsigned int frame_width, unsigned int frame_height, unsigned int frame_pitch, unsigned int pixel_format)
 {
-    std::vector<float> output(12);
+    std::vector<float> output(DefaultButtons::INPUT_MAX);
 
     input.data = (void *) frame_data;
     input.width = frame_width;
@@ -52,12 +52,4 @@ void DefaultGameAI::Think(bool buttons[GAMEAI_MAX_BUTTONS], int player, const vo
 
     buttons[DefaultButtons::INPUT_START] = 0;
     buttons[DefaultButtons::INPUT_MODE] = 0;
-    /*buttons[DefaultButtons::INPUT_A] = 0;
-    buttons[DefaultButtons::INPUT_B] = 0;
-    buttons[DefaultButtons::INPUT_C] = 1;
-    buttons[DefaultButtons::INPUT_X] = 0;
-    buttons[DefaultButtons::INPUT_Y] = 0;
-    buttons[DefaultButtons::INPUT_Z] = 0;
-
-    buttons[DefaultButtons::INPUT_RIGHT] = 1;*/
 }

@@ -43,7 +43,6 @@ extern "C"  DllExport GameAI * CreateGameAI(const char * name)
       ptr->DebugPrint(game_name.c_str());
     }
 
-  
   return (GameAI *) ptr;
 }
 
@@ -151,10 +150,6 @@ void GameAILocal::LoadConfig()
 	}
 
   LoadConfig_Player(p2);
-
-
-
-  
 }
 
 //=======================================================
