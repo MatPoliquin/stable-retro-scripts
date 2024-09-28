@@ -24,6 +24,10 @@ Requires:
 sudo apt update
 sudo apt-get install python3 python3-pip git zlib1g-dev libopenmpi-dev ffmpeg cmake
 
+sudo pip3 install -U virtualenv
+virtualenv --system-site-packages -p python3 ~/vretro
+source ~/vretro/bin/activate
+
 git clone https://github.com/Farama-Foundation/stable-retro.git
 cd stable-retro
 pip3 install -e .
