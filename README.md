@@ -57,3 +57,6 @@ Note: Airstriker is a public domain rom and is already included in stable-retro
 ```bash
 python3 model_trainer.py --env=Airstriker-Genesis --num_env=8 --num_timesteps=100_000_000 --play
 ```
+
+## RetroArch
+[![RetroArch and Pytorch](https://img.youtube.com/vi/hkOcxJvJVjk/0.jpg)](https://www.youtube.com/watch?v=hkOcxJvJVjk)
