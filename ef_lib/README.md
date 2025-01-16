@@ -60,4 +60,4 @@ cmake --build . --config Release
 You can test the linux version of this dynamic lib with the prototype app in /app
 
 If you want to use it with RetroArch I added support of the lib in this fork:
-https://github.com/MatPoliquin/RetroArchML
+https://github.com/MatPoliquin/RetroArchAI
