@@ -7,6 +7,15 @@ from game_wrappers.nhl941on1_const import GameConsts
 
 class NHL941on1GameState():
     def __init__(self):
+        self.p1_score = 0
+        self.p2_score = 0
+        self.p1_shots = 0
+        self.p2_shots = 0
+        self.p1_bodychecks = 0
+        self.p2_attackzone = 0
+        self.p1_attackzone = 0
+        self.p1_faceoffwon = 0
+        self.p1_passing = 0
         self.last_p1_score = 0
         self.last_p2_score = 0
         self.last_p1_shots = 0
@@ -66,8 +75,8 @@ class NHL941on1GameState():
         self.normalized_g2_y = 0
         self.normalized_puck_x = 0
         self.normalized_puck_y = 0
-        self.normalized_puckvel_x = 0
-        self.normalized_puckvel_y = 0
+        self.normalized_puck_vel_x = 0
+        self.normalized_puck_vel_y = 0
         self.normalized_player_haspuck = 0.0
         self.normalized_goalie_haspuck = 0.0
 
@@ -187,19 +196,19 @@ class NHL941on1GameState():
 
         self.normalized_p1_x = self.p1_x / GameConsts.MAX_PLAYER_X
         self.normalized_p1_y = self.p1_y / GameConsts.MAX_PLAYER_Y
-        self.normalized_p2_x = self.p2_x / GameConsts.MAX_PLAYER_X
-        self.normalized_p2_y = self.p2_y / GameConsts.MAX_PLAYER_Y
-        self.normalized_g2_x = self.g2_x / GameConsts.MAX_PLAYER_X
-        self.normalized_g2_y = self.g2_y / GameConsts.MAX_PLAYER_Y
-        self.normalized_puck_x = self.puck_x / GameConsts.MAX_PUCK_X
-        self.normalized_puck_y = self.puck_y / GameConsts.MAX_PUCK_Y
+        self.normalized_p2_x = (self.p2_x - self.p1_x)/ GameConsts.MAX_PLAYER_X
+        self.normalized_p2_y = (self.p2_y - self.p1_y)/ GameConsts.MAX_PLAYER_Y
+        self.normalized_g2_x = (self.g2_x - self.p1_x) / GameConsts.MAX_PLAYER_X
+        self.normalized_g2_y = (self.g2_y - self.p1_y)/ GameConsts.MAX_PLAYER_Y
+        self.normalized_puck_x = (self.puck_x - self.p1_x)/ GameConsts.MAX_PUCK_X
+        self.normalized_puck_y = (self.puck_y - self.p1_y) / GameConsts.MAX_PUCK_Y
         self.normalized_player_haspuck = 0.0 if self.player_haspuck else 1.0
         self.normalized_goalie_haspuck = 0.0 if self.goalie_haspuck else 1.0
 
 
-        self.normalized_p1_velx = self.p1_vel_x  / GameConsts.MAX_VEL_XY
+        self.normalized_p1_velx = self.p1_vel_x / GameConsts.MAX_VEL_XY
         self.normalized_p1_vely = self.p1_vel_y  / GameConsts.MAX_VEL_XY
-        self.normalized_p2_velx = self.p2_vel_x  / GameConsts.MAX_VEL_XY
-        self.normalized_p2_vely = self.p2_vel_y  / GameConsts.MAX_VEL_XY
-        self.normalized_puck_velx = self.puck_vel_x  / GameConsts.MAX_VEL_XY
-        self.normalized_puck_vely = self.puck_vel_y  / GameConsts.MAX_VEL_XY
+        self.normalized_p2_velx = (self.p2_vel_x - self.p1_vel_x)  / GameConsts.MAX_VEL_XY
+        self.normalized_p2_vely = (self.p2_vel_y - self.p1_vel_y)  / GameConsts.MAX_VEL_XY
+        self.normalized_puck_velx = (self.puck_vel_x - self.p1_vel_x)  / GameConsts.MAX_VEL_XY
+        self.normalized_puck_vely = (self.puck_vel_y - self.p1_vel_y)   / GameConsts.MAX_VEL_XY

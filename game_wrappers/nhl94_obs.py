@@ -133,6 +133,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
         if self.game_state.p1_control == 2:
             p1_x, p1_2_x = p1_2_x, p1_x
             p1_y, p1_2_y = p1_2_y, p1_y
+            p1_vel_x, p1_2_vel_x = p1_2_vel_x, p1_vel_x
+            p1_vel_y, p1_2_vel_y = p1_2_vel_y, p1_vel_y
+
 
         self.state = (p1_x, p1_y, \
                      p1_vel_x, p1_vel_y, \
