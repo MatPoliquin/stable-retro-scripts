@@ -58,7 +58,7 @@ class NHL941on1GameDisplayEnv(gym.Wrapper):
         flags = pygame.RESIZABLE
         if args.fullscreen:
             flags |= pygame.FULLSCREEN
-        
+
         self.screen = pygame.display.set_mode((self.FB_WIDTH, self.FB_HEIGHT), flags)
         self.main_surf = pygame.Surface((self.FB_WIDTH, self.FB_HEIGHT))
         self.main_surf.set_colorkey((0,0,0))
@@ -86,7 +86,7 @@ class NHL941on1GameDisplayEnv(gym.Wrapper):
 
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
-    
+
     def set_reward(self, rew):
         #self.frameListUpdated = True
         #return
@@ -109,7 +109,7 @@ class NHL941on1GameDisplayEnv(gym.Wrapper):
             rew = rf_defensezone(self.game_state)
         elif self.model_in_use == 2:
             rew = rf_scoregoal(self.game_state)
-        
+
         self.game_state.EndFrame()
 
         self.set_reward(rew)
@@ -117,7 +117,7 @@ class NHL941on1GameDisplayEnv(gym.Wrapper):
         framebuffer = self.render()
 
         self.draw_frame(framebuffer, None, ob, info)
-       
+
         return ob, rew, done, info
 
     def seed(self, s):
@@ -164,7 +164,7 @@ class NHL941on1GameDisplayEnv(gym.Wrapper):
         self.draw_string(self.info_font, ('CURRENT MODEL:%s' % self.model_names[self.model_in_use]), (self.INPUT_TITLE_X, self.INPUT_TITLE_Y - 25), (0, 255, 0))
         pygame.draw.rect(self.screen, (255,255,255), pygame.Rect(self.INPUT_TITLE_X - 5, self.INPUT_TITLE_Y - 5, 580, 470), width=3)
 
-        
+
         self.draw_string(self.info_font, 'INPUT', (self.INPUT_TITLE_X, self.INPUT_TITLE_Y + 20), (0, 255, 0))
 
         color = (255, 255, 255)
@@ -215,7 +215,7 @@ class NHL941on1GameDisplayEnv(gym.Wrapper):
     def set_ai_sys_info(self, ai_sys):
 
         self.action_probabilities = ai_sys.display_probs
-        
+
         if ai_sys:
             self.model_params = ai_sys.model_params
             self.model_in_use = ai_sys.model_in_use
@@ -233,19 +233,19 @@ class NHL941on1GameDisplayEnv(gym.Wrapper):
         pygame.draw.line(self.screen, (255,255,255), (self.RF_X, self.RF_Y + 100 - bar_height), (self.RF_X, self.RF_Y + 100 + bar_height))
 
         i = 0
-        
+
         for r in self.frameRewardList:
             i += 3
             height = abs(r) * bar_height
             y = (self.RF_Y + 100) if r < 0.0 else (self.RF_Y + 100 - height)
             if r != 0:
                 pygame.draw.rect(self.screen, (0,255,0), pygame.Rect(self.RF_X + i, y, 2, height))
-                
+
 
     def draw_frame(self, frame_img, action_probabilities, input_state, info):
-        
+
         self.screen.fill((30, 30, 30))
-        
+
         # Draw game frame
         emu_screen = np.transpose(frame_img, (1,0,2))
         surf = pygame.surfarray.make_surface(emu_screen)
@@ -265,7 +265,7 @@ class NHL941on1GameDisplayEnv(gym.Wrapper):
 
         keystate = self.get_input()
         self.ProcessKeyState(keystate)
-        
+
 
     def ProcessKeyState(self, keystate):
 

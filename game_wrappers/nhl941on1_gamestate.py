@@ -107,12 +107,12 @@ class NHL941on1GameState():
 
     def Distance(self, vec1, vec2):
         tmp = (vec1[0] - vec2[0])**2 + (vec1[1] - vec2[1])**2
-    
+
         return math.sqrt(tmp)
 
     def DistToPos(self, vec1, vec2):
         tmp = (vec1[0] - vec2[0])**2 + (vec1[1] - vec2[1])**2
-    
+
         return math.sqrt(tmp)
 
     def BeginFrame(self, info):
@@ -162,7 +162,7 @@ class NHL941on1GameState():
             self.p2_haspuck = True
         else:
             self.p2_haspuck = False
-            
+
         if(abs(self.g1_x - self.p1_fullstar_x) < 3 and abs(self.g1_y - self.p1_fullstar_y) < 3):
             self.goalie_haspuck = True
         else:

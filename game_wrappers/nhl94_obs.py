@@ -77,7 +77,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         if self.prev_state != None and self.num_players == 2:
             self.prev_state.Flip()
-        
+
         #ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + p2_ac
         if self.b_button_pressed and ac[GameConsts.INPUT_B] == 1:
             ac[GameConsts.INPUT_B] = 0
@@ -114,14 +114,14 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.prev_state = copy.deepcopy(self.game_state)
 
         self.game_state.BeginFrame(info)
-        
+
         # Calculate Reward and check if episode is done
         rew = self.reward_function(self.game_state)
         terminated = self.done_function(self.game_state)
-       
+
         self.game_state.EndFrame()
 
-        
+
 
         p1_x, p1_y = self.game_state.normalized_p1_x, self.game_state.normalized_p1_y
         p1_vel_x, p1_vel_y = self.game_state.normalized_p1_velx, self.game_state.normalized_p1_vely
@@ -149,9 +149,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
                      self.game_state.normalized_puck_velx, self.game_state.normalized_puck_vely, \
                      self.game_state.normalized_g2_x, self.game_state.normalized_g2_y, \
                      self.game_state.normalized_player_haspuck, self.game_state.normalized_goalie_haspuck)
-        
+
         ob = self.state
-        
+
         return ob, rew, terminated, truncated, info
 
     def seed(self, s):

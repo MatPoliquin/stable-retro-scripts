@@ -40,22 +40,22 @@ class PongObservationEnv(gym.Wrapper):
     def calc_reward(self, info):
         p1_score = info.get('score2')
         p2_score = info.get('score1')
- 
+
 
         rew = 0
-        
+
 
         if(p1_score > self.last_p1_score):
             rew=1.0
         if(p2_score > self.last_p2_score):
-            rew=-1.0       
+            rew=-1.0
 
 
 
         self.last_p1_score = p1_score
         self.last_p2_score = p2_score
 
-      
+
 
         return rew
 
@@ -74,13 +74,13 @@ class PongObservationEnv(gym.Wrapper):
         ball_vely = (self.last_ball_y - ball_y)
 
         #print(ball_velx, ball_vely)
-      
+
 
         self.state = (p1_y / 210, p2_y / 210, \
                      ball_x / 210, ball_y / 210, \
                      ball_velx / 2, ball_vely / 2)
 
-   
+
         #print(self.state)
 
         self.last_ball_x = ball_x

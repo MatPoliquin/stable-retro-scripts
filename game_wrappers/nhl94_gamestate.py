@@ -123,17 +123,17 @@ class NHL94GameState():
 
     def Distance(self, vec1, vec2):
         tmp = (vec1[0] - vec2[0])**2 + (vec1[1] - vec2[1])**2
-    
+
         return math.sqrt(tmp)
 
     def DistToPos(self, vec1, vec2):
         tmp = (vec1[0] - vec2[0])**2 + (vec1[1] - vec2[1])**2
-    
+
         return math.sqrt(tmp)
-    
+
     def has_puck(self, pos_x, pos_y):
         return (abs(pos_x - self.p1_fullstar_x) < 3 and abs(pos_y - self.p1_fullstar_y) < 3)
-    
+
     def has_control(self, pos_x, pos_y):
         return (abs(pos_x - self.p1_emptystar_x) < 3 and abs(pos_y - self.p1_emptystar_y) < 3)
 

@@ -53,7 +53,7 @@ class ModelVsGame:
         if args.model_1 != '' or args.model_2 != '':
             models = [args.model_1, args.model_2]
             self.ai_sys.SetModels(models)
-        
+
         self.need_display = need_display
         self.args = args
 
@@ -69,7 +69,7 @@ class ModelVsGame:
             p1_actions = self.ai_sys.predict(state, info=info, deterministic=self.args.deterministic)
 
             self.display_env.action_probabilities = []
-            
+
             for i in range(4):
                 if self.need_display:
                     self.display_env.set_ai_sys_info(self.ai_sys)

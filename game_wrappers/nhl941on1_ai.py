@@ -42,7 +42,7 @@ class NHL941on1AISystem():
                 self.model_params[i] = get_num_parameters(self.models[i])
                 self.num_models += 1
                 self.model_in_use = i
-            i += 1    
+            i += 1
 
     def GotoTarget(self, p1_actions, target_vec):
         if target_vec[0] > 0:
@@ -57,9 +57,9 @@ class NHL941on1AISystem():
 
     def DistToPos(self, vec1, vec2):
         tmp = (vec1[0] - vec2[0])**2 + (vec1[1] - vec2[1])**2
-    
+
         return math.sqrt(tmp)
-    
+
     def Predict(self, model_index, model_input, deterministic):
         p1_actions = self.models[model_index].predict(model_input, deterministic=deterministic)[0][0]
         self.display_probs = get_model_probabilities(self.models[model_index], model_input)[0]
@@ -126,7 +126,7 @@ class NHL941on1AISystem():
 
         return p1_actions
 
-        
+
     def Think_ScoreGoal02(self, state):
         p1_actions = [0] * GameConsts.INPUT_MAX
 
@@ -138,7 +138,7 @@ class NHL941on1AISystem():
                 self.scoregoal_state = "On left side"
             else:
                 self.GotoTarget(p1_actions, [state.p1_x - (90), state.p1_y - 180])
-        
+
         if self.scoregoal_state == "On left side":
             dist = self.DistToPos([state.p1_x, state.p1_y], [-80, 200])
 
@@ -164,7 +164,7 @@ class NHL941on1AISystem():
         if state.player_haspuck:
             p1_actions = self.Think_ScoreGoal02(state)
             self.pass_button_pressed = False
-           
+
         elif state.goalie_haspuck:
             self.scoregoal_state = None
             if not self.pass_button_pressed:
@@ -183,15 +183,15 @@ class NHL941on1AISystem():
         if info is None:
             p1_actions = [[0] * GameConsts.INPUT_MAX]
             return p1_actions
-        
+
         self.game_state.BeginFrame(info[0])
-        
+
         if self.num_models == 1:
             p1_actions = self.Predict(self.model_in_use, state, deterministic)
             p1_actions[GameConsts.INPUT_MODE] = 0
         elif self.models[1] and self.models[2]:
             p1_actions = [self.Think_TwoModels(state, self.game_state, deterministic)]
-        else:          
+        else:
             p1_actions = [self.Think_testAI(self.game_state)]
 
         self.game_state.EndFrame()
@@ -200,4 +200,3 @@ class NHL941on1AISystem():
 
         return p1_actions
 
-    

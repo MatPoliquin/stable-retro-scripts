@@ -103,7 +103,7 @@ class NHL94PvPGameDisplayEnv(gym.Wrapper):
         self.draw_string(self.info_font_big, self.model2_desc, (self.MODELDESC2_X, self.MODELDESC2_Y - 60), (255, 255, 255))
         self.draw_string(self.info_font_big, ('%d' % self.model2_params), (self.NUM_PARAMS2_X, self.NUM_PARAMS2_Y - 60), (255, 255, 255))
 
-       
+
 
     def draw_frame(self, frame_img):
         self.main_surf.fill((0, 0, 0))
@@ -123,10 +123,10 @@ class NHL94PvPGameDisplayEnv(gym.Wrapper):
         #self.draw_action_probabilties(0, 100, self.p1_action_probabilities)
         #self.draw_action_probabilties(self.GAME_WIDTH + game_x, 100, self.p2_action_probabilities)
         #self.main_surf.set_colorkey(None)
-        
- 
+
+
         pygame.display.flip()
-    
+
     def ProcessKeyState(self, keystate):
 
         if keystate[pygame.K_q] or keystate[pygame.K_ESCAPE]:
@@ -147,7 +147,7 @@ class NHL94PvPGameDisplayEnv(gym.Wrapper):
 
         keystate = self.get_input()
         self.ProcessKeyState(keystate)
-       
+
         return ob, rew, done, info
 
     def seed(self, s):

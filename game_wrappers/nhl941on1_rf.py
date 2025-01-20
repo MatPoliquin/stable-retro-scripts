@@ -45,10 +45,10 @@ def isdone_general(state):
 def rf_general(state):
     rew = 0.0
 
-    if state.p1_score > state.last_p1_score: 
+    if state.p1_score > state.last_p1_score:
         rew = 1.0
-    
-    if state.p2_score > state.last_p2_score: 
+
+    if state.p2_score > state.last_p2_score:
         rew = -1.0
 
     return rew
@@ -71,26 +71,26 @@ def isdone_scoregoal(state):
 
     #if state.p2_haspuck or state.g2_haspuck:
     #    return True
-    
+
     #if state.puck_y < 100:
     #    return True
-    
+
     if state.time < 100:
         return True
 
     return False
-    
+
 def rf_scoregoal(state):
-    
+
     rew = 0.0
 
     if state.p2_haspuck or state.g2_haspuck:
         rew = -1.0
-    
+
     if state.puck_y < 100:
         rew = -1.0
-    
-    if state.p1_score > state.last_p1_score: 
+
+    if state.p1_score > state.last_p1_score:
         rew = 1.0
 
     # reward scoring opportunities
@@ -121,32 +121,32 @@ def isdone_scoregoal02(state):
 
     if state.p1_score > state.last_p1_score:
         return True
-    
+
     #if state.p1_shots > state.last_p1_shots:
     #    init_scoregoal02(env)
 
     #if state.p2_haspuck or state.g2_haspuck:
     #    return True
-    
+
     #if state.puck_y < 100:
     #    return True
-    
+
     if state.time < 250:
         return True
 
     return False
-    
+
 def rf_scoregoal02(state):
-    
+
     rew = 0.0
 
     if state.p2_haspuck or state.g2_haspuck:
         rew = -1.0
-    
+
     if state.puck_y < 100:
         rew = -1.0
-    
-    if state.p1_score > state.last_p1_score: 
+
+    if state.p1_score > state.last_p1_score:
         rew = 1.0
 
     # reward scoring opportunities
@@ -154,7 +154,7 @@ def rf_scoregoal02(state):
         if state.p1_vel_x >= 30 or state.p1_vel_x <= -30:
             rew = 0.2
             if state.puck_x > -23 and state.puck_x < 23:
-                if state.p1_shots > state.last_p1_shots: 
+                if state.p1_shots > state.last_p1_shots:
                     rew = 1.0
 
     return rew
@@ -180,7 +180,7 @@ def isdone_keeppuck(state):
         return True
 
 def rf_keeppuck(state):
-    
+
     rew = 1.0
     if not state.player_haspuck:
         rew = -1.0
@@ -209,7 +209,7 @@ def isdone_getpuck(state):
     #    return True
     if state.time < 100:
         return True
-    
+
 def rf_getpuck(state):
     rew = 0
 
@@ -262,13 +262,13 @@ def isdone_defensezone(state):
     #if state.player_haspuck and state.puck_y > - 80:
         #print('TERMINATED: GOT PUCK: (%d,%d) (%d,%d)' % (info.get('p1_x'), info.get('p1_y'), fullstar_x, fullstar_y))
     #    return True
-    
+
     #if state.p2_score > state.last_p2_score:
     #    return True
 
     if state.time < 100:
         return True
-    
+
 def rf_defensezone(state):
     rew = 0
 

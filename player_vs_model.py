@@ -68,11 +68,11 @@ class PlayerVsModel:
         while True:
             p1_actions = self.ai_sys.predict(state, info=info, deterministic=self.args.deterministic)
             p2_actions = self.display_env.player_actions
- 
+
             self.display_env.action_probabilities = []
 
             actions = np.append(p1_actions, p2_actions)
-            
+
             for i in range(4):
                 self.display_env.set_ai_sys_info(self.ai_sys)
                 state, reward, done, info = self.display_env.step([actions])

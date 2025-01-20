@@ -109,7 +109,7 @@ class CompareModelDisplay():
         pygame.event.pump()
         keystate = pygame.key.get_pressed()
         return keystate
-       
+
 
     def run_frame(self, left_frame, right_frame):
         keystate = self.get_input()
@@ -140,6 +140,6 @@ class CompareModelDisplay():
         #self.draw_action_probabilties(self.GAME_WIDTH + game_x, 100, self.p2_action_probabilities)
         self.main_surf.set_colorkey(None)
         self.screen.blit(pygame.transform.smoothscale(self.main_surf,(self.args.display_width,self.args.display_height)), (0, 0))
- 
+
         pygame.display.flip()
-    
+

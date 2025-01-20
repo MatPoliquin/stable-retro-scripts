@@ -12,7 +12,7 @@ class AISys():
         self.args = args
         self.use_model = True
         self.model = None
-        
+
         self.env = env
         self.logger = logger
 

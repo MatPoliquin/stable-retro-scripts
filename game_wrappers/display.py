@@ -118,16 +118,16 @@ class PvPGameDisplayEnv(gym.Wrapper):
         self.draw_action_probabilties(self.GAME_WIDTH + game_x, 100, self.p2_action_probabilities)
         self.main_surf.set_colorkey(None)
         self.screen.blit(pygame.transform.smoothscale(self.main_surf,(self.args.display_width,self.args.display_height)), (0, 0))
- 
+
         pygame.display.flip()
-    
+
     def ProcessKeyState(self, keystate):
         if keystate[pygame.K_q] or keystate[pygame.K_ESCAPE]:
             exit()
 
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
-    
+
     def set_ai_sys_info(self, ai_sys):
 
         return
@@ -143,7 +143,7 @@ class PvPGameDisplayEnv(gym.Wrapper):
 
         keystate = self.get_input()
         self.ProcessKeyState(keystate)
-       
+
         return ob, rew, done, info
 
     def seed(self, s):
@@ -213,7 +213,7 @@ class GameDisplayEnv(gym.Wrapper):
 
         self.draw_frame(framebuffer, None, ob, info)
 
-        
+
         return ob, rew, done, info
 
     def seed(self, s):
@@ -324,7 +324,7 @@ class GameDisplayEnv(gym.Wrapper):
         plt.xlim([0,numYData])
         plt.ylim([-1,1])
         plt.tight_layout()
-  
+
         plt.grid(True)
         plt.rc('grid', color='w', linestyle='solid')
 
@@ -382,8 +382,8 @@ class GameDisplayEnv(gym.Wrapper):
         self.draw_basic_info()
         self.draw_input(input_state)
         self.draw_action_probabilties(self.action_probabilities)
-        
-        
+
+
         self.DrawFrameRewardHistogram(0, 0, 500, 150)
         #if self.updateRewardGraph:
         #    self.DrawFrameRewardHistogram(0, 0, 500, 150)
@@ -391,14 +391,14 @@ class GameDisplayEnv(gym.Wrapper):
 
         self.main_surf.set_colorkey(None)
         self.screen.blit(pygame.transform.smoothscale(self.main_surf,(self.args.display_width,self.args.display_height)), (0, 0))
- 
+
         pygame.display.flip()
 
         self.get_input()
 
         keystate = self.get_input()
         self.ProcessKeyState(keystate)
-        
+
 
     def ProcessKeyState(self, keystate):
 
@@ -432,7 +432,7 @@ class GameDisplayEnv(gym.Wrapper):
 #         self.GAME_HEIGHT = FB_HEIGHT
 
 #         self.args = args
-        
+
 #         # Init Window
 #         pygame.init()
 #         self.screen = pygame.display.set_mode((FB_WIDTH, FB_HEIGHT), pygame.FULLSCREEN | pygame.NOFRAME | pygame.SCALED, vsync=1)
@@ -455,9 +455,9 @@ class GameDisplayEnv(gym.Wrapper):
 #         self.main_surf.set_colorkey(None)
 #         x_pos = (FB_WIDTH - self.GAME_WIDTH) / 2
 #         self.main_surf.blit(pygame.transform.scale(surf,(self.GAME_WIDTH, self.GAME_HEIGHT)), (x_pos, 0))
-        
+
 #         self.screen.blit(pygame.transform.smoothscale(self.main_surf,(FB_WIDTH, FB_HEIGHT)), (0, 0))
-   
+
 #         pygame.display.flip()
 
 #         self.get_input()
@@ -466,7 +466,7 @@ class GameDisplayEnv(gym.Wrapper):
 #         if keystate[pygame.K_q] or keystate[pygame.K_ESCAPE]:
 #             #logger.log('Exiting...')
 #             exit()
-       
+
 #         return ob, rew, done, info
 
 #     def seed(self, s):
@@ -483,7 +483,7 @@ class FullScreenDisplayEnv(gym.Wrapper):
 
         self.GAME_WIDTH = int(FB_WIDTH * 0.8)
         self.GAME_HEIGHT = FB_HEIGHT
-        
+
         # Init Window
         pygame.init()
         self.screen = pygame.display.set_mode((FB_WIDTH, FB_HEIGHT), pygame.FULLSCREEN | pygame.NOFRAME | pygame.SCALED, vsync=1)
@@ -506,9 +506,9 @@ class FullScreenDisplayEnv(gym.Wrapper):
         self.main_surf.set_colorkey(None)
         x_pos = (FB_WIDTH - self.GAME_WIDTH) / 2
         self.main_surf.blit(pygame.transform.scale(surf,(self.GAME_WIDTH, self.GAME_HEIGHT)), (x_pos, 0))
-        
+
         self.screen.blit(pygame.transform.smoothscale(self.main_surf,(FB_WIDTH, FB_HEIGHT)), (0, 0))
-   
+
         pygame.display.flip()
 
         self.get_input()
@@ -517,7 +517,7 @@ class FullScreenDisplayEnv(gym.Wrapper):
         if keystate[pygame.K_q] or keystate[pygame.K_ESCAPE]:
             #logger.log('Exiting...')
             exit()
-       
+
         return ob, rew, done, info
 
     def seed(self, s):

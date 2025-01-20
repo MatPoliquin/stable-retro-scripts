@@ -43,9 +43,9 @@ class GameWrapperManager(object):
             self.pvp_display_env = NHL94PvPGameDisplayEnv
             self.sp_display_env = NHL94GameDisplayEnv
             self.ai_sys = NHL94AISystem
-        elif args.env == 'Pong-Atari2600':            
+        elif args.env == 'Pong-Atari2600':
             self.obs_env = PongObservationEnv
 
-            
+
 
 wrappers = GameWrapperManager()

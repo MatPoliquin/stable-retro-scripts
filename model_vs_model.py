@@ -45,7 +45,7 @@ def main(argv):
     args = parse_cmdline(argv[1:])
 
     logger = init_logger(args)
-    
+
     com_print('========= Init =============')
     play_env = init_play_env(args, 2, True)
     p1_env = init_env(None, 1, None, 1, args, use_sticky_action=False)

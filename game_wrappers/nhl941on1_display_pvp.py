@@ -105,7 +105,7 @@ class NHL941on1PvPGameDisplayEnv(gym.Wrapper):
 
     def set_ai_sys_info(self, ai_sys):
 
-        return   
+        return
 
     def draw_frame(self, frame_img):
         self.main_surf.fill((0, 0, 0))
@@ -125,10 +125,10 @@ class NHL941on1PvPGameDisplayEnv(gym.Wrapper):
         #self.draw_action_probabilties(0, 100, self.p1_action_probabilities)
         #self.draw_action_probabilties(self.GAME_WIDTH + game_x, 100, self.p2_action_probabilities)
         #self.main_surf.set_colorkey(None)
-        
- 
+
+
         pygame.display.flip()
-    
+
     def ProcessKeyState(self, keystate):
 
         if keystate[pygame.K_q] or keystate[pygame.K_ESCAPE]:
@@ -149,7 +149,7 @@ class NHL941on1PvPGameDisplayEnv(gym.Wrapper):
 
         keystate = self.get_input()
         self.ProcessKeyState(keystate)
-       
+
         return ob, rew, done, info
 
     def seed(self, s):
