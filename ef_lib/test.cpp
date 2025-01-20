@@ -192,14 +192,14 @@ int main()
 
     std::cout << "============== RESULTS =============" << std::endl;
 
-    int ret = 1;
+    int ret = 0;
     for(auto i: tests)
     {
         const char * result = i.second ? "PASS" : "FAIL";
         std::cout << i.first << "..." << result << std::endl;
 
         if(!i.second)
-            ret=0;
+            ret=1;
     }
 
     return ret;
