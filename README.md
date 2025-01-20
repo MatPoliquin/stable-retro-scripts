@@ -1,3 +1,5 @@
+![pylint workflow](https://github.com/MatPoliquin/stable-retro-scripts/actions/workflows/main.yml/badge.svg)
+
 # stable-retro scripts
 
 * Train models on retro games
