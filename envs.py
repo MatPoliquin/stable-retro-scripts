@@ -1,6 +1,4 @@
-import warnings
-import os, datetime
-import argparse
+import os
 import numpy as np
 
 from stable_baselines3 import PPO, A2C
@@ -78,7 +76,7 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
     start_index = 0
     start_method=None
     allow_early_resets=True
-    
+
     def make_env(rank):
         def _thunk():
             games.wrappers.init(args)
@@ -94,29 +92,27 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
 
             env = Monitor(env, output_path and os.path.join(output_path, str(rank)), allow_early_resets=allow_early_resets)
 
-            if use_display:
-                env = GameDisplayEnv(env, args, 17, 'CNN', None)
-            
+            # TOFIX
+            #if use_display:
+            #    env = GameDisplayEnv(env, args, 17, 'CNN', None)
             if use_frame_skip:
                 if use_sticky_action:
                     env = StochasticFrameSkip(env, n=4, stickprob=0.25)
                 else:
                     env = StochasticFrameSkip(env, n=4, stickprob=-1)
-            
+
             if args.nn != 'MlpPolicy':
                 env = WarpFrame(env)
-            
-            env = ClipRewardEnv(env)
 
-            
+            env = ClipRewardEnv(env)
 
             return env
         return _thunk
 
     env = SubprocVecEnv([make_env(i + start_index) for i in range(num_env)], start_method=start_method)
-    
+
     env.seed(seed)
-    
+
     if args.nn != 'MlpPolicy':
         env = VecFrameStack(env, n_stack=4)
         #env = VecTransposeImage(env)
@@ -130,7 +126,6 @@ def get_button_names(args):
     return env.buttons
 
 def init_play_env(args, num_players, is_pvp_display=False, need_display=True, use_frame_skip=True):
-    
     button_names = get_button_names(args)
 
     env = init_env(None, 1, args.state, num_players, args, use_sticky_action=False, use_display=False, use_frame_skip=use_frame_skip)
@@ -140,9 +135,9 @@ def init_play_env(args, num_players, is_pvp_display=False, need_display=True, us
 
     games.wrappers.init(args)
 
-    if is_pvp_display:        
+    if is_pvp_display:
         display_env = env = games.wrappers.pvp_display_env(env, args, args.model1_desc, args.model2_desc, None, None, button_names)
     else:
         display_env = env = games.wrappers.sp_display_env(env, args, 0, args.model1_desc, button_names)
-       
+
     return display_env

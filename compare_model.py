@@ -2,20 +2,17 @@
 Compare models
 """
 
-import retro
 import sys
 import argparse
-import logging
-import numpy as np
-import pygame
 
 from common import com_print, init_logger
-from envs import init_env, init_play_env
-from models import init_model, get_model_probabilities, get_num_parameters
+from envs import init_env
+from models import init_model, get_num_parameters
 
 import game_wrappers_mgr as games
 
 def parse_cmdline(argv):
+    """parse_cmdline(argv)"""
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--p1_alg', type=str, default='ppo2')
@@ -41,18 +38,19 @@ def parse_cmdline(argv):
 
 
 def main(argv):
+    """main(argv)"""
 
     args = parse_cmdline(argv[1:])
 
     logger = init_logger(args)
 
     games.wrappers.init(args)
-    
+
     com_print('========= Init =============')
     #play_env = init_play_env(args, 2, True)
     p1_env = init_env(None, 1, args.state, 1, args, use_sticky_action=False)
     p2_env = init_env(None, 1, args.state, 1, args, use_sticky_action=False)
-    
+
     p1_model = init_model(None, args.load_p1_model, args.p1_alg, args, p1_env, logger)
     p2_model = init_model(None, args.load_p2_model, args.p2_alg, args, p2_env, logger)
 
@@ -75,7 +73,7 @@ def main(argv):
 
         #play_env.p1_action_probabilities = get_model_probabilities(p1_model, state)[0]
         #play_env.p2_action_probabilities = get_model_probabilities(p2_model, state)[0]
-    
+
         p1_state, p1_reward, p1_done, p1_info = p1_env.step(p1_actions[0])
         p2_state, p2_reward, p2_done, p2_info = p2_env.step(p2_actions[0])
 
@@ -84,10 +82,10 @@ def main(argv):
 
         if p1_done:
             state = p1_env.reset()
-        
+
         if p2_done:
             state = p2_env.reset()
-    
+
 
 if __name__ == '__main__':
     main(sys.argv)

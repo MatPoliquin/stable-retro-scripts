@@ -123,7 +123,6 @@ def test_models(args, model, dest_onnx_model, dest_pytorch_model):
 # main
 #==========================================
 def main(argv):
-    
     args = parse_cmdline(argv[1:])
 
     print("EXPORTING MODELS...")

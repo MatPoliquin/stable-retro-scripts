@@ -2,11 +2,12 @@
 Pit two models together on NHL 94
 """
 
-import retro
+
 import sys
 import argparse
 import logging
 import numpy as np
+import retro
 import pygame
 
 from common import com_print, init_logger
@@ -49,7 +50,6 @@ def main(argv):
     play_env = init_play_env(args, 2, True)
     p1_env = init_env(None, 1, None, 1, args, use_sticky_action=False)
     p2_env = init_env(None, 1, None, 1, args, use_sticky_action=False)
-    
     p1_model = init_model(None, args.load_p1_model, args.p1_alg, args, p1_env, logger)
     p2_model = init_model(None, args.load_p2_model, args.p2_alg, args, p2_env, logger)
 
@@ -69,14 +69,13 @@ def main(argv):
 
         play_env.p1_action_probabilities = get_model_probabilities(p1_model, state)[0]
         play_env.p2_action_probabilities = get_model_probabilities(p2_model, state)[0]
-    
+
         actions2 = np.append(p1_actions[0], p2_actions[0])
 
         state, reward, done, info = play_env.step([actions2])
 
         if done:
             state = play_env.reset()
-    
 
 if __name__ == '__main__':
     main(sys.argv)

@@ -11,15 +11,14 @@ from stable_baselines3.common.logger import configure
 # Warning: input size is hardcoded for now
 def print_model_info(model):
 
-    if args.nn == 'CnnPolicy':
-        summary(model.policy, (4, 84, 84))
-    elif args.nn == 'MlpPolicy':
-        summary(model.policy, (1, 6))
+     if args.nn == 'CnnPolicy':
+         summary(model.policy, (4, 84, 84))
+     elif args.nn == 'MlpPolicy':
+         summary(model.policy, (1, 6))
 
-    return total_params
+     return total_params
 
 def get_num_parameters(model):
-    
     total_params = sum(p.numel() for p in model.policy.parameters() if p.requires_grad)
 
     return total_params
