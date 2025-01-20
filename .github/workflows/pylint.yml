@@ -20,7 +20,7 @@ jobs:
         pip install pylint
         pip install stable-baselines3
         pip install stable-retro
-        pip intall pygame
+        pip install pygame
     - name: Analysing the code with pylint
       run: |
-        pylint $(git ls-files '*.py')
+        pylint --rcfile=.pylintrc $(git ls-files '*.py')
