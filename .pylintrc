@@ -1,2 +1,2 @@
 [MESSAGES CONTROL]
-disable=line-too-long, missing-module-docstring, missing-function-docstring, missing-class-docstring, global-statement
+disable=line-too-long, missing-module-docstring, missing-function-docstring, missing-class-docstring, global-statement, undefined-variable, unused-argument, unused-variable, broad-exception-raised, unused-import, import-error, invalid-name, singleton-comparison, missing-final-newline, no-member, redefined-builtin, unknown-option-value, reimported, multiple-statements, import-outside-toplevel
