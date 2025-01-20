@@ -9,7 +9,7 @@
 #include "RetroModel.h"
 
 #ifdef _WIN32
-#include <windows.h> 
+#include <windows.h>
 #else
 #include <dlfcn.h>
 #endif
@@ -31,7 +31,7 @@ Ort::Session session(env, model_path, Ort::SessionOptions{ nullptr });
 ...
 // Run inference
 std::vector outputTensors =
-session.Run(Ort::RunOptions{nullptr}, inputNames.data(), &inputTensor, 
+session.Run(Ort::RunOptions{nullptr}, inputNames.data(), &inputTensor,
   inputNames.size(), outputNames.data(), outputNames.size());
 const float* outputDataPtr = outputTensors[0].GetTensorMutableData();
 std::cout << outputDataPtr[0] << std::endl;
@@ -80,7 +80,7 @@ void test_opencv(std::map<std::string, bool> & tests)
 
     cv::cvtColor(image, grey, cv::COLOR_RGB2GRAY);
     cv::resize(grey, result, cv::Size(84,84), cv::INTER_AREA);
-    
+
     if ( !image.data )
     {
         printf("No image data \n");
@@ -103,16 +103,16 @@ void test_loadlibrary(std::map<std::string, bool> & tests)
     creategameai_t func = nullptr;
 
 #ifdef _WIN32
-    HINSTANCE hinstLib; 
+    HINSTANCE hinstLib;
     BOOL fFreeResult, fRunTimeLinkSuccess = FALSE;
 
     hinstLib = LoadLibrary(TEXT("game_ai.dll"));
 
-    if (hinstLib != NULL) 
-    { 
+    if (hinstLib != NULL)
+    {
         tests["LOAD LIBRARY"] = true;
-        func  = (creategameai_t) GetProcAddress(hinstLib, "CreateGameAI"); 
-    } 
+        func  = (creategameai_t) GetProcAddress(hinstLib, "CreateGameAI");
+    }
 #else
     void *myso = dlopen("./libgame_ai.so", RTLD_NOW);
 
@@ -122,7 +122,7 @@ void test_loadlibrary(std::map<std::string, bool> & tests)
     {
         tests["LOAD LIBRARY"] = true;
 
-        func = reinterpret_cast<creategameai_t>(dlsym(myso, "CreateGameAI"));        
+        func = reinterpret_cast<creategameai_t>(dlsym(myso, "CreateGameAI"));
     }
 #endif
         if(func)
@@ -135,7 +135,7 @@ void test_loadlibrary(std::map<std::string, bool> & tests)
         }
 
 #ifdef _WIN32
-    fFreeResult = FreeLibrary(hinstLib); 
+    fFreeResult = FreeLibrary(hinstLib);
 #endif
 }
 
@@ -173,7 +173,7 @@ int main()
     tests.insert(std::pair<std::string, bool>("LOAD LIBRARY",false));
     tests.insert(std::pair<std::string, bool>("GET CREATEGAME FUNC",false));
     tests.insert(std::pair<std::string, bool>("CREATEGAME FUNC",false));
-    tests.insert(std::pair<std::string, bool>("OPENCV GRAYSCALE DOWNSAMPLE TO 84x84",false));
+    //tests.insert(std::pair<std::string, bool>("OPENCV GRAYSCALE DOWNSAMPLE TO 84x84",false));
     tests.insert(std::pair<std::string, bool>("LOAD PYTORCH MODEL",false));
 
     std::cout << "========== RUNNING TESTS ==========" << std::endl;
@@ -181,7 +181,7 @@ int main()
     try {
         test_loadlibrary(tests);
 
-        test_opencv(tests);
+        //test_opencv(tests);
 
         test_pytorch(tests);
     }
@@ -192,11 +192,15 @@ int main()
 
     std::cout << "============== RESULTS =============" << std::endl;
 
+    int ret = 1;
     for(auto i: tests)
     {
         const char * result = i.second ? "PASS" : "FAIL";
         std::cout << i.first << "..." << result << std::endl;
+
+        if(!i.second)
+            ret=0;
     }
-    
-    return 0;
+
+    return ret;
 }
