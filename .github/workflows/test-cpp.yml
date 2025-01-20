@@ -27,5 +27,10 @@ jobs:
       - name: Build ef_lib
         run: |
           cd ef_lib
-          cmake .
+          cmake . -DCMAKE_PREFIX_PATH=./libtorch
           make -j
+
+      - name: Run tests
+        run: |
+          cd ef_lib
+          ./test
