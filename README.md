@@ -1,4 +1,6 @@
 ![pylint workflow](https://github.com/MatPoliquin/stable-retro-scripts/actions/workflows/pylint.yml/badge.svg)
+![clang workflow](https://github.com/MatPoliquin/stable-retro-scripts/actions/workflows/clang.yml/badge.svg)
+![testcpp workflow](https://github.com/MatPoliquin/stable-retro-scripts/actions/workflows/test-cpp.yml/badge.svg)
 
 # stable-retro scripts
 
