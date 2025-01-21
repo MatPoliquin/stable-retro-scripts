@@ -100,7 +100,7 @@ void test_opencv(std::map<std::string, bool> & tests)
 void test_loadlibrary(std::map<std::string, bool> & tests)
 {
     GameAI * ga = nullptr;
-    creategameai_t func = nullptr;
+    create_game_ai_t func = nullptr;
 
 #ifdef _WIN32
     HINSTANCE hinstLib;
@@ -111,7 +111,7 @@ void test_loadlibrary(std::map<std::string, bool> & tests)
     if (hinstLib != NULL)
     {
         tests["LOAD LIBRARY"] = true;
-        func  = (creategameai_t) GetProcAddress(hinstLib, "CreateGameAI");
+        func  = (create_game_ai_t) GetProcAddress(hinstLib, "create_game_ai");
     }
 #else
     void *myso = dlopen("./libgame_ai.so", RTLD_NOW);
@@ -122,13 +122,13 @@ void test_loadlibrary(std::map<std::string, bool> & tests)
     {
         tests["LOAD LIBRARY"] = true;
 
-        func = reinterpret_cast<creategameai_t>(dlsym(myso, "CreateGameAI"));
+        func = reinterpret_cast<create_game_ai_t>(dlsym(myso, "create_game_ai"));
     }
 #endif
         if(func)
         {
             tests["GET CREATEGAME FUNC"] = true;
-            ga = func("./data/NHL941on1-Genesis/NHL941on1.md");
+            ga = (GameAI *) func("./data/NHL941on1-Genesis/NHL941on1.md");
 
             if(ga)
                 tests["CREATEGAME FUNC"] = true;
@@ -136,6 +136,8 @@ void test_loadlibrary(std::map<std::string, bool> & tests)
 
 #ifdef _WIN32
     fFreeResult = FreeLibrary(hinstLib);
+#else
+    dlclose(myso);
 #endif
 }
 
