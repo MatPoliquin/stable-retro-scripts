@@ -61,7 +61,7 @@ def main():
         # returns which buttons on the Genesis gamepad was pressed (an array of 12 bools)
         p1_actions = p1_model.predict(state)
         p2_actions = p2_model.predict(state)
-        
+
         #actions = env_2p.unwrapped.action_space.sample()
         actions = np.append(p1_actions[0], p2_actions[0])
         print(actions)

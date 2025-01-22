@@ -18,7 +18,7 @@ def main():
     env = ClipRewardEnv(env)
     env = Monitor(env)
     env = DummyVecEnv([lambda: env])
-    env = VecFrameStack(env, n_stack=4)    
+    env = VecFrameStack(env, n_stack=4)
 
     # Train model
     model = PPO(policy=POLICY, env=env, verbose=True, n_epochs = 4, batch_size=32, ent_coef=0.01)
@@ -31,7 +31,7 @@ def main():
         env.render(mode='human')
 
         actions = model.predict(state, deterministic=True)
-   
+
         state, reward, done, info = env.step(actions[0])
 
         if done:
