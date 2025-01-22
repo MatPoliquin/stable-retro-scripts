@@ -3,7 +3,7 @@ Display
 """
 
 import os
-imnport datetime
+import datetime
 import math
 import argparse
 from os import environ

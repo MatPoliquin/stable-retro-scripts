@@ -8,7 +8,6 @@ from game_wrappers.nhl941on1_const import GameConsts
 from game_wrappers.nhl941on1_gamestate import NHL941on1GameState
 from models import init_model, print_model_info, get_num_parameters, get_model_probabilities
 
-
 MODEL_NONE = 0 #code
 MODEL_DEFENSEZONE = 1
 MODEL_SCOREOPP = 2
