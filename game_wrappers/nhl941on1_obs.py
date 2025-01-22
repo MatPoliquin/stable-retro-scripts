@@ -4,18 +4,17 @@ NHL94 Observation wrapper
 
 import os
 import datetime
-import numpy as np
 from os import environ
 import math
 import time
 import random
 import copy
 from datetime import datetime
+import numpy as np
 import retro
 import gymnasium as gym
 from gymnasium import spaces, logger
 from gymnasium.utils import seeding
-
 from game_wrappers.nhl941on1_const import GameConsts
 from game_wrappers.nhl941on1_rf import register_functions
 from game_wrappers.nhl941on1_ai import NHL941on1AISystem
