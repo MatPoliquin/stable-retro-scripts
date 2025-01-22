@@ -2,18 +2,19 @@
 Display
 """
 
-import os, datetime
+import os
+from os import environ
+environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import datetime
 import argparse
+import math
+import sys
+import pygame
+import pygame.freetype
 import retro
 import gymnasium as gym
 import numpy as np
-from os import environ
-environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
-import pygame
-import pygame.freetype
 import cv2
-import math
-import sys
 from game_wrappers.nhl941on1_rf import rf_defensezone, rf_scoregoal
 from game_wrappers.nhl941on1_gamestate import NHL941on1GameState
 
