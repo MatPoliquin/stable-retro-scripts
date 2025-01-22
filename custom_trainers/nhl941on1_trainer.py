@@ -1,11 +1,3 @@
-"""
-Game specfic training script for NHL94 1 on 1 on Genesis
-"""
-
-#hack to disable flood of warnings
-import warnings
-warnings.filterwarnings("ignore")
-
 import os
 import sys
 import datetime
