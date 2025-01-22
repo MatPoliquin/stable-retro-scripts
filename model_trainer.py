@@ -1,22 +1,13 @@
 """
 Train a Model on NHL 94
 """
-
-import warnings
-warnings.filterwarnings("ignore")
-
 import os
 import sys
 import time
-import datetime
 import argparse
-import logging
-import retro
-import numpy as np
-
 from common import get_model_file_name, com_print, init_logger, create_output_dir
-from models import init_model, print_model_info, get_num_parameters
-from envs import init_env, init_play_env
+from models import init_model
+from envs import init_env
 
 
 def parse_cmdline(argv):
