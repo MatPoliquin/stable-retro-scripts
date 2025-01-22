@@ -2,17 +2,18 @@
 Display
 """
 
-import os, datetime
+import os
+imnport datetime
+import math
 import argparse
-import retro
-import gymnasium as gym
-import numpy as np
 from os import environ
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 import pygame.freetype
 import cv2
-import math
+import gymnasium as gym
+import numpy as np
+import retro
 
 FB_WIDTH = 1920
 FB_HEIGHT = 1080

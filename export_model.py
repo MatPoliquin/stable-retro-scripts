@@ -3,9 +3,9 @@
 
 import sys
 import argparse
+from typing import Tuple
 import torch as th
 import torchvision
-from typing import Tuple
 import onnx
 import onnxruntime as ort
 import numpy as np
@@ -55,14 +55,14 @@ def export_onnx(args):
     print(observation_size)
     dummy_input = th.randn(1, *observation_size)
     dest_onnx_model = args.dest + ".onnx" # "my_ppo_model.onnx"
-    
+
     th.onnx.export(
         onnx_policy,
         dummy_input,
         dest_onnx_model,
         opset_version=17,
         input_names=["input"])
-    
+
     return model, onnx_policy, dummy_input, dest_onnx_model
 
 #==========================================
