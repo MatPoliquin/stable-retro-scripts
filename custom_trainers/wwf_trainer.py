@@ -8,11 +8,11 @@ warnings.filterwarnings("ignore")
 
 import os
 import sys
-import retro
 import datetime
 import argparse
 import logging
 import numpy as np
+import retro
 
 from model_trainer import ModelTrainer
 from model_vs_game import ModelVsGame
@@ -79,7 +79,7 @@ def test_model(args, num_matchs, logger):
         if info[0].get('won_rounds') == 2:
             won_matchs += 1
         total_rewards += reward
-        
+
         #print(total_rewards)
         #print(info)
 
@@ -87,24 +87,24 @@ def test_model(args, num_matchs, logger):
     return won_matchs, total_rewards
 
 def main(argv):
-    
+
     args = parse_cmdline(argv[1:])
 
     logger = init_logger(args)
 
     games.wrappers.init(args)
-    
+
     com_print('================ WWF trainer ================')
     com_print('These states will be trained on:')
     com_print(game_states)
 
     # turn off verbose
     args.alg_verbose = False
-    
+
     p1_model_path = args.load_p1_model
 
     # Train model on each state
-    if not args.test_only:    
+    if not args.test_only:
         for state in game_states:
             com_print('TRAINING ON STATE:%s - %d timesteps' % (state, args.num_timesteps))
             args.state = state
@@ -122,7 +122,7 @@ def main(argv):
             com_print('    WON MATCHS:%d/%d - ratio:%f' % (won_matchs, num_test_matchs, percentage))
             com_print('    TOTAL REWARDS:%d\n' %  total_reward)
 
-    
+
     # Test performance of model on each state
     com_print('====== TESTING MODEL ======')
     for state in game_states:
