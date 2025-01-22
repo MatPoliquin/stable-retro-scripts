@@ -2,18 +2,20 @@
 Display PvP
 """
 
-import os, datetime
+import os
+import datetime
 import argparse
+from os import environ
+environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import math
+import sys
 import retro
 import gymnasium as gym
 import numpy as np
-from os import environ
-environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 import pygame.freetype
 import cv2
-import math
-import sys
+
 from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
 from game_wrappers.nhl94_gamestate import NHL94GameState
 
@@ -157,4 +159,3 @@ class NHL94PvPGameDisplayEnv(gym.Wrapper):
         pygame.event.pump()
         keystate = pygame.key.get_pressed()
         return keystate
-
