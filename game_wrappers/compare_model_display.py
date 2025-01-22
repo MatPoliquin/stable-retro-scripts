@@ -143,4 +143,3 @@ class CompareModelDisplay():
         self.screen.blit(pygame.transform.smoothscale(self.main_surf,(self.args.display_width,self.args.display_height)), (0, 0))
 
         pygame.display.flip()
-
