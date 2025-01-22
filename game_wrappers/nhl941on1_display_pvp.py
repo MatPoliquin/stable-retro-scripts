@@ -159,4 +159,3 @@ class NHL941on1PvPGameDisplayEnv(gym.Wrapper):
         pygame.event.pump()
         keystate = pygame.key.get_pressed()
         return keystate
-
