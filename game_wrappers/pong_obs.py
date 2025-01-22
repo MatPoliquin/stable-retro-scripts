@@ -4,14 +4,14 @@ NHL94 Observation wrapper
 
 import os, datetime
 import argparse
-import retro
+from os import environ
+import math
+import time
 import gymnasium as gym
 from gymnasium import spaces, logger
 from gymnasium.utils import seeding
 import numpy as np
-from os import environ
-import math
-import time
+import retro
 
 
 # WARNING: NON FUNCTIONAL CODE - WIP

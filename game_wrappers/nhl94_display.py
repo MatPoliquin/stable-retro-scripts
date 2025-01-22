@@ -4,16 +4,16 @@ Display
 
 import os, datetime
 import argparse
-import retro
-import gymnasium as gym
-import numpy as np
 from os import environ
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import math
+import sys
 import pygame
 import pygame.freetype
 import cv2
-import math
-import sys
+import retro
+import gymnasium as gym
+import numpy as np
 from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
 from game_wrappers.nhl94_gamestate import NHL94GameState
 

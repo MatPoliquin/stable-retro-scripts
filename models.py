@@ -1,12 +1,11 @@
 import warnings
-import os, datetime
+import os
+import datetime
 import numpy as np
 from stable_baselines3 import PPO, A2C
-
+from stable_baselines3.common.logger import configure
 import torch as th
 from torchsummary import summary
-
-from stable_baselines3.common.logger import configure
 
 # Warning: input size is hardcoded for now
 def print_model_info(model):

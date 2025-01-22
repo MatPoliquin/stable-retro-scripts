@@ -8,12 +8,12 @@ warnings.filterwarnings("ignore")
 
 import os
 import sys
-import retro
 import datetime
 import argparse
 import logging
-import numpy as np
 import gc
+import numpy as np
+import retro
 
 from model_trainer import ModelTrainer
 from model_vs_game import ModelVsGame
@@ -52,7 +52,6 @@ def parse_cmdline(argv):
     return args
 
 
-
 game_states= [
     'LiuKangVsBaraka_VeryHard_01',
     'LiuKangVsReptile_VeryHard_02',
@@ -79,7 +78,6 @@ def test_model(args, num_matchs, logger):
         if info[0].get('enemy_health') == 0:
             won_matchs += 1
         total_rewards += reward
-        
         #print(total_rewards)
         #print(info)
 
@@ -87,24 +85,23 @@ def test_model(args, num_matchs, logger):
     return won_matchs, total_rewards
 
 def main(argv):
-    
     args = parse_cmdline(argv[1:])
 
     logger = init_logger(args)
 
     games.wrappers.init(args)
-    
+
     com_print('================ MK2 trainer ================')
     com_print('These states will be trained on:')
     com_print(game_states)
 
     # turn off verbose
     args.alg_verbose = False
-    
+
     p1_model_path = args.load_p1_model
 
     # Train model on each state
-    if not args.test_only:    
+    if not args.test_only:
         for state in game_states:
             com_print('TRAINING ON STATE:%s - %d timesteps' % (state, args.num_timesteps))
             args.state = state
@@ -118,14 +115,13 @@ def main(argv):
             #num_test_matchs = NUM_TEST_MATCHS
             #new_args = args
             #new_args.model_1 = p1_model_path
-            #new_args.model_2 = '' 
+            #new_args.model_2 = ''
             #com_print('    TESTING MODEL ON %d matchs...' % num_test_matchs)
             #won_matchs, total_reward = test_model(new_args, num_test_matchs, logger)
             #percentage = won_matchs / num_test_matchs
             #com_print('    WON MATCHS:%d/%d - ratio:%f' % (won_matchs, num_test_matchs, percentage))
             #com_print('    TOTAL REWARDS:%d\n' %  total_reward)
 
-    
     # Test performance of model on each state
     com_print('====== TESTING MODEL ======')
     for state in game_states:

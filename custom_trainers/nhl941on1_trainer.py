@@ -8,11 +8,11 @@ warnings.filterwarnings("ignore")
 
 import os
 import sys
-import retro
 import datetime
 import argparse
 import logging
 import numpy as np
+import retro
 
 from model_trainer import ModelTrainer
 from model_vs_game import ModelVsGame
@@ -46,7 +46,7 @@ def parse_cmdline(argv):
     parser.add_argument('--test_only', default=False, action='store_true')
     parser.add_argument('--fullscreen', default=False, action='store_true')
     parser.add_argument('--play', default=False, action='store_true')
-    
+
 
     args = parser.parse_args(argv)
 
@@ -76,13 +76,13 @@ def TrainStates(states, args, logger, rf):
 
 
 def main(argv):
-    
+
     args = parse_cmdline(argv[1:])
 
     logger = init_logger(args)
 
     games.wrappers.init(args)
-    
+
     com_print('================ NHL94 1 on 1 trainer ================')
     com_print('These states will be trained on:')
     com_print(game_states_score_opp)
@@ -91,11 +91,11 @@ def main(argv):
     # turn off verbose
     args.alg_verbose = False
 
-    args.model_2 =  TrainStates(game_states_score_opp, args, logger, "ScoreGoal") 
+    args.model_2 =  TrainStates(game_states_score_opp, args, logger, "ScoreGoal")
     args.model_1 = TrainStates(game_states_defensezone, args, logger, "DefenseZone")
 
-    #args.load_p1_model = TrainStates(game_states_losspuck, args, logger, "GetPuck")  
-   
+    #args.load_p1_model = TrainStates(game_states_losspuck, args, logger, "GetPuck")
+
     print("----------Trained Models----------")
     print(args.model_1)
     print(args.model_2)

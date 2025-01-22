@@ -2,17 +2,18 @@
 Display
 """
 
-import os, datetime
+import os
+import datetime
+import math
 import argparse
-import retro
-import gymnasium as gym
-import numpy as np
 from os import environ
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 import pygame.freetype
 import cv2
-import math
+import gymnasium as gym
+import numpy as np
+import retro
 
 FB_WIDTH = 1920
 FB_HEIGHT = 1080
@@ -142,4 +143,3 @@ class CompareModelDisplay():
         self.screen.blit(pygame.transform.smoothscale(self.main_surf,(self.args.display_width,self.args.display_height)), (0, 0))
 
         pygame.display.flip()
-

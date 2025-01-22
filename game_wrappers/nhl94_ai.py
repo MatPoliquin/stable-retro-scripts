@@ -199,4 +199,3 @@ class NHL94AISystem():
         #self.display_probs = tuple(p1_actions[0])
 
         return p1_actions
-

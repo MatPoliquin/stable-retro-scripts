@@ -7,11 +7,11 @@ warnings.filterwarnings("ignore")
 
 import os
 import sys
-import retro
 import time
 import datetime
 import argparse
 import logging
+import retro
 import numpy as np
 
 from common import get_model_file_name, com_print, init_logger, create_output_dir
