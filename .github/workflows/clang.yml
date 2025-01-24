@@ -1,12 +1,20 @@
-name: Clang Format Checker
-on: [push]
+name: clang-format Check
+on: [push, pull_request]
 jobs:
-  clang-format-checking:
+  formatting-check:
+    name: Formatting Check
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        path:
+          - check: 'ef_lib'
+            exclude: '(utils)' # Exclude file paths containing "hello" or "world"
     steps:
-      - uses: actions/checkout@v2
-      - uses: RafikFarhad/clang-format-github-action@v3
-        with:
-          sources: "ef_lib/**/*.h,ef_lib/**/*.c,ef_lib/**/*.cpp"
-          excludes: "ef_lib/utils/**/*.h"
-          
+    - uses: actions/checkout@v4
+    - name: Run clang-format style check for C/C++/Protobuf programs.
+      uses: jidicula/clang-format-action@v4.14.0
+      with:
+        clang-format-version: '14'
+        check-path: ${{ matrix.path['check'] }}
+        exclude-regex: ${{ matrix.path['exclude'] }}
+        fallback-style: 'Mozilla' # optional
