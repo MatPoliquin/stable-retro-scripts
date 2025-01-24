@@ -1,20 +1,18 @@
 // test of game ai dynamic lib
-#include <iostream>
-#include <assert.h>
-#include <filesystem>
-#include <stdexcept>
-#include <opencv2/opencv.hpp>
-#include <torch/script.h>
 #include "GameAI.h"
 #include "RetroModel.h"
+#include <assert.h>
+#include <filesystem>
+#include <iostream>
+#include <opencv2/opencv.hpp>
+#include <stdexcept>
+#include <torch/script.h>
 
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <dlfcn.h>
 #endif
-
-
 
 #if 0
 /*
@@ -70,18 +68,18 @@ try {
 //=======================================================
 // test_opencv
 //=======================================================
-void test_opencv(std::map<std::string, bool> & tests)
+void test_opencv(std::map<std::string, bool>& tests)
 {
     cv::Mat image;
     cv::Mat grey;
     cv::Mat result;
 
-    image = cv::imread( "../screenshots/wwf.png", cv::IMREAD_COLOR );
+    image = cv::imread("../screenshots/wwf.png", cv::IMREAD_COLOR);
 
     cv::cvtColor(image, grey, cv::COLOR_RGB2GRAY);
-    cv::resize(grey, result, cv::Size(84,84), cv::INTER_AREA);
+    cv::resize(grey, result, cv::Size(84, 84), cv::INTER_AREA);
 
-    if ( !image.data )
+    if (!image.data)
     {
         printf("No image data \n");
         return;
@@ -97,9 +95,9 @@ void test_opencv(std::map<std::string, bool> & tests)
 //=======================================================
 // test_loadlibrary
 //=======================================================
-void test_loadlibrary(std::map<std::string, bool> & tests)
+void test_loadlibrary(std::map<std::string, bool>& tests)
 {
-    GameAI * ga = nullptr;
+    GameAI* ga = nullptr;
     create_game_ai_t func = nullptr;
 
 #ifdef _WIN32
@@ -111,28 +109,29 @@ void test_loadlibrary(std::map<std::string, bool> & tests)
     if (hinstLib != NULL)
     {
         tests["LOAD LIBRARY"] = true;
-        func  = (create_game_ai_t) GetProcAddress(hinstLib, "create_game_ai");
+        func = (create_game_ai_t)GetProcAddress(hinstLib, "create_game_ai");
     }
 #else
-    void *myso = dlopen("./libgame_ai.so", RTLD_NOW);
+    void* myso = dlopen("./libgame_ai.so", RTLD_NOW);
 
-    //std::cout << dlerror() << std::endl;
+    // std::cout << dlerror() << std::endl;
 
-    if(myso)
+    if (myso)
     {
         tests["LOAD LIBRARY"] = true;
 
-        func = reinterpret_cast<create_game_ai_t>(dlsym(myso, "create_game_ai"));
+        func =
+            reinterpret_cast<create_game_ai_t>(dlsym(myso, "create_game_ai"));
     }
 #endif
-        if(func)
-        {
-            tests["GET CREATEGAME FUNC"] = true;
-            ga = (GameAI *) func("./data/NHL941on1-Genesis/NHL941on1.md");
+    if (func)
+    {
+        tests["GET CREATEGAME FUNC"] = true;
+        ga = (GameAI*)func("./data/NHL941on1-Genesis/NHL941on1.md");
 
-            if(ga)
-                tests["CREATEGAME FUNC"] = true;
-        }
+        if (ga)
+            tests["CREATEGAME FUNC"] = true;
+    }
 
 #ifdef _WIN32
     fFreeResult = FreeLibrary(hinstLib);
@@ -144,50 +143,54 @@ void test_loadlibrary(std::map<std::string, bool> & tests)
 //=======================================================
 // test_pytorch
 //=======================================================
-void test_pytorch(std::map<std::string, bool> & tests)
+void test_pytorch(std::map<std::string, bool>& tests)
 {
 
-try {
-    RetroModelPytorch * model = new RetroModelPytorch();
+    try
+    {
+        RetroModelPytorch* model = new RetroModelPytorch();
 
-    model->LoadModel(std::string("./data/NHL941on1-Genesis/ScoreGoal.pt"));
+        model->LoadModel(std::string("./data/NHL941on1-Genesis/ScoreGoal.pt"));
 
-    std::vector<float> input(16);
-    std::vector<float> output(12);
+        std::vector<float> input(16);
+        std::vector<float> output(12);
 
-    model->Forward(output, input);
+        model->Forward(output, input);
 
-    //TODO validate output
-    tests["LOAD PYTORCH MODEL"] = true;
-
-  }
-  catch (const c10::Error& e) {
-    //std::cerr << "error loading the model\n";
-    throw std::runtime_error ("error loading the model\n");
-    return;
-  }
+        // TODO validate output
+        tests["LOAD PYTORCH MODEL"] = true;
+    }
+    catch (const c10::Error& e)
+    {
+        // std::cerr << "error loading the model\n";
+        throw std::runtime_error("error loading the model\n");
+        return;
+    }
 }
 
 int main()
 {
     std::map<std::string, bool> tests;
 
-    tests.insert(std::pair<std::string, bool>("LOAD LIBRARY",false));
-    tests.insert(std::pair<std::string, bool>("GET CREATEGAME FUNC",false));
-    tests.insert(std::pair<std::string, bool>("CREATEGAME FUNC",false));
-    //tests.insert(std::pair<std::string, bool>("OPENCV GRAYSCALE DOWNSAMPLE TO 84x84",false));
-    tests.insert(std::pair<std::string, bool>("LOAD PYTORCH MODEL",false));
+    tests.insert(std::pair<std::string, bool>("LOAD LIBRARY", false));
+    tests.insert(std::pair<std::string, bool>("GET CREATEGAME FUNC", false));
+    tests.insert(std::pair<std::string, bool>("CREATEGAME FUNC", false));
+    // tests.insert(std::pair<std::string, bool>("OPENCV GRAYSCALE DOWNSAMPLE TO
+    // 84x84",false));
+    tests.insert(std::pair<std::string, bool>("LOAD PYTORCH MODEL", false));
 
     std::cout << "========== RUNNING TESTS ==========" << std::endl;
 
-    try {
+    try
+    {
         test_loadlibrary(tests);
 
-        //test_opencv(tests);
+        // test_opencv(tests);
 
         test_pytorch(tests);
     }
-    catch (std::exception &e) {
+    catch (std::exception& e)
+    {
         std::cout << "============= EXCEPTION =============" << std::endl;
         std::cout << e.what();
     }
@@ -195,13 +198,13 @@ int main()
     std::cout << "============== RESULTS =============" << std::endl;
 
     int ret = 0;
-    for(auto i: tests)
+    for (auto i : tests)
     {
-        const char * result = i.second ? "PASS" : "FAIL";
+        const char* result = i.second ? "PASS" : "FAIL";
         std::cout << i.first << "..." << result << std::endl;
 
-        if(!i.second)
-            ret=1;
+        if (!i.second)
+            ret = 1;
     }
 
     return ret;

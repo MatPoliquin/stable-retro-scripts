@@ -3,7 +3,7 @@
 //=======================================================
 // NHL94Data::Init
 //=======================================================
-void NHL94Data::Init(const Retro::GameData & data)
+void NHL94Data::Init(const Retro::GameData& data)
 {
     // players
     p1_x = data.lookupValue("p1_x").cast<int>();
@@ -34,30 +34,33 @@ void NHL94Data::Init(const Retro::GameData & data)
 
     period = data.lookupValue("period").cast<int>();
 
+    // Knowing if the player has the puck is tricky since the fullstar in the
+    // game is not aligned with the player every frame There is an offset of up
+    // to 2 sometimes
 
-    // Knowing if the player has the puck is tricky since the fullstar in the game is not aligned with the player every frame
-    // There is an offset of up to 2 sometimes
-
-    if (std::abs(p1_x - p1_fullstar_x) < 3 && std::abs(p1_y - p1_fullstar_y) < 3)
+    if (std::abs(p1_x - p1_fullstar_x) < 3 &&
+        std::abs(p1_y - p1_fullstar_y) < 3)
         p1_haspuck = true;
     else
         p1_haspuck = false;
 
-    if(std::abs(p2_x - p1_fullstar_x) < 3 && std::abs(p2_y - p1_fullstar_y) < 3)
+    if (std::abs(p2_x - p1_fullstar_x) < 3 &&
+        std::abs(p2_y - p1_fullstar_y) < 3)
         p2_haspuck = true;
     else
         p2_haspuck = false;
-            
-    if(std::abs(g1_x - p1_fullstar_x) < 3 && std::abs(g1_y - p1_fullstar_y) < 3)
+
+    if (std::abs(g1_x - p1_fullstar_x) < 3 &&
+        std::abs(g1_y - p1_fullstar_y) < 3)
         g1_haspuck = true;
     else
         g1_haspuck = false;
 
-    if(std::abs(g2_x - p1_fullstar_x) < 3 && std::abs(g2_y - p1_fullstar_y) < 3)
+    if (std::abs(g2_x - p1_fullstar_x) < 3 &&
+        std::abs(g2_y - p1_fullstar_y) < 3)
         g2_haspuck = true;
     else
         g2_haspuck = false;
-
 
     attack_zone_y = NHL94Const::ATACKZONE_POS_Y;
     defense_zone_y = NHL94Const::DEFENSEZONE_POS_Y;

@@ -1,9 +1,10 @@
 #pragma once
 
-#include "memory.h"
 #include "../utils/data.h"
+#include "memory.h"
 
-enum NHL94Buttons {
+enum NHL94Buttons
+{
     INPUT_B = 0,
     INPUT_A = 1,
     INPUT_MODE = 2,
@@ -19,7 +20,8 @@ enum NHL94Buttons {
     INPUT_MAX = 12
 };
 
-enum NHL94NeuralNetInput {
+enum NHL94NeuralNetInput
+{
     P1_X = 0,
     P1_Y,
     P1_VEL_X,
@@ -46,15 +48,16 @@ enum NHL94NeuralNetInput {
     MAX_VEL_XY = 50
 };
 
-
-enum NHL94Const {
+enum NHL94Const
+{
     ATACKZONE_POS_Y = 100,
     DEFENSEZONE_POS_Y = -80,
     SCORE_ZONE_TOP = 230,
     SCORE_ZONE_BOTTOM = 210,
 };
 
-class NHL94Data {
+class NHL94Data
+{
 public:
     int p1_x;
     int p1_y;
@@ -79,7 +82,6 @@ public:
     int p2_fullstar_x;
     int p2_fullstar_y;
 
-
     bool p1_haspuck;
     bool g1_haspuck;
     bool p2_haspuck;
@@ -92,8 +94,8 @@ public:
 
     int period;
 
-    void Init(const Retro::GameData & data);
-    
+    void Init(const Retro::GameData& data);
+
     void Flip();
 
     void FlipZones();
