@@ -8,4 +8,4 @@ jobs:
       - uses: RafikFarhad/clang-format-github-action@v4
         with:
           sources: "ef_lib/**/*.h,ef_lib/**/*.c,ef_lib/**/*.c"
-          exclude: "ef_lib/utils/**"
+          
