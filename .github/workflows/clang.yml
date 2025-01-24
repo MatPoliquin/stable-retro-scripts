@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: RafikFarhad/clang-format-github-action@v4
+      - uses: RafikFarhad/clang-format-github-action@v3
         with:
           sources: "ef_lib/**/*.h,ef_lib/**/*.c,ef_lib/**/*.cpp"
           excludes: "ef_lib/utils/**/*.h"
