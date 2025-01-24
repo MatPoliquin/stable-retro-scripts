@@ -1,3 +1,2 @@
-./utils
-./ef_lib/utils
+utils/*
 
