@@ -21,6 +21,9 @@ jobs:
         pip install stable-baselines3
         pip install stable-retro
         pip install pygame
+        pip install opencv-python
+        pip install gym
+        pip install torchsummary
     - name: Analysing the code with pylint
       run: |
         pylint --rcfile=.pylintrc $(git ls-files '*.py')

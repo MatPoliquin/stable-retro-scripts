@@ -2,22 +2,11 @@
 Game specfic training script for NHL94 1 on 1 on Genesis
 """
 
-#hack to disable flood of warnings
-import warnings
-warnings.filterwarnings("ignore")
-
-import os
 import sys
-import datetime
 import argparse
-import logging
-import numpy as np
-import retro
-
 from model_trainer import ModelTrainer
 from model_vs_game import ModelVsGame
-
-from common import get_model_file_name, com_print, init_logger, create_output_dir
+from common import com_print, init_logger
 
 import game_wrappers_mgr as games
 

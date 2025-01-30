@@ -1,21 +1,10 @@
 import os
 import numpy as np
-
-from stable_baselines3 import PPO, A2C
 from stable_baselines3.common.atari_wrappers import WarpFrame, ClipRewardEnv
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecFrameStack, VecTransposeImage
-from stable_baselines3.common.utils import set_random_seed
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecFrameStack
 from stable_baselines3.common.monitor import Monitor
-
-# StickyActionEnv doesn't work with filtered actions in retro/stable-retro
-# from stable_baselines3.common.atari_wrappers import StickyActionEnv, MaxAndSkipEnv
-
 import gymnasium as gym
-from gymnasium.wrappers import FrameStack
-
 import retro
-
-from models import init_model
 import game_wrappers_mgr as games
 
 
@@ -58,7 +47,7 @@ class StochasticFrameSkip(gym.Wrapper):
         self.rng.seed(s)
 
 def make_retro(*, game, state=None, num_players, max_episode_steps=4500, **kwargs):
-    import retro
+    import retro  # pylint: disable=import-outside-toplevel,reimported
     if state is None:
         state = retro.State.DEFAULT
     env = retro.make(game, state, **kwargs, players=num_players, render_mode="rgb_array")

@@ -2,19 +2,12 @@
 NHL94 Observation wrapper
 """
 
-import os
 import datetime
-from os import environ
-import math
-import time
 import random
 import copy
 from datetime import datetime
 import numpy as np
-import retro
 import gymnasium as gym
-from gymnasium import spaces, logger
-from gymnasium.utils import seeding
 from game_wrappers.nhl94_const import GameConsts
 from game_wrappers.nhl94_rf import register_functions
 from game_wrappers.nhl94_ai import NHL94AISystem

@@ -2,18 +2,11 @@
 Display
 """
 
-import os
-import datetime
-import math
-import argparse
 from os import environ
-environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
-import pygame
-import pygame.freetype
-import cv2
-import gymnasium as gym
 import numpy as np
-import retro
+environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import pygame # pylint: disable=wrong-import-position
+import pygame.freetype # pylint: disable=wrong-import-position
 
 FB_WIDTH = 1920
 FB_HEIGHT = 1080

@@ -3,8 +3,6 @@ NHL94 Reward Functions
 """
 
 import random
-from game_wrappers.nhl941on1_gamestate import NHL941on1GameState
-
 
 # =====================================================================
 # Common functions

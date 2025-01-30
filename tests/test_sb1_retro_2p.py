@@ -1,15 +1,10 @@
 import retro
 import numpy as np
-from stable_baselines3 import PPO, A2C
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+from stable_baselines3 import PPO
+from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.atari_wrappers import WarpFrame, ClipRewardEnv
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecFrameStack, VecTransposeImage
-from stable_baselines3.common.utils import set_random_seed
-from stable_baselines3.common.monitor import Monitor
-
-import gymnasium as gym
 from gymnasium.wrappers import FrameStack
-from gymnasium import spaces
+
 
 #from imp import reload
 #reload (retro)
