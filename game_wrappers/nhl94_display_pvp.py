@@ -6,7 +6,6 @@ import os
 import datetime
 import argparse
 from os import environ
-environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import math
 import sys
 import retro
@@ -15,9 +14,12 @@ import numpy as np
 import pygame
 import pygame.freetype
 import cv2
-
 from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
 from game_wrappers.nhl94_gamestate import NHL94GameState
+environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import pygame # pylint: disable=wrong-import-position,wrong-import-order
+import pygame.freetype # pylint: disable=wrong-import-position,wrong-import-order
+
 
 
 class NHL94PvPGameDisplayEnv(gym.Wrapper):

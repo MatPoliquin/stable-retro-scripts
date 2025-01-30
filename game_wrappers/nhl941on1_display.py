@@ -15,8 +15,8 @@ import cv2
 from game_wrappers.nhl941on1_rf import rf_defensezone, rf_scoregoal
 from game_wrappers.nhl941on1_gamestate import NHL941on1GameState
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
-import pygame # pylint: disable=wrong-import-position
-import pygame.freetype # pylint: disable=wrong-import-position
+import pygame # pylint: disable=wrong-import-position,wrong-import-order
+import pygame.freetype # pylint: disable=wrong-import-position,wrong-import-order
 
 
 class NHL941on1GameDisplayEnv(gym.Wrapper):
