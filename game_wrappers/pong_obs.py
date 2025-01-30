@@ -2,17 +2,8 @@
 NHL94 Observation wrapper
 """
 
-import os, datetime
-import argparse
-from os import environ
-import math
-import time
 import gymnasium as gym
-from gymnasium import spaces, logger
-from gymnasium.utils import seeding
 import numpy as np
-import retro
-
 
 # WARNING: NON FUNCTIONAL CODE - WIP
 class PongObservationEnv(gym.Wrapper):
