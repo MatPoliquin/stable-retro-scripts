@@ -4,19 +4,19 @@ Display
 
 import os
 from os import environ
-environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import datetime
 import argparse
 import math
 import sys
-import pygame
-import pygame.freetype
 import retro
 import gymnasium as gym
 import numpy as np
 import cv2
 from game_wrappers.nhl941on1_rf import rf_defensezone, rf_scoregoal
 from game_wrappers.nhl941on1_gamestate import NHL941on1GameState
+environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import pygame # pylint: disable=wrong-import-position
+import pygame.freetype # pylint: disable=wrong-import-position
 
 
 class NHL941on1GameDisplayEnv(gym.Wrapper):

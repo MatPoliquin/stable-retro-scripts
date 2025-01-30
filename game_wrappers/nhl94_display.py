@@ -14,8 +14,8 @@ import numpy as np
 from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
 from game_wrappers.nhl94_gamestate import NHL94GameState
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
-import pygame # pylint: disable=wrong-import-position
-import pygame.freetype # pylint: disable=wrong-import-position
+import pygame # pylint: disable=wrong-import-position,wrong-import-order
+import pygame.freetype # pylint: disable=wrong-import-position,wrong-import-order
 
 class NHL94GameDisplayEnv(gym.Wrapper):
     def __init__(self, env, args, total_params, nn_type, button_names):

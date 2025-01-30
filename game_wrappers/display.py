@@ -4,18 +4,17 @@ Display
 
 import os, datetime
 import argparse
-
 from os import environ
-environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import math
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 import cv2
-import pygame
-import pygame.freetype
 import retro
 import gymnasium as gym
+environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import pygame # pylint: disable=wrong-import-position
+import pygame.freetype # pylint: disable=wrong-import-position
 
 FB_WIDTH = 1920
 FB_HEIGHT = 1080
