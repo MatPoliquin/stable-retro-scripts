@@ -1,18 +1,12 @@
 """
 Game specfic training script for NHL94 1 on 1 on Genesis
 """
-import os
-import sys
-import datetime
-import argparse
-import logging
-import numpy as np
-import retro
 
+import sys
+import argparse
 from model_trainer import ModelTrainer
 from model_vs_game import ModelVsGame
-
-from common import get_model_file_name, com_print, init_logger, create_output_dir
+from common import com_print, init_logger
 
 import game_wrappers_mgr as games
 

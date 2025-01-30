@@ -1,17 +1,9 @@
-import os
 import sys
-import datetime
 import argparse
-import logging
 import gc
-import numpy as np
-import retro
-
 from model_trainer import ModelTrainer
 from model_vs_game import ModelVsGame
-
-from common import get_model_file_name, com_print, init_logger, create_output_dir
-
+from common import com_print, init_logger
 import game_wrappers_mgr as games
 
 NUM_TEST_MATCHS = 10
