@@ -2,17 +2,9 @@
 Display PvP
 """
 
-import os, datetime
-import argparse
 from os import environ
-import math
-import sys
-import cv2
-import retro
 import gymnasium as gym
 import numpy as np
-from game_wrappers.nhl941on1_rf import rf_defensezone, rf_scoregoal
-from game_wrappers.nhl941on1_gamestate import NHL941on1GameState
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame # pylint: disable=wrong-import-position,wrong-import-order
 import pygame.freetype # pylint: disable=wrong-import-position,wrong-import-order
