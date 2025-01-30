@@ -2,15 +2,11 @@
 Display
 """
 
-import os, datetime
-import argparse
 from os import environ
 import math
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 import numpy as np
 import cv2
-import retro
 import gymnasium as gym
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame # pylint: disable=wrong-import-position

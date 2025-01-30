@@ -2,9 +2,8 @@
 AI System
 """
 
-import math
 from models import init_model
-from models import init_model, print_model_info, get_num_parameters, get_model_probabilities
+from models import init_model, get_num_parameters, get_model_probabilities
 
 class AISys():
     def __init__(self, args, env, logger):
