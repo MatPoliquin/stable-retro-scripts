@@ -11,8 +11,6 @@ import sys
 import retro
 import gymnasium as gym
 import numpy as np
-import pygame
-import pygame.freetype
 import cv2
 from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
 from game_wrappers.nhl94_gamestate import NHL94GameState
