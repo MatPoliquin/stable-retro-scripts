@@ -2,7 +2,6 @@
 AI System
 """
 
-from models import init_model
 from models import init_model, get_num_parameters, get_model_probabilities
 
 class AISys():

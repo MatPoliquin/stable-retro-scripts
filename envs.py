@@ -47,7 +47,7 @@ class StochasticFrameSkip(gym.Wrapper):
         self.rng.seed(s)
 
 def make_retro(*, game, state=None, num_players, max_episode_steps=4500, **kwargs):
-    import retro  # pylint: disable=import-outside-toplevel
+    import retro  # pylint: disable=import-outside-toplevel,reimported
     if state is None:
         state = retro.State.DEFAULT
     env = retro.make(game, state, **kwargs, players=num_players, render_mode="rgb_array")
