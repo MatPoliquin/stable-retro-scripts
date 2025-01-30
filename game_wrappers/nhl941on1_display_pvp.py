@@ -7,8 +7,6 @@ import argparse
 from os import environ
 import math
 import sys
-import pygame
-import pygame.freetype
 import cv2
 import retro
 import gymnasium as gym
