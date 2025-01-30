@@ -1,10 +1,8 @@
 import retro
-import numpy as np
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.atari_wrappers import WarpFrame, ClipRewardEnv
-import gymnasium as gym
 
 GAME_ENV = 'Airstriker-Genesis'
 STATE_1P = 'Level1'

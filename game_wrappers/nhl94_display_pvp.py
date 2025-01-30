@@ -2,16 +2,9 @@
 Display PvP
 """
 
-import os
-import datetime
-import argparse
 from os import environ
-import math
-import sys
-import retro
 import gymnasium as gym
 import numpy as np
-import cv2
 from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
 from game_wrappers.nhl94_gamestate import NHL94GameState
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'

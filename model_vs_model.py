@@ -5,11 +5,7 @@ Pit two models together on NHL 94
 
 import sys
 import argparse
-import logging
 import numpy as np
-import retro
-import pygame
-
 from common import com_print, init_logger
 from envs import init_env, init_play_env
 from models import init_model, get_model_probabilities, get_num_parameters

@@ -2,13 +2,7 @@
 Display
 """
 
-import os, datetime
-import argparse
 from os import environ
-import math
-import sys
-import cv2
-import retro
 import gymnasium as gym
 import numpy as np
 from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
