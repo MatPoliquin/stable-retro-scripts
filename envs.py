@@ -1,21 +1,10 @@
 import os
 import numpy as np
-
-from stable_baselines3 import PPO, A2C
 from stable_baselines3.common.atari_wrappers import WarpFrame, ClipRewardEnv
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecFrameStack, VecTransposeImage
-from stable_baselines3.common.utils import set_random_seed
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecFrameStack
 from stable_baselines3.common.monitor import Monitor
-
-# StickyActionEnv doesn't work with filtered actions in retro/stable-retro
-# from stable_baselines3.common.atari_wrappers import StickyActionEnv, MaxAndSkipEnv
-
 import gymnasium as gym
-from gymnasium.wrappers import FrameStack
-
 import retro
-
-from models import init_model
 import game_wrappers_mgr as games
 
 
