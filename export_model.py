@@ -5,9 +5,6 @@ import sys
 import argparse
 from typing import Tuple
 import torch as th
-import torchvision
-import onnx
-import onnxruntime as ort
 import numpy as np
 from stable_baselines3 import PPO
 from stable_baselines3.common.policies import BasePolicy
