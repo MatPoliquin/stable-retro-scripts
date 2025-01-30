@@ -2,17 +2,9 @@
 Play a pre-trained model on NHL 94
 """
 
-import os
 import sys
-import datetime
 import argparse
-import logging
-import traceback
-import retro
-import pygame
-import numpy as np
-from common import get_model_file_name, com_print, init_logger
-from models import print_model_info, get_num_parameters, get_model_probabilities
+from common import com_print, init_logger
 from envs import init_env, init_play_env
 
 import game_wrappers_mgr as games

@@ -5,13 +5,9 @@ Display PvP
 from os import environ
 import gymnasium as gym
 import numpy as np
-from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
-from game_wrappers.nhl94_gamestate import NHL94GameState
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame # pylint: disable=wrong-import-position,wrong-import-order
 import pygame.freetype # pylint: disable=wrong-import-position,wrong-import-order
-
-
 
 class NHL94PvPGameDisplayEnv(gym.Wrapper):
     def __init__(self, env, args, model1_desc, model2_desc, model1_params, model2_params, button_names):
