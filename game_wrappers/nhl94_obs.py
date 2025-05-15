@@ -8,6 +8,7 @@ import copy
 from datetime import datetime
 import numpy as np
 import gymnasium as gym
+from gymnasium import spaces
 from game_wrappers.nhl94_const import GameConsts
 from game_wrappers.nhl94_rf import register_functions
 from game_wrappers.nhl94_ai import NHL94AISystem
