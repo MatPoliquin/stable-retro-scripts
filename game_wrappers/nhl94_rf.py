@@ -308,6 +308,44 @@ def rf_defensezone(state):
     return rew
 
 # =====================================================================
+# Passing
+# =====================================================================
+def init_passing(env):
+    x, y = RandomPosAttackZone()
+    env.set_value("p2_x", x)
+    env.set_value("p2_y", y)
+
+    x, y = RandomPosAttackZone()
+    env.set_value("p1_x", x)
+    env.set_value("p1_y", y)
+
+def isdone_passing(state):
+    if state.puck_y < 100:
+        return True
+
+    if state.p2_haspuck or state.g2_haspuck:
+        return True
+
+    if state.time < 100:
+        return True
+
+    return False
+
+def rf_passing(state):
+    rew = 0.0
+
+    if state.p2_haspuck or state.g2_haspuck:
+        rew = -1.0
+
+    if state.puck_y < 100:
+        rew = -1.0
+
+    if state.p1_passing > state.last_p1_passing:
+        rew = 1.0
+
+    return rew
+
+# =====================================================================
 # Register Functions
 # =====================================================================
 def register_functions(name):
@@ -321,6 +359,8 @@ def register_functions(name):
         return init_keeppuck, rf_keeppuck, isdone_keeppuck
     elif name == "DefenseZone":
         return init_defensezone, rf_defensezone, isdone_defensezone
+    elif name == "Passing":
+        return init_passing, rf_passing, isdone_passing
     elif name == "General":
         return init_general, rf_general, isdone_general
     else:
