@@ -8,6 +8,9 @@ import retro
 import game_wrappers_mgr as games
 
 
+def isMLP(name):
+    return name == 'MlpPolicy' or name == 'MlpDropoutPolicy'
+
 class StochasticFrameSkip(gym.Wrapper):
     def __init__(self, env, n, stickprob):
         gym.Wrapper.__init__(self, env)
@@ -74,7 +77,7 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
 
             env.action_space.seed(seed + rank)
 
-            if args.nn == 'MlpPolicy':
+            if isMLP(args.nn):
                 env = games.wrappers.obs_env(env, args, num_players, args.rf)
                 #if args.rf != '':
                 #    env.set_reward_function(args.rf)
@@ -90,7 +93,7 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
                 else:
                     env = StochasticFrameSkip(env, n=4, stickprob=-1)
 
-            if args.nn != 'MlpPolicy':
+            if not isMLP(args.nn):
                 env = WarpFrame(env)
 
             env = ClipRewardEnv(env)
@@ -102,7 +105,7 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
 
     env.seed(seed)
 
-    if args.nn != 'MlpPolicy':
+    if not isMLP(args.nn):
         env = VecFrameStack(env, n_stack=4)
         #env = VecTransposeImage(env)
 

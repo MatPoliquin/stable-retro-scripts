@@ -1,8 +1,58 @@
 import os
 from stable_baselines3 import PPO, A2C
 import torch as th
+import torch.nn as nn
 from torchsummary import summary
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from stable_baselines3.common.policies import ActorCriticPolicy
 
+
+# ==========================================================================================
+class CustomMLPExtractor(nn.Module):
+    def __init__(self, feature_dim, net_arch, dropout_prob=0.5):
+        super().__init__()
+
+        # Shared layers
+        shared_layers = []
+        last_layer_dim = feature_dim
+        for layer_size in net_arch:
+            shared_layers.append(nn.Linear(last_layer_dim, layer_size))
+            shared_layers.append(nn.ReLU())
+            shared_layers.append(nn.Dropout(dropout_prob))
+            last_layer_dim = layer_size
+        self.shared_net = nn.Sequential(*shared_layers)
+
+        # Separate heads for policy and value functions
+        self.policy_net = nn.Sequential(
+            nn.Linear(last_layer_dim, last_layer_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout_prob)
+        )
+        self.value_net = nn.Sequential(
+            nn.Linear(last_layer_dim, last_layer_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout_prob)
+        )
+
+    def forward(self, features):
+        # Return policy and value features for the base policy's use
+        return self.forward_actor(features), self.forward_critic(features)
+
+    def forward_actor(self, features):
+        shared = self.shared_net(features)
+        return self.policy_net(shared)
+
+    def forward_critic(self, features):
+        shared = self.shared_net(features)
+        return self.value_net(shared)
+
+class CustomDropoutPolicy(ActorCriticPolicy):
+    def __init__(self, *args, dropout_prob=0.5, **kwargs):
+        super().__init__(*args, **kwargs)
+        net_arch = kwargs.get("net_arch", [64, 64])
+        self.mlp_extractor = CustomMLPExtractor(self.features_dim, net_arch, dropout_prob)
+
+# ==========================================================================================
 # Warning: input size is hardcoded for now
 def print_model_info(model):
 
@@ -27,25 +77,30 @@ def get_model_probabilities(model, state):
     return probs_np
 
 def init_model(output_path, player_model, player_alg, args, env, logger):
-
     policy_kwargs=None
+    nn_type = args.nn
     if args.nn == 'MlpPolicy':
         size = args.nnsize
-        policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=[dict(pi=[size, size], vf=[size, size])])
+        nn_type = 'MlpPolicy'
+        policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=dict(pi=[size, size], vf=[size, size]))
+    elif args.nn == 'MlpDropoutPolicy':
+        size = args.nnsize
+        nn_type = CustomDropoutPolicy
+        policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=[size, size], dropout_prob=0.3)
 
     if player_alg == 'ppo2':
         if player_model == '':
             batch_size = (128 * args.num_env) // 4
             print("batch_size:%d" % batch_size)
-            model = PPO(policy=args.nn, env=env, policy_kwargs=policy_kwargs, verbose=1, n_steps = 2048, n_epochs = 4, batch_size = batch_size, learning_rate = 2.5e-4, clip_range = 0.2, vf_coef = 0.5, ent_coef = 0.01,
+            model = PPO(policy=nn_type, env=env, policy_kwargs=policy_kwargs, verbose=1, n_steps = 2048, n_epochs = 4, batch_size = batch_size, learning_rate = 2.5e-4, clip_range = 0.2, vf_coef = 0.5, ent_coef = 0.01,
                  max_grad_norm=0.5, clip_range_vf=None)
         else:
             model = PPO.load(os.path.expanduser(player_model), env=env)
     elif player_alg == 'a2c':
         if player_model == '':
-            model = A2C(policy=args.nn, env=env, policy_kwargs=policy_kwargs, verbose=1)
+            model = A2C(policy=nn_type, env=env, policy_kwargs=policy_kwargs, verbose=1)
         else:
-            model = A2C(policy=args.nn, env=env, verbose=1, tensorboard_log=output_path)
+            model = A2C(policy=nn_type, env=env, verbose=1, tensorboard_log=output_path)
 
     model.set_logger(logger)
 
