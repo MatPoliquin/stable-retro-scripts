@@ -17,6 +17,7 @@ class CustomMLPExtractor(nn.Module):
         last_layer_dim = feature_dim
         for layer_size in net_arch:
             shared_layers.append(nn.Linear(last_layer_dim, layer_size))
+            shared_layers.append(nn.BatchNorm1d(layer_size))
             shared_layers.append(nn.ReLU())
             shared_layers.append(nn.Dropout(dropout_prob))
             last_layer_dim = layer_size
@@ -25,11 +26,13 @@ class CustomMLPExtractor(nn.Module):
         # Separate heads for policy and value functions
         self.policy_net = nn.Sequential(
             nn.Linear(last_layer_dim, last_layer_dim),
+            nn.BatchNorm1d(last_layer_dim),
             nn.ReLU(),
             nn.Dropout(dropout_prob)
         )
         self.value_net = nn.Sequential(
             nn.Linear(last_layer_dim, last_layer_dim),
+            nn.BatchNorm1d(last_layer_dim),
             nn.ReLU(),
             nn.Dropout(dropout_prob)
         )
