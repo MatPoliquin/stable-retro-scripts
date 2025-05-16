@@ -7,6 +7,37 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.policies import ActorCriticPolicy
 
 
+
+# ==========================================================================================
+class CustomCNN(BaseFeaturesExtractor):
+    def __init__(self, observation_space, features_dim=128):
+        super(CustomCNN, self).__init__(observation_space, features_dim)
+
+        # Assuming the observation space is images with shape (C, H, W)
+        n_input_channels = observation_space.shape[0]
+
+        self.cnn = nn.Sequential(
+            nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            nn.ReLU(),
+            nn.Flatten()
+        )
+
+        # Compute shape by doing one forward pass
+        with th.no_grad():
+            n_flatten = self.cnn(th.as_tensor(observation_space.sample()[None]).float()).shape[1]
+
+        self.linear = nn.Sequential(
+            nn.Linear(n_flatten, features_dim),
+            nn.ReLU()
+        )
+
+    def forward(self, observations: th.Tensor) -> th.Tensor:
+        return self.linear(self.cnn(observations))
+
 # ==========================================================================================
 class CustomMLPExtractor(nn.Module):
     def __init__(self, feature_dim, net_arch, dropout_prob=0.5):
@@ -90,6 +121,10 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
         size = args.nnsize
         nn_type = CustomDropoutPolicy
         policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=[size, size], dropout_prob=0.3)
+    elif args.nn == 'CustomCnnPolicy':
+        #size = args.nnsize
+        nn_type = 'CnnPolicy'
+        policy_kwargs = dict(features_extractor_class=CustomCNN, features_extractor_kwargs=dict(features_dim=128),)
 
     if player_alg == 'ppo2':
         if player_model == '':
