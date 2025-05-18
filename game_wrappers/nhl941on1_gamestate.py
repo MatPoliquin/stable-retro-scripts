@@ -3,7 +3,7 @@ NHL94 Game State
 """
 
 import math
-from game_wrappers.nhl941on1_const import GameConsts
+from game_wrappers.nhl94_const import GameConsts
 
 class NHL941on1GameState():
     def __init__(self):
