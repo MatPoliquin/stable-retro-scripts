@@ -6,10 +6,67 @@ from stable_baselines3.common.monitor import Monitor
 import gymnasium as gym
 import retro
 import game_wrappers_mgr as games
-
+import cv2
 
 def isMLP(name):
-    return name == 'MlpPolicy' or name == 'MlpDropoutPolicy'
+    return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy'
+
+class WarpFrameDict(gym.ObservationWrapper):
+    def __init__(self, env, width=84, height=84, grayscale=True):
+        super().__init__(env)
+        self.width = width
+        self.height = height
+        self.grayscale = grayscale
+
+        img_space = env.observation_space.spaces['image']
+        n_channels = 1 if self.grayscale else img_space.shape[0]
+
+        self.observation_space = gym.spaces.Dict({
+            'image': gym.spaces.Box(low=0, high=255, shape=(n_channels, self.height, self.width), dtype=np.uint8),
+            'scalar': env.observation_space.spaces['scalar']
+        })
+
+    def observation(self, obs):
+        img = obs['image']  # Expect shape: (C, H, W)
+
+        # Check shape and type for debugging
+        #print(f"Original img shape: {img.shape}, dtype: {img.dtype}")
+
+        # Make sure img is a numpy array
+        if not isinstance(img, np.ndarray):
+            img = np.array(img)
+
+        # Validate shape has 3 dimensions
+        assert len(img.shape) == 3, f"Expected image with 3 dims (C,H,W), got {img.shape}"
+
+        # Convert CHW to HWC for OpenCV
+        #img = np.transpose(img, (1, 2, 0))  # (H, W, C)
+
+        # Check shape after transpose
+        #print(f"After transpose img shape: {img.shape}, dtype: {img.dtype}")
+        #assert img.shape[2] in [1, 3, 4], f"Invalid channel number {img.shape[2]} for cv2"
+
+        if self.grayscale:
+            # Convert RGB to grayscale (input must have 3 or 4 channels)
+            if img.shape[2] == 1:
+                # Already grayscale, just resize
+                img = img[:, :, 0]
+            else:
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)  # Results in (H, W)
+
+            # Resize grayscale
+            img = cv2.resize(img, (self.width, self.height), interpolation=cv2.INTER_AREA)
+
+            # Add channel dimension back (1, H, W)
+            img = np.expand_dims(img, axis=0)
+        else:
+            img = cv2.resize(img, (self.width, self.height), interpolation=cv2.INTER_AREA)
+            # Convert back to CHW
+            #img = np.transpose(img, (2, 0, 1))
+
+        img = img.astype(np.uint8)
+
+        return {'image': img, 'scalar': obs['scalar']}
 
 class StochasticFrameSkip(gym.Wrapper):
     def __init__(self, env, n, stickprob):
@@ -95,6 +152,8 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
 
             if not isMLP(args.nn):
                 env = WarpFrame(env)
+            elif args.nn == 'CombinedPolicy':
+                env = WarpFrameDict(env)
 
             env = ClipRewardEnv(env)
 
