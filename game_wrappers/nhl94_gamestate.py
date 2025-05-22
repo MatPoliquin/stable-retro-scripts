@@ -178,8 +178,8 @@ class NHL94GameState():
         self.p1_fullstar_y = info.get('fullstar_y')
         self.p2_fullstar_x = info.get('p2_fullstar_x')
         self.p2_fullstar_y = info.get('p2_fullstar_y')
-        self.p1_emptystar_x = info.get('p1_emptystar_x')
-        self.p1_emptystar_y = info.get('p1_emptystar_y')
+        self.p1_emptystar_x = 0
+        self.p1_emptystar_y = 0
 
         if self.numPlayers > 1:
             self.p1_2_x = info.get('p1_2_x')
@@ -190,6 +190,8 @@ class NHL94GameState():
             self.p1_2_vel_y = info.get('p1_2_vel_y')
             self.p2_2_vel_x = info.get('p2_2_vel_x')
             self.p2_2_vel_y = info.get('p2_2_vel_y')
+            self.p1_emptystar_x = info.get('p1_emptystar_x')
+            self.p1_emptystar_y = info.get('p1_emptystar_y')
 
         self.distToPuck = self.Distance((self.p1_x, self.p1_y), (self.puck_x, self.puck_y))
 
