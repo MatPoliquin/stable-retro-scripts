@@ -10,7 +10,7 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 from game_wrappers.nhl94_const import GameConsts
-from game_wrappers.nhl941on1_rf import register_functions
+from game_wrappers.nhl94_rf import register_functions
 from game_wrappers.nhl941on1_ai import NHL941on1AISystem
 from game_wrappers.nhl941on1_gamestate import NHL941on1GameState
 
