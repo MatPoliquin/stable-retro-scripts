@@ -37,7 +37,7 @@ class GameWrapperManager(object):
             self.obs_env = NHL941on1Observation2PEnv
             self.pvp_display_env = NHL94PvPGameDisplayEnv
             self.sp_display_env = NHL94GameDisplayEnv
-            self.ai_sys = NHL941on1AISystem
+            self.ai_sys = NHL94AISystem
         elif args.env == 'NHL942on2-Genesis' or args.env == 'NHL94-Genesis':
             self.obs_env = NHL94Observation2PEnv
             self.pvp_display_env = NHL94PvPGameDisplayEnv
@@ -45,7 +45,5 @@ class GameWrapperManager(object):
             self.ai_sys = NHL94AISystem
         elif args.env == 'Pong-Atari2600':
             self.obs_env = PongObservationEnv
-
-
 
 wrappers = GameWrapperManager()
