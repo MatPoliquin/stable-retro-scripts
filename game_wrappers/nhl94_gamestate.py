@@ -6,7 +6,8 @@ import math
 from game_wrappers.nhl94_const import GameConsts
 
 class NHL94GameState():
-    def __init__(self):
+    def __init__(self, numPlayers):
+        self.numPlayers = numPlayers
         self.p1_score = 0
         self.p2_score = 0
         self.p1_shots = 0
@@ -150,12 +151,12 @@ class NHL94GameState():
         self.p1_passing = info.get('p1_passing')
         self.p1_x = info.get('p1_x')
         self.p1_y = info.get('p1_y')
-        self.p1_2_x = info.get('p1_2_x')
-        self.p1_2_y = info.get('p1_2_y')
+        self.p1_2_x = 0
+        self.p1_2_y = 0
         self.p2_x = info.get('p2_x')
         self.p2_y = info.get('p2_y')
-        self.p2_2_x = info.get('p2_2_x')
-        self.p2_2_y = info.get('p2_2_y')
+        self.p2_2_x = 0
+        self.p2_2_y = 0
         self.g1_x = info.get('g1_x')
         self.g1_y = info.get('g1_y')
         self.g2_x = info.get('g2_x')
@@ -167,18 +168,28 @@ class NHL94GameState():
         self.puck_vel_y = info.get('puck_vel_y')
         self.p1_vel_x = info.get('p1_vel_x')
         self.p1_vel_y = info.get('p1_vel_y')
-        self.p1_2_vel_x = info.get('p1_2_vel_x')
-        self.p1_2_vel_y = info.get('p1_2_vel_y')
+        self.p1_2_vel_x = 0
+        self.p1_2_vel_y = 0
         self.p2_vel_x = info.get('p2_vel_x')
         self.p2_vel_y = info.get('p2_vel_y')
-        self.p2_2_vel_x = info.get('p2_2_vel_x')
-        self.p2_2_vel_y = info.get('p2_2_vel_y')
+        self.p2_2_vel_x = 0
+        self.p2_2_vel_y = 0
         self.p1_fullstar_x = info.get('fullstar_x')
         self.p1_fullstar_y = info.get('fullstar_y')
         self.p2_fullstar_x = info.get('p2_fullstar_x')
         self.p2_fullstar_y = info.get('p2_fullstar_y')
         self.p1_emptystar_x = info.get('p1_emptystar_x')
         self.p1_emptystar_y = info.get('p1_emptystar_y')
+
+        if self.numPlayers > 1:
+            self.p1_2_x = info.get('p1_2_x')
+            self.p1_2_y = info.get('p1_2_y')
+            self.p2_2_x = info.get('p2_2_x')
+            self.p2_2_y = info.get('p2_2_y')
+            self.p1_2_vel_x = info.get('p1_2_vel_x')
+            self.p1_2_vel_y = info.get('p1_2_vel_y')
+            self.p2_2_vel_x = info.get('p2_2_vel_x')
+            self.p2_2_vel_y = info.get('p2_2_vel_y')
 
         self.distToPuck = self.Distance((self.p1_x, self.p1_y), (self.puck_x, self.puck_y))
 
@@ -255,3 +266,4 @@ class NHL94GameState():
         self.normalized_p2_2_vely = (self.p2_2_vel_y - self.p1_vel_y) / GameConsts.MAX_VEL_XY
         self.normalized_puck_velx = (self.puck_vel_x - self.p1_vel_x)  / GameConsts.MAX_VEL_XY
         self.normalized_puck_vely = (self.puck_vel_y - self.p1_vel_y) / GameConsts.MAX_VEL_XY
+

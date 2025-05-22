@@ -12,7 +12,7 @@ from gymnasium import spaces
 from game_wrappers.nhl94_const import GameConsts
 from game_wrappers.nhl94_rf import register_functions
 from game_wrappers.nhl941on1_ai import NHL941on1AISystem
-from game_wrappers.nhl941on1_gamestate import NHL941on1GameState
+from game_wrappers.nhl94_gamestate import NHL94GameState
 
 class NHL941on1Observation2PEnv(gym.Wrapper):
     def __init__(self, env, args, num_players, rf_name):
@@ -35,7 +35,7 @@ class NHL941on1Observation2PEnv(gym.Wrapper):
         if num_players == 2:
             self.action_space = gym.spaces.MultiBinary(self.num_buttons)
 
-        self.game_state = NHL941on1GameState()
+        self.game_state = NHL94GameState(1)
 
         self.ai_sys = NHL941on1AISystem(args, env, None)
 
@@ -55,7 +55,7 @@ class NHL941on1Observation2PEnv(gym.Wrapper):
 
         self.state = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
-        self.game_state = NHL941on1GameState()
+        self.game_state = NHL94GameState(1)
         self.ram_inited = False
         self.b_button_pressed = False
         self.c_button_pressed = False

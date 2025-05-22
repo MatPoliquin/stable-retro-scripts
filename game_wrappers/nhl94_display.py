@@ -71,7 +71,7 @@ class NHL94GameDisplayEnv(gym.Wrapper):
 
         self.frameRewardList = [0.0] * 200
 
-        self.game_state = NHL94GameState()
+        self.game_state = NHL94GameState(2)
 
         self.model_in_use = 0
         self.model_params = [None, None, None]

@@ -5,7 +5,7 @@ NHL AI
 import math
 import random
 from game_wrappers.nhl94_const import GameConsts
-from game_wrappers.nhl941on1_gamestate import NHL941on1GameState
+from game_wrappers.nhl94_gamestate import NHL94GameState
 from models import init_model, get_num_parameters, get_model_probabilities
 
 MODEL_NONE = 0 #code
@@ -24,7 +24,7 @@ class NHL941on1AISystem():
         self.pass_button_pressed = False
         self.shooting = False
 
-        self.game_state = NHL941on1GameState()
+        self.game_state = NHL94GameState(1)
 
         self.models = [None, None, None]
         self.model_params = [None, None, None]

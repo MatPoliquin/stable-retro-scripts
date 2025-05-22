@@ -6,7 +6,7 @@ from os import environ
 import gymnasium as gym
 import numpy as np
 from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
-from game_wrappers.nhl941on1_gamestate import NHL941on1GameState
+from game_wrappers.nhl94_gamestate import NHL94GameState
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame # pylint: disable=wrong-import-position,wrong-import-order
 import pygame.freetype # pylint: disable=wrong-import-position,wrong-import-order
@@ -72,7 +72,7 @@ class NHL941on1GameDisplayEnv(gym.Wrapper):
 
         self.frameRewardList = [0.0] * 200
 
-        self.game_state = NHL941on1GameState()
+        self.game_state = NHL94GameState(1)
 
         self.model_in_use = 0
         self.model_params = [None, None, None]

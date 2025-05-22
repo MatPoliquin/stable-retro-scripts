@@ -37,7 +37,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
         if num_players == 2:
             self.action_space = gym.spaces.MultiBinary(self.num_buttons)
 
-        self.game_state = NHL94GameState()
+        self.game_state = NHL94GameState(2)
 
         self.ai_sys = NHL94AISystem(args, env, None)
 
@@ -57,7 +57,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         self.state = tuple([0] * NUM_PARAMS)
 
-        self.game_state = NHL94GameState()
+        self.game_state = NHL94GameState(2)
         self.ram_inited = False
         self.b_button_pressed = False
         self.c_button_pressed = False

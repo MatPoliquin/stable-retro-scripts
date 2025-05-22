@@ -25,7 +25,7 @@ class NHL94AISystem():
         self.pass_button_pressed = False
         self.shooting = False
 
-        self.game_state = NHL94GameState()
+        self.game_state = NHL94GameState(2)
 
         self.models = [None, None, None]
         self.model_params = [None, None, None]
