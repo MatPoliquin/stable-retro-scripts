@@ -3,27 +3,30 @@ NHL94 Reward Functions
 """
 
 import random
+from typing import Tuple, Callable
+from game_wrappers.nhl94_const import GameConsts
+
 
 # =====================================================================
 # Common functions
 # =====================================================================
 def RandomPos():
-    x = (random.random() - 0.5) * 235
-    y = (random.random() - 0.5) * 460
+    x = (random.random() - 0.5) * GameConsts.SPAWNABLE_AREA_WIDTH
+    y = (random.random() - 0.5) * GameConsts.SPAWNABLE_AREA_HEIGHT
 
     #print(x,y)
     return x, y
 
 def RandomPosAttackZone():
-    x = (random.random() - 0.5) * 235
-    y = (random.random() * 140) + 100
+    x = (random.random() - 0.5) * GameConsts.SPAWNABLE_AREA_WIDTH
+    y = (random.random() * GameConsts.SPAWNABLE_ZONE_HEIGHT) + 100
 
     #print(x,y)
     return x, y
 
 def RandomPosDefenseZone():
-    x = (random.random() - 0.5) * 235
-    y = (random.random() * 140) - 220
+    x = (random.random() - 0.5) * GameConsts.SPAWNABLE_AREA_WIDTH
+    y = (random.random() * GameConsts.SPAWNABLE_ZONE_HEIGHT) - 220
 
     #print(x,y)
     return x, y
@@ -79,7 +82,6 @@ def isdone_scoregoal(state):
     return False
 
 def rf_scoregoal(state):
-
     rew = 0.0
 
     if state.p2_haspuck or state.g2_haspuck:
@@ -92,11 +94,11 @@ def rf_scoregoal(state):
         rew = 1.0
 
     # reward scoring opportunities
-    if state.player_haspuck and state.p1_y < 230 and state.p1_y > 210:
-        if state.p1_vel_x >= 30 or state.p1_vel_x <= -30:
+    if state.player_haspuck and state.p1_y < GameConsts.CREASE_UPPER_BOUND and state.p1_y > GameConsts.CREASE_LOWER_BOUND:
+        if state.p1_vel_x >= GameConsts.CREASE_MIN_VEL or state.p1_vel_x <= -GameConsts.CREASE_MIN_VEL:
             rew = 0.2
-            if state.puck_x > -23 and state.puck_x < 23:
-                if abs(state.puck_x - state.g2_x) > 7:
+            if state.puck_x > -GameConsts.CREASE_MAX_X and state.puck_x < GameConsts.CREASE_MAX_X:
+                if abs(state.puck_x - state.g2_x) > GameConsts.CREASE_MIN_GOALIE_PUCK_DIST_X:
                     rew = 1.0
                 else:
                     rew = 0.5
@@ -348,22 +350,17 @@ def rf_passing(state):
 # =====================================================================
 # Register Functions
 # =====================================================================
-def register_functions(name):
-    if name == "GetPuck":
-        return init_getpuck, rf_getpuck, isdone_getpuck
-    elif name == "ScoreGoal":
-        return init_scoregoal, rf_scoregoal, isdone_scoregoal
-    elif name == "ScoreGoal02":
-        return init_scoregoal02, rf_scoregoal02, isdone_scoregoal02
-    elif name == "KeepPuck":
-        return init_keeppuck, rf_keeppuck, isdone_keeppuck
-    elif name == "DefenseZone":
-        return init_defensezone, rf_defensezone, isdone_defensezone
-    elif name == "Passing":
-        return init_passing, rf_passing, isdone_passing
-    elif name == "General":
-        return init_general, rf_general, isdone_general
-    else:
-        raise Exception("Unsupported Reward Function")
+_reward_function_map = {
+    "GetPuck": (init_getpuck, rf_getpuck, isdone_getpuck),
+    "ScoreGoal": (init_scoregoal, rf_scoregoal, isdone_scoregoal),
+    "ScoreGoal02": (init_scoregoal02, rf_scoregoal02, isdone_scoregoal02),
+    "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck),
+    "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone),
+    "Passing": (init_passing, rf_passing, isdone_passing),
+    "General": (init_general, rf_general, isdone_general),
+}
 
-    return none, none, none
+def register_functions(name: str) -> Tuple[Callable, Callable, Callable]:
+    if name not in _reward_function_map:
+        raise ValueError(f"Unsupported Reward Function: {name}")
+    return _reward_function_map[name]
