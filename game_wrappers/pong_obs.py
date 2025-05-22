@@ -4,7 +4,7 @@ NHL94 Observation wrapper
 
 import gymnasium as gym
 from gymnasium import spaces
-from gym.spaces import Dict, Box
+from gymnasium.spaces import Dict, Box
 import numpy as np
 
 class PongObservationEnv(gym.Wrapper):
