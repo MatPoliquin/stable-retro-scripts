@@ -21,6 +21,8 @@ class NHL94Observation2PEnv(gym.Wrapper):
     def __init__(self, env, args, num_players, rf_name):
         gym.Wrapper.__init__(self, env)
 
+        self.nn = args.nn
+
         self.NUM_PARAMS = 0
         self.num_players_per_team = 0
         if args.env == 'NHL941on1-Genesis':
@@ -34,7 +36,14 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         low = np.array([-1] * self.NUM_PARAMS, dtype=np.float32)
         high = np.array([1] * self.NUM_PARAMS, dtype=np.float32)
-        self.observation_space = spaces.Box(low, high, dtype=np.float32)
+
+        if self.nn == 'CombinedPolicy':
+            self.observation_space = spaces.Dict({
+                'image': spaces.Box(low=0, high=255, shape=(224, 256, 3), dtype=np.uint8),
+                'scalar': spaces.Box(low, high, dtype=np.float32)
+            })
+        else:
+            self.observation_space = spaces.Box(low, high, dtype=np.float32)
 
         self.reward_function = None
 
@@ -72,7 +81,15 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.b_button_pressed = False
         self.c_button_pressed = False
 
-        return self.state, info
+        #return self.state, info
+        if self.nn == 'CombinedPolicy':
+             #print(state.shape)
+             return {
+                 'image': state,
+                 'scalar': self.state
+             }, info
+        else:
+            return self.state, info
 
     def step(self, ac):
         p2_ac = [0,0,0,0,0,0,0,0,0,0,0,0]
@@ -100,19 +117,15 @@ class NHL94Observation2PEnv(gym.Wrapper):
             else:
                 self.c_button_pressed = False
 
-
         ac2 = ac
         if self.num_players == 2:
             ac2 = np.concatenate([ac, np.array(p2_ac)])
-
 
         ob, rew, terminated, truncated, info = self.env.step(ac2)
 
         if not self.ram_inited:
             self.init_function(self.env)
             self.ram_inited = True
-
-
 
         self.prev_state = copy.deepcopy(self.game_state)
 
@@ -162,9 +175,16 @@ class NHL94Observation2PEnv(gym.Wrapper):
                         self.game_state.normalized_g2_x, self.game_state.normalized_g2_y, \
                         self.game_state.normalized_player_haspuck, self.game_state.normalized_goalie_haspuck)
 
-        ob = self.state
+        #ob = self.state
 
-        return ob, rew, terminated, truncated, info
+        #return ob, rew, terminated, truncated, info
+        if self.nn == 'CombinedPolicy':
+            return {
+                 'image': ob,
+                 'scalar': self.state
+            }, rew, terminated, truncated, info
+        else:
+            return self.state, rew, terminated, truncated, info
 
     def seed(self, s):
         self.rng.seed(s)
