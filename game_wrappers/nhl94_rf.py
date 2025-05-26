@@ -51,7 +51,7 @@ def rf_general(state):
     if t1.stats.score > t1.last_stats.score:
         rew = 1.0
 
-    if state.t2.stats.score > t2.last_stats.score:
+    if t2.stats.score > t2.last_stats.score:
         rew = -1.0
 
     return rew

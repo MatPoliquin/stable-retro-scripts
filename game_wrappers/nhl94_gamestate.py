@@ -15,6 +15,9 @@ class Player:
     vx: int = 0
     vy: int = 0
 
+    def debug_print(self, prefix="Player"):
+        print(f"{prefix} - x: {self.x}, y: {self.y}, vx: {self.vx}, vy: {self.vy}")
+
 @dataclass
 class Stats:
     score: int = 0
@@ -27,6 +30,11 @@ class Stats:
     fullstar_y: int = 0
     emptystar_x: int = 0
     emptystar_y: int = 0
+
+    def debug_print(self, prefix="Stats"):
+        print(f"{prefix} - score: {self.score}, shots: {self.shots}, bodychecks: {self.bodychecks}, "
+              f"attackzone: {self.attackzone}, faceoffwon: {self.faceoffwon}, passing: {self.passing}, "
+              f"fullstar: ({self.fullstar_x},{self.fullstar_y}), emptystar: ({self.emptystar_x},{self.emptystar_y})")
 
 class Team():
     HAS_PUCK_TRESHOLD = 3
@@ -81,7 +89,7 @@ class Team():
         self.goalie.vy = info.get(f"{self.ram_var_goalie_prefix}vel_y", 0)
 
         # Players
-        for p in range(0, self.num_players - 1):
+        for p in range(0, self.num_players):
             if p == 0:
                 self.players[p].x = info.get(f"{self.ram_var_prefix}x")
                 self.players[p].y = info.get(f"{self.ram_var_prefix}y")
@@ -93,8 +101,6 @@ class Team():
                 self.players[p].y = info.get(f"{self.ram_var_prefix}{pi}_y")
                 self.players[p].vx = info.get(f"{self.ram_var_prefix}{pi}_vel_x")
                 self.players[p].vy = info.get(f"{self.ram_var_prefix}{pi}_vel_y")
-
-
 
         # Knowing if the player has the puck is tricky since the fullstar in the game is not aligned with the player every frame
         # There is an offset of up to 2 sometimes
@@ -109,11 +115,11 @@ class Team():
         if self.goalie_haspuck:
             self.control = 0
         elif self.player_haspuck:
-            for p in range(0, self.num_players - 1):
+            for p in range(0, self.num_players):
                 if self.has_puck(self.players[p].x, self.players[p].y):
                     self.control = p + 1
         else:
-            for p in range(0, self.num_players - 1):
+            for p in range(0, self.num_players):
                 if self.has_control(self.players[p].x, self.players[p].y):
                     self.control = p + 1
 
@@ -122,7 +128,7 @@ class Team():
         self.last_distToPuck = self.distToPuck
 
         # Normalize for model input. TODO: also make positions and velocities relative to controlled player
-        for p in range(0, self.num_players - 1):
+        for p in range(0, self.num_players):
             self.nz_players[p].x = self.players[p].x / GameConsts.MAX_PLAYER_X
             self.nz_players[p].y = self.players[p].y / GameConsts.MAX_PLAYER_Y
             self.nz_players[p].vx = self.players[p].vx / GameConsts.MAX_VEL_XY
@@ -135,6 +141,25 @@ class Team():
 
         self.nz_player_haspuck = 1.0 if self.player_haspuck else 0.0
         self.nz_goalie_haspuck = 1.0 if self.goalie_haspuck else 0.0
+
+    def debug_print(self):
+        print(f"Team controller: {self.controller}")
+        self.stats.debug_print("Stats")
+        self.last_stats.debug_print("Last Stats")
+        print(f"Number of players: {self.num_players}")
+        for idx, player in enumerate(self.players):
+            player.debug_print(f"Player {idx}")
+        self.goalie.debug_print("Goalie")
+        print(f"Control: {self.control}")
+        print(f"Player has puck: {self.player_haspuck}")
+        print(f"Goalie has puck: {self.goalie_haspuck}")
+        print(f"Distance to puck: {self.distToPuck}, Last distance to puck: {self.last_distToPuck}")
+        print("Normalized players:")
+        for idx, player in enumerate(self.nz_players):
+            player.debug_print(f"NZ Player {idx}")
+        self.nz_goalie.debug_print("NZ Goalie")
+        print(f"NZ Player has puck: {self.nz_player_haspuck}")
+        print(f"NZ Goalie has puck: {self.nz_goalie_haspuck}")
 
 
 class NHL94GameState():
@@ -179,3 +204,15 @@ class NHL94GameState():
 
         self.team1.end_frame()
         self.team2.end_frame()
+
+        self.debug_print()
+
+    def debug_print(self):
+        print("===================================================================")
+        print(f"Game time: {self.time}, Last time: {self.last_time}")
+        self.puck.debug_print("Puck")
+        self.nz_puck.debug_print("NZ Puck")
+        print("Team 1 State:")
+        self.team1.debug_print()
+        print("Team 2 State:")
+        self.team2.debug_print()

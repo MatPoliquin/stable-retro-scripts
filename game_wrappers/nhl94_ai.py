@@ -78,7 +78,7 @@ class NHL94AISystem():
         t1 = state.team1
         t2 = state.team2
 
-        if state.player_haspuck == True:
+        if t1.player_haspuck == True:
             # If in attack zone use ScoreGoal model
             # Otherwise go to attack zone
             if t1.players[0].y >= GameConsts.ATACKZONE_POS_Y:
@@ -96,13 +96,13 @@ class NHL94AISystem():
             else:
                 self.GotoTarget(p1_actions, [t1.players[0].x - 0, t1.players[0].y - 99])
 
-        elif state.goalie_haspuck:
+        elif t1.goalie_haspuck:
             p1_actions[GameConsts.INPUT_B] = 1
 
         else:
             self.shooting = False
 
-            if t1.players[0].y < GameConsts.DEFENSEZONE_POS_Y and state.t2.haspuck:
+            if t1.players[0].y < GameConsts.DEFENSEZONE_POS_Y and t2.player_haspuck:
                 p1_actions = self.Predict(MODEL_DEFENSEZONE, model_input, deterministic)
             else:
                 pp_vec = [t1.players[0].x - state.puck.x, t1.players[0].y - state.puck.y]
