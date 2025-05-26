@@ -202,7 +202,7 @@ class CustomMLPExtractor(nn.Module):
         shared = self.shared_net(features)
         return self.value_net(shared)
 
-class CustomDropoutPolicy(ActorCriticPolicy):
+class CustomMlpPolicy(ActorCriticPolicy):
     def __init__(self, *args, dropout_prob=0.5, **kwargs):
         super().__init__(*args, **kwargs)
         net_arch = kwargs.get("net_arch", [64, 64])
@@ -239,9 +239,9 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
         size = args.nnsize
         nn_type = 'MlpPolicy'
         policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=dict(pi=[size, size], vf=[size, size]))
-    elif args.nn == 'MlpDropoutPolicy':
+    elif args.nn == 'CustomMlpPolicy':
         size = args.nnsize
-        nn_type = CustomDropoutPolicy
+        nn_type = CustomMlpPolicy
         policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=[size, size], dropout_prob=0.3)
     elif args.nn == 'CustomCnnPolicy':
         #size = args.nnsize
