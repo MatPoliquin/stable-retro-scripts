@@ -6,7 +6,6 @@ import random
 from typing import Tuple, Callable
 from game_wrappers.nhl94_const import GameConsts
 
-
 # =====================================================================
 # Common functions
 # =====================================================================
@@ -44,12 +43,15 @@ def isdone_general(state):
     return False
 
 def rf_general(state):
+    t1 = state.team1
+    t2 = state.team2
+
     rew = 0.0
 
-    if state.p1_score > state.last_p1_score:
+    if t1.stats.score > t1.last_stats.score:
         rew = 1.0
 
-    if state.p2_score > state.last_p2_score:
+    if state.t2.stats.score > t2.last_stats.score:
         rew = -1.0
 
     return rew
@@ -67,7 +69,10 @@ def init_scoregoal(env):
     env.set_value("p1_y", y)
 
 def isdone_scoregoal(state):
-    if state.p1_score > state.last_p1_score: #or self.game_state.p1_shots > self.game_state.last_p1_shots:
+    t1 = state.team1
+    t2 = state.team2
+
+    if t1.stats.score > t1.last_stats.score: #or self.game_state.p1_shots > self.game_state.last_p1_shots:
         return True
 
     #if state.p2_haspuck or state.g2_haspuck:
@@ -82,23 +87,26 @@ def isdone_scoregoal(state):
     return False
 
 def rf_scoregoal(state):
+    t1 = state.team1
+    t2 = state.team2
+
     rew = 0.0
 
-    if state.p2_haspuck or state.g2_haspuck:
+    if t2.player_haspuck or t2.goalie_haspuck:
         rew = -1.0
 
-    if state.puck_y < 100:
+    if state.puck.y < 100:
         rew = -1.0
 
-    if state.p1_score > state.last_p1_score:
+    if t1.stats.score > t1.last_stats.score:
         rew = 1.0
 
     # reward scoring opportunities
-    if state.player_haspuck and state.p1_y < GameConsts.CREASE_UPPER_BOUND and state.p1_y > GameConsts.CREASE_LOWER_BOUND:
-        if state.p1_vel_x >= GameConsts.CREASE_MIN_VEL or state.p1_vel_x <= -GameConsts.CREASE_MIN_VEL:
+    if t1.player_haspuck and t1.players[0].y < GameConsts.CREASE_UPPER_BOUND and t1.players[0].y  > GameConsts.CREASE_LOWER_BOUND:
+        if t1.players[0].vx >= GameConsts.CREASE_MIN_VEL or t1.players[0].vx <= -GameConsts.CREASE_MIN_VEL:
             rew = 0.2
-            if state.puck_x > -GameConsts.CREASE_MAX_X and state.puck_x < GameConsts.CREASE_MAX_X:
-                if abs(state.puck_x - state.g2_x) > GameConsts.CREASE_MIN_GOALIE_PUCK_DIST_X:
+            if state.puck.x > -GameConsts.CREASE_MAX_X and state.puck.x < GameConsts.CREASE_MAX_X:
+                if abs(state.puck.x - t2.goalie.x) > GameConsts.CREASE_MIN_GOALIE_PUCK_DIST_X:
                     rew = 1.0
                 else:
                     rew = 0.5
@@ -119,7 +127,7 @@ def init_scoregoal02(env):
 
 def isdone_scoregoal02(state):
 
-    if state.p1_score > state.last_p1_score:
+    if state.stats.score > state.last_stats.score:
         return True
 
     #if state.p1_shots > state.last_p1_shots:
@@ -137,25 +145,29 @@ def isdone_scoregoal02(state):
     return False
 
 def rf_scoregoal02(state):
+    t1 = state.team1
+    t2 = state.team2
 
     rew = 0.0
 
-    if state.p2_haspuck or state.g2_haspuck:
+    if t2.haspuck or t2.goalie.haspuck:
         rew = -1.0
 
-    if state.puck_y < 100:
+    if state.puck.y < 100:
         rew = -1.0
 
-    if state.p1_score > state.last_p1_score:
+    if state.t1.stats.score > state.t1.last_stats.score:
         rew = 1.0
 
     # reward scoring opportunities
-    if state.player_haspuck and state.p1_y < 230 and state.p1_y > 210:
-        if state.p1_vel_x >= 30 or state.p1_vel_x <= -30:
+    if t1.haspuck and t1.players[0].y < GameConsts.CREASE_UPPER_BOUND and t1.players[0].y > GameConsts.CREASE_LOWER_BOUND:
+        if t1.players[0].vx >= GameConsts.CREASE_MIN_VEL or t1.players[0].vx <= -GameConsts.CREASE_MIN_VEL:
             rew = 0.2
-            if state.puck_x > -23 and state.puck_x < 23:
-                if state.p1_shots > state.last_p1_shots:
+            if state.puck.x > -GameConsts.CREASE_MAX_X and state.puck.x < GameConsts.CREASE_MAX_X:
+                if abs(state.puck.x - t2.goalie.x) > GameConsts.CREASE_MIN_GOALIE_PUCK_DIST_X:
                     rew = 1.0
+                else:
+                    rew = 0.5
 
     return rew
 
@@ -176,13 +188,16 @@ def init_keeppuck(env):
     env.set_value("p1_y", y)
 
 def isdone_keeppuck(state):
-    if state.player_haspuck == False:
+    t1 = state.team1
+    t2 = state.team2
+
+    if state.t1.haspuck == False:
         return True
 
 def rf_keeppuck(state):
 
     rew = 1.0
-    if not state.player_haspuck:
+    if not state.t1.haspuck:
         rew = -1.0
 
     return rew
@@ -211,14 +226,17 @@ def isdone_getpuck(state):
         return True
 
 def rf_getpuck(state):
+    t1 = state.team1
+    t2 = state.team2
+
     rew = 0
 
-    scaled_dist = state.distToPuck / 200.0
+    scaled_dist = state.t1.distToPuck / 200.0
 
-    if state.player_haspuck == False:
-        if state.distToPuck < state.last_dist:
+    if t1.haspuck == False:
+        if t1.distToPuck < t1.last_distToPuck:
             #rew = 1.0 / (1.0 + scaled_dist)
-            rew = 1 - (state.distToPuck / 200.0)**0.5
+            rew = 1 - (t1.distToPuck / 200.0)**0.5
             #print(state.distToPuck, rew)
         else:
             rew = -0.1
@@ -228,13 +246,13 @@ def rf_getpuck(state):
     #if state.p1_bodychecks > state.last_p1_bodychecks:
     #    rew = 0.5
 
-    if state.goalie_haspuck:
+    if t1.goalie_haspuck:
         rew = -1
 
-    if state.p2_score > state.last_p2_score:
+    if t2.stats.score > t2.last_stats.score:
         rew = -1.0
 
-    if state.p2_shots > state.last_p2_shots:
+    if t1.stats.shots > t1.last_stats.shots:
         rew = -1.0
 
     #if state.time < 200:
@@ -270,6 +288,9 @@ def isdone_defensezone(state):
         return True
 
 def rf_defensezone(state):
+    t1 = state.team1
+    t2 = state.team2
+
     rew = 0
 
     if state.player_haspuck == False:
@@ -283,25 +304,25 @@ def rf_defensezone(state):
         rew = 1
 
 
-    if state.p1_bodychecks > state.last_p1_bodychecks:
+    if state.state.stats.bodychecks > state.last_bodychecks:
         rew = 1.0
 
-    if state.p1_passing > state.last_p1_passing:
+    if state.t1.stats.passing > state.t1.stats.last_passing:
         rew = 1.0
 
-    if not state.player_haspuck:
-        if state.p1_y > -80:
+    if not state.t1.player_haspuck:
+        if state.players[0].y > -80:
             rew = -1.0
-        if state.puck_y > -80:
+        if state.puck.y > -80:
             rew = -1.0
 
-    if state.goalie_haspuck:
+    if state.t1.goalie_haspuck:
         rew = -1.0
 
-    if state.p2_score > state.last_p2_score:
+    if state.t2.stats.score > state.t2.last_stats.score:
         rew = -1.0
 
-    if state.p2_shots > state.last_p2_shots:
+    if state.t2.stats.shots > state.t2.last_stats.shots:
         rew = -1.0
 
     #if state.time < 200:
@@ -322,6 +343,9 @@ def init_passing(env):
     env.set_value("p1_y", y)
 
 def isdone_passing(state):
+    t1 = state.team1
+    t2 = state.team2
+
     if state.puck_y < 100:
         return True
 
@@ -334,15 +358,18 @@ def isdone_passing(state):
     return False
 
 def rf_passing(state):
+    t1 = state.team1
+    t2 = state.team2
+
     rew = 0.0
 
-    if state.p2_haspuck or state.g2_haspuck:
+    if state.t2.player_haspuck or state.t2.goalie_haspuck:
         rew = -1.0
 
-    if state.puck_y < 100:
+    if state.puck.y < 100:
         rew = -1.0
 
-    if state.p1_passing > state.last_p1_passing:
+    if state.t1.stats.passing > state.t1.last_stats.passing:
         rew = 1.0
 
     return rew

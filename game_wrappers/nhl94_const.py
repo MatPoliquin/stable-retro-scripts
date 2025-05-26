@@ -2,6 +2,8 @@
 Game Constants
 """
 
+import math
+
 class GameConsts():
     INPUT_B = 0
     INPUT_A = 1
@@ -49,3 +51,11 @@ class GameConsts():
     CREASE_MIN_VEL = 30
     CREASE_MAX_X = 23
     CREASE_MIN_GOALIE_PUCK_DIST_X = 7
+
+    def Distance(vec1, vec2):
+        tmp = (vec1[0] - vec2[0])**2 + (vec1[1] - vec2[1])**2
+        return math.sqrt(tmp)
+
+    def DistToPos(vec1, vec2):
+        tmp = (vec1[0] - vec2[0])**2 + (vec1[1] - vec2[1])**2
+        return math.sqrt(tmp)

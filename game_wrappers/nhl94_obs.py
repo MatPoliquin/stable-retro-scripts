@@ -137,25 +137,28 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         self.game_state.EndFrame()
 
+        t1 = self.game_state.team1
+        t2 = self.game_state.team2
+
         if self.num_players_per_team == 1:
-            self.state = (self.game_state.normalized_p1_x, self.game_state.normalized_p1_y, \
-                        self.game_state.normalized_p1_velx, self.game_state.normalized_p1_vely, \
-                        self.game_state.normalized_p2_x, self.game_state.normalized_p2_y, \
-                        self.game_state.normalized_p2_velx, self.game_state.normalized_p2_vely, \
-                        self.game_state.normalized_puck_x, self.game_state.normalized_puck_y, \
-                        self.game_state.normalized_puck_velx, self.game_state.normalized_puck_vely, \
-                        self.game_state.normalized_g2_x, self.game_state.normalized_g2_y, \
-                        self.game_state.normalized_player_haspuck, self.game_state.normalized_goalie_haspuck)
+            self.state = (t1.nz_players[0].x, t1.nz_players[0].y, \
+                        t1.nz_players[0].vx, t1.nz_players[0].vy, \
+                        t2.nz_players[0].x, t2.nz_players[0].y, \
+                        t2.nz_players[0].vx, t2.nz_players[0].vy, \
+                        self.game_state.nz_puck.x, self.game_state.nz_puck.y, \
+                        self.game_state.nz_puck.vx, self.game_state.nz_puck.vy, \
+                        t2.nz_goalie.x, t2.nz_goalie.y, \
+                        t1.nz_player_haspuck, t2.nz_goalie_haspuck)
 
         elif self.num_players_per_team == 2:
-            p1_x, p1_y = self.game_state.normalized_p1_x, self.game_state.normalized_p1_y
-            p1_vel_x, p1_vel_y = self.game_state.normalized_p1_velx, self.game_state.normalized_p1_vely
-            p1_2_x, p1_2_y = self.game_state.normalized_p1_2_x, self.game_state.normalized_p1_2_y
-            p1_2_vel_x, p1_2_vel_y = self.game_state.normalized_p1_2_velx, self.game_state.normalized_p1_2_vely
+            p1_x, p1_y = t1.nz_players[0].x, t1.nz_players[0].y
+            p1_vel_x, p1_vel_y = t1.nz_players[0].vx, t1.nz_players[0].vy
+            p1_2_x, p1_2_y = t1.nz_players[1].x, t1.nz_players[1].y
+            p1_2_vel_x, p1_2_vel_y = t1.nz_players[1].vx, t1.nz_players[1].vy
 
             # First two slots is for pos/vel of player beeing controled (empty or full star)
             # So swap them if necessary
-            if self.game_state.p1_control == 2:
+            if t1.control == 2:
                 p1_x, p1_2_x = p1_2_x, p1_x
                 p1_y, p1_2_y = p1_2_y, p1_y
                 p1_vel_x, p1_2_vel_x = p1_2_vel_x, p1_vel_x
@@ -166,14 +169,14 @@ class NHL94Observation2PEnv(gym.Wrapper):
                         p1_vel_x, p1_vel_y, \
                         p1_2_x, p1_2_y, \
                         p1_2_vel_x, p1_2_vel_y, \
-                        self.game_state.normalized_p2_x, self.game_state.normalized_p2_y, \
-                        self.game_state.normalized_p2_velx, self.game_state.normalized_p2_vely, \
-                        self.game_state.normalized_p2_2_x, self.game_state.normalized_p2_2_y, \
-                        self.game_state.normalized_p2_2_velx, self.game_state.normalized_p2_2_vely, \
-                        self.game_state.normalized_puck_x, self.game_state.normalized_puck_y, \
-                        self.game_state.normalized_puck_velx, self.game_state.normalized_puck_vely, \
-                        self.game_state.normalized_g2_x, self.game_state.normalized_g2_y, \
-                        self.game_state.normalized_player_haspuck, self.game_state.normalized_goalie_haspuck)
+                        t2.nz_players[0].x, t2.nz_players[0].y, \
+                        t2.nz_players[0].vx, t2.nz_players[0].vy, \
+                        t2.nz_players[1].x, t2.nz_players[1].y, \
+                        t2.nz_players[1].vx, t2.nz_players[1].vy, \
+                        self.game_state.nz_puck.x, self.game_state.nz_puck.y, \
+                        self.game_state.nz_puck.vx, self.game_state.nz_puck.vy, \
+                        t2.nz_goalie.x, t2.nz_goalie.y, \
+                        t1.nz_player_haspuck, t2.nz_goalie_haspuck)
 
         #ob = self.state
 
