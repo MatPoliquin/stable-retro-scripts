@@ -49,7 +49,7 @@ def set_model_input_1p(game_state):
 def init_model_2p():
     return 24
 
-def set_model_input_2p(model_input, game_state):
+def set_model_input_2p(game_state):
     t1 = game_state.team1
     t2 = game_state.team2
 
@@ -66,7 +66,7 @@ def set_model_input_2p(model_input, game_state):
         p1_vel_x, p1_2_vel_x = p1_2_vel_x, p1_vel_x
         p1_vel_y, p1_2_vel_y = p1_2_vel_y, p1_vel_y
 
-    state = (p1_x, p1_y, \
+    return (p1_x, p1_y, \
             p1_vel_x, p1_vel_y, \
             p1_2_x, p1_2_y, \
             p1_2_vel_x, p1_2_vel_y, \
@@ -383,23 +383,63 @@ def rf_defensezone(state):
 # =====================================================================
 # Passing
 # =====================================================================
+def init_model_2p_passing():
+    return 19
+
+def set_model_input_2p_passing(game_state):
+    t1 = game_state.team1
+    t2 = game_state.team2
+
+    p1_x, p1_y = t1.nz_players[0].x, t1.nz_players[0].y
+    p1_vel_x, p1_vel_y = t1.nz_players[0].vx, t1.nz_players[0].vy
+    p1_2_x, p1_2_y = t1.nz_players[1].x, t1.nz_players[1].y
+    p1_2_vel_x, p1_2_vel_y = t1.nz_players[1].vx, t1.nz_players[1].vy
+
+    # First two slots is for pos/vel of player beeing controled (empty or full star)
+    # So swap them if necessary
+    if t1.control == 2:
+        p1_x, p1_2_x = p1_2_x, p1_x
+        p1_y, p1_2_y = p1_2_y, p1_y
+        p1_vel_x, p1_2_vel_x = p1_2_vel_x, p1_vel_x
+        p1_vel_y, p1_2_vel_y = p1_2_vel_y, p1_vel_y
+
+    return (p1_x, p1_y, \
+            p1_vel_x, p1_vel_y, \
+            p1_2_x, p1_2_y, \
+            p1_2_vel_x, p1_2_vel_y, \
+            t2.nz_players[0].x, t2.nz_players[0].y, \
+            t2.nz_players[0].vx, t2.nz_players[0].vy, \
+            t2.nz_players[1].x, t2.nz_players[1].y, \
+            t2.nz_players[1].vx, t2.nz_players[1].vy, \
+            t1.nz_player_haspuck, \
+            t2.nz_player_haspuck,
+            t2.nz_goalie_haspuck)
+
 def init_passing(env):
     x, y = RandomPosAttackZone()
     env.set_value("p2_x", x)
     env.set_value("p2_y", y)
 
     x, y = RandomPosAttackZone()
+    env.set_value("p2_2_x", x)
+    env.set_value("p2_2_y", y)
+
+    x, y = RandomPosAttackZone()
     env.set_value("p1_x", x)
     env.set_value("p1_y", y)
+
+    x, y = RandomPosAttackZone()
+    env.set_value("p1_2_x", x)
+    env.set_value("p1_2_y", y)
 
 def isdone_passing(state):
     t1 = state.team1
     t2 = state.team2
 
-    if state.puck_y < 100:
+    if state.puck.y < 100:
         return True
 
-    if state.p2_haspuck or state.g2_haspuck:
+    if t2.haspuck or t2.haspuck:
         return True
 
     if state.time < 100:
@@ -413,13 +453,13 @@ def rf_passing(state):
 
     rew = 0.0
 
-    if state.t2.player_haspuck or state.t2.goalie_haspuck:
+    if t2.player_haspuck or t2.goalie_haspuck:
         rew = -1.0
 
     if state.puck.y < 100:
         rew = -1.0
 
-    if state.t1.stats.passing > state.t1.last_stats.passing:
+    if t1.stats.passing > t1.last_stats.passing:
         rew = 1.0
 
     return rew
@@ -435,7 +475,7 @@ _reward_function_map = {
     "KeepPuck_1P": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model_1p, set_model_input_1p),
     "DefenseZone_1P": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_1p, set_model_input_1p),
     "DefenseZone_2P": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_2p, set_model_input_2p),
-    "Passing_2P": (init_passing, rf_passing, isdone_passing, init_model_2p, set_model_input_2p),
+    "Passing_2P": (init_passing, rf_passing, isdone_passing, init_model_2p_passing, set_model_input_2p_passing),
     "General_1P": (init_general, rf_general, isdone_general, init_model_1p, set_model_input_1p),
 }
 
