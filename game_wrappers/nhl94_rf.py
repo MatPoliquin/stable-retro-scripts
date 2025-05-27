@@ -30,6 +30,56 @@ def RandomPosDefenseZone():
     #print(x,y)
     return x, y
 
+def init_model_1p():
+    return 16
+
+def set_model_input_1p(game_state):
+    t1 = game_state.team1
+    t2 = game_state.team2
+
+    return (t1.nz_players[0].x, t1.nz_players[0].y, \
+                        t1.nz_players[0].vx, t1.nz_players[0].vy, \
+                        t2.nz_players[0].x, t2.nz_players[0].y, \
+                        t2.nz_players[0].vx, t2.nz_players[0].vy, \
+                        game_state.nz_puck.x, game_state.nz_puck.y, \
+                        game_state.nz_puck.vx, game_state.nz_puck.vy, \
+                        t2.nz_goalie.x, t2.nz_goalie.y, \
+                        t1.nz_player_haspuck, t2.nz_goalie_haspuck)
+
+def init_model_2p():
+    return 24
+
+def set_model_input_2p(model_input, game_state):
+    t1 = game_state.team1
+    t2 = game_state.team2
+
+    p1_x, p1_y = t1.nz_players[0].x, t1.nz_players[0].y
+    p1_vel_x, p1_vel_y = t1.nz_players[0].vx, t1.nz_players[0].vy
+    p1_2_x, p1_2_y = t1.nz_players[1].x, t1.nz_players[1].y
+    p1_2_vel_x, p1_2_vel_y = t1.nz_players[1].vx, t1.nz_players[1].vy
+
+    # First two slots is for pos/vel of player beeing controled (empty or full star)
+    # So swap them if necessary
+    if t1.control == 2:
+        p1_x, p1_2_x = p1_2_x, p1_x
+        p1_y, p1_2_y = p1_2_y, p1_y
+        p1_vel_x, p1_2_vel_x = p1_2_vel_x, p1_vel_x
+        p1_vel_y, p1_2_vel_y = p1_2_vel_y, p1_vel_y
+
+    state = (p1_x, p1_y, \
+            p1_vel_x, p1_vel_y, \
+            p1_2_x, p1_2_y, \
+            p1_2_vel_x, p1_2_vel_y, \
+            t2.nz_players[0].x, t2.nz_players[0].y, \
+            t2.nz_players[0].vx, t2.nz_players[0].vy, \
+            t2.nz_players[1].x, t2.nz_players[1].y, \
+            t2.nz_players[1].vx, t2.nz_players[1].vy, \
+            game_state.nz_puck.x, game_state.nz_puck.y, \
+            game_state.nz_puck.vx, game_state.nz_puck.vy, \
+            t2.nz_goalie.x, t2.nz_goalie.y, \
+            t1.nz_player_haspuck, t2.nz_goalie_haspuck)
+
+
 # =====================================================================
 # General
 # =====================================================================
@@ -378,13 +428,15 @@ def rf_passing(state):
 # Register Functions
 # =====================================================================
 _reward_function_map = {
-    "GetPuck": (init_getpuck, rf_getpuck, isdone_getpuck),
-    "ScoreGoal": (init_scoregoal, rf_scoregoal, isdone_scoregoal),
-    "ScoreGoal02": (init_scoregoal02, rf_scoregoal02, isdone_scoregoal02),
-    "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck),
-    "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone),
-    "Passing": (init_passing, rf_passing, isdone_passing),
-    "General": (init_general, rf_general, isdone_general),
+    "GetPuck_1P": (init_getpuck, rf_getpuck, isdone_getpuck, init_model_1p, set_model_input_1p),
+    "GetPuck_2P": (init_getpuck, rf_getpuck, isdone_getpuck, init_model_2p, set_model_input_2p),
+    "ScoreGoal_1P": (init_scoregoal, rf_scoregoal, isdone_scoregoal, init_model_1p, set_model_input_1p),
+    "ScoreGoal_2P": (init_scoregoal02, rf_scoregoal02, isdone_scoregoal02, init_model_2p, set_model_input_2p),
+    "KeepPuck_1P": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model_1p, set_model_input_1p),
+    "DefenseZone_1P": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_1p, set_model_input_1p),
+    "DefenseZone_2P": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_2p, set_model_input_2p),
+    "Passing_2P": (init_passing, rf_passing, isdone_passing, init_model_2p, set_model_input_2p),
+    "General_1P": (init_general, rf_general, isdone_general, init_model_1p, set_model_input_1p),
 }
 
 def register_functions(name: str) -> Tuple[Callable, Callable, Callable]:

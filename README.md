@@ -9,6 +9,11 @@
 * Play against an improved AI opponent
 * Emulator Frontend library using Pytorch C++ to able to play against stable-retro models in apps like RetroArch
 
+### Supported models
+*   MLPs
+*   Nature CNN (from DeepMind)
+*   Impala CNN (from DeepMind)
+*   Combined Input models (image + scalar)
 
 NHL94 (1 on 1)           |  Wrestlemania: The Arcade game |  Virtua Fighter 1
 :-------------------------:|:-------------------------:|:-------------------------:

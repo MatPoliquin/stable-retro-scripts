@@ -14,8 +14,6 @@ from game_wrappers.nhl94_rf import register_functions
 from game_wrappers.nhl94_ai import NHL94AISystem
 from game_wrappers.nhl94_gamestate import NHL94GameState
 
-NUM_PARAMS_1ON1 = 16
-NUM_PARAMS_2ON2 = 24
 
 class NHL94Observation2PEnv(gym.Wrapper):
     def __init__(self, env, args, num_players, rf_name):
@@ -23,14 +21,15 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         self.nn = args.nn
 
-        self.NUM_PARAMS = 0
+        self.rf_name = rf_name
+        self.init_function, self.reward_function, self.done_function, self.init_model, self.set_model_input = register_functions(self.rf_name)
+
+        self.NUM_PARAMS = self.init_model()
         self.num_players_per_team = 0
         if args.env == 'NHL941on1-Genesis':
             self.num_players_per_team = 1
-            self.NUM_PARAMS = NUM_PARAMS_1ON1
         else:
             self.num_players_per_team = 2
-            self.NUM_PARAMS = NUM_PARAMS_2ON2
 
         self.game_state = NHL94GameState(self.num_players_per_team)
 
@@ -44,8 +43,6 @@ class NHL94Observation2PEnv(gym.Wrapper):
             })
         else:
             self.observation_space = spaces.Box(low, high, dtype=np.float32)
-
-        self.reward_function = None
 
         #self.action_space = 12 * [0]
 
@@ -63,13 +60,6 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.ram_inited = False
         self.b_button_pressed = False
         self.c_button_pressed = False
-
-        self.rf_name = rf_name
-        self.reward_function = None
-        self.done_function = None
-        self.init_function = None
-
-        self.init_function, self.reward_function, self.done_function = register_functions(self.rf_name)
 
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
@@ -137,47 +127,10 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         self.game_state.EndFrame()
 
-        t1 = self.game_state.team1
-        t2 = self.game_state.team2
-
-        if self.num_players_per_team == 1:
-            self.state = (t1.nz_players[0].x, t1.nz_players[0].y, \
-                        t1.nz_players[0].vx, t1.nz_players[0].vy, \
-                        t2.nz_players[0].x, t2.nz_players[0].y, \
-                        t2.nz_players[0].vx, t2.nz_players[0].vy, \
-                        self.game_state.nz_puck.x, self.game_state.nz_puck.y, \
-                        self.game_state.nz_puck.vx, self.game_state.nz_puck.vy, \
-                        t2.nz_goalie.x, t2.nz_goalie.y, \
-                        t1.nz_player_haspuck, t2.nz_goalie_haspuck)
-
-        elif self.num_players_per_team == 2:
-            p1_x, p1_y = t1.nz_players[0].x, t1.nz_players[0].y
-            p1_vel_x, p1_vel_y = t1.nz_players[0].vx, t1.nz_players[0].vy
-            p1_2_x, p1_2_y = t1.nz_players[1].x, t1.nz_players[1].y
-            p1_2_vel_x, p1_2_vel_y = t1.nz_players[1].vx, t1.nz_players[1].vy
-
-            # First two slots is for pos/vel of player beeing controled (empty or full star)
-            # So swap them if necessary
-            if t1.control == 2:
-                p1_x, p1_2_x = p1_2_x, p1_x
-                p1_y, p1_2_y = p1_2_y, p1_y
-                p1_vel_x, p1_2_vel_x = p1_2_vel_x, p1_vel_x
-                p1_vel_y, p1_2_vel_y = p1_2_vel_y, p1_vel_y
-
-
-            self.state = (p1_x, p1_y, \
-                        p1_vel_x, p1_vel_y, \
-                        p1_2_x, p1_2_y, \
-                        p1_2_vel_x, p1_2_vel_y, \
-                        t2.nz_players[0].x, t2.nz_players[0].y, \
-                        t2.nz_players[0].vx, t2.nz_players[0].vy, \
-                        t2.nz_players[1].x, t2.nz_players[1].y, \
-                        t2.nz_players[1].vx, t2.nz_players[1].vy, \
-                        self.game_state.nz_puck.x, self.game_state.nz_puck.y, \
-                        self.game_state.nz_puck.vx, self.game_state.nz_puck.vy, \
-                        t2.nz_goalie.x, t2.nz_goalie.y, \
-                        t1.nz_player_haspuck, t2.nz_goalie_haspuck)
-
+        # ============================
+        # SET MODEL INPUT
+        # ============================
+        self.state = self.set_model_input(self.game_state)
         #ob = self.state
 
         #return ob, rew, terminated, truncated, info
