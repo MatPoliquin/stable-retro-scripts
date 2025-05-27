@@ -293,10 +293,10 @@ def rf_defensezone(state):
 
     rew = 0
 
-    if state.player_haspuck == False:
-        if state.distToPuck < state.last_dist:
+    if t1.player_haspuck == False:
+        if t1.distToPuck < t1.last_distToPuck:
             #rew = 1.0 / (1.0 + scaled_dist)
-            rew = 1 - (state.distToPuck / 200.0)**0.5
+            rew = 1 - (t1.distToPuck / 200.0)**0.5
             #print(state.distToPuck, rew)
         else:
             rew = -0.1
@@ -304,25 +304,25 @@ def rf_defensezone(state):
         rew = 1
 
 
-    if state.state.stats.bodychecks > state.last_bodychecks:
+    if t1.stats.bodychecks > t1.last_stats.bodychecks:
         rew = 1.0
 
-    if state.t1.stats.passing > state.t1.stats.last_passing:
+    if t1.stats.passing > t1.last_stats.passing:
         rew = 1.0
 
-    if not state.t1.player_haspuck:
-        if state.players[0].y > -80:
+    if not t1.player_haspuck:
+        if t1.players[0].y > -80:
             rew = -1.0
         if state.puck.y > -80:
             rew = -1.0
 
-    if state.t1.goalie_haspuck:
+    if t1.goalie_haspuck:
         rew = -1.0
 
-    if state.t2.stats.score > state.t2.last_stats.score:
+    if t2.stats.score > t2.last_stats.score:
         rew = -1.0
 
-    if state.t2.stats.shots > state.t2.last_stats.shots:
+    if t2.stats.shots > t2.last_stats.shots:
         rew = -1.0
 
     #if state.time < 200:

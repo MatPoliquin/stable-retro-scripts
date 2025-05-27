@@ -77,8 +77,15 @@ class Team():
         self.stats.attackzone = info.get(f"{self.ram_var_prefix}attackzone")
         self.stats.faceoffwon = info.get(f"{self.ram_var_prefix}faceoffwon")
         self.stats.passing = info.get(f"{self.ram_var_prefix}passing")
-        self.stats.fullstar_x = info.get(f"{self.ram_var_prefix}fullstar_x", 0)
-        self.stats.fullstar_y = info.get(f"{self.ram_var_prefix}fullstar_y", 0)
+
+        # special case for team 1 as the stable-retro ram var name don't have the prefix
+        if self.controller == 1:
+            self.stats.fullstar_x = info.get(f"fullstar_x")
+            self.stats.fullstar_y = info.get(f"fullstar_y")
+        else:
+            self.stats.fullstar_x = info.get(f"{self.ram_var_prefix}fullstar_x")
+            self.stats.fullstar_y = info.get(f"{self.ram_var_prefix}fullstar_y")
+
         self.stats.emptystar_x = info.get(f"{self.ram_var_prefix}emptystar_x", 0)
         self.stats.emptystar_y = info.get(f"{self.ram_var_prefix}emptystar_y", 0)
 
@@ -105,7 +112,7 @@ class Team():
         # Knowing if the player has the puck is tricky since the fullstar in the game is not aligned with the player every frame
         # There is an offset of up to 2 sometimes
         self.player_haspuck = False
-        for p in range(0, self.num_players - 1):
+        for p in range(0, self.num_players):
             if self.has_puck(self.players[p].x, self.players[p].y):
                 self.player_haspuck = True
 
@@ -139,11 +146,13 @@ class Team():
         self.nz_goalie.vx = self.goalie.vx / GameConsts.MAX_VEL_XY
         self.nz_goalie.vy = self.goalie.vy / GameConsts.MAX_VEL_XY
 
-        self.nz_player_haspuck = 1.0 if self.player_haspuck else 0.0
-        self.nz_goalie_haspuck = 1.0 if self.goalie_haspuck else 0.0
+        # 0.0 and 1.0 switched around due to current models trained that way
+        self.nz_player_haspuck = 0.0 if self.player_haspuck else 1.0
+        self.nz_goalie_haspuck = 0.0 if self.goalie_haspuck else 1.0
 
     def debug_print(self):
         print(f"Team controller: {self.controller}")
+        print(f"Team player prefix: {self.ram_var_prefix}")
         self.stats.debug_print("Stats")
         self.last_stats.debug_print("Last Stats")
         print(f"Number of players: {self.num_players}")
@@ -164,8 +173,8 @@ class Team():
 
 class NHL94GameState():
     def __init__(self, numPlayers):
-        self.team1 = Team(0, numPlayers)
-        self.team2 = Team(1, numPlayers)
+        self.team1 = Team(1, numPlayers)
+        self.team2 = Team(2, numPlayers)
         self.puck = Player()
         self.time = 0
         self.last_time = 0
@@ -176,6 +185,7 @@ class NHL94GameState():
     # Flip the variables
     def Flip(self):
         self.team1, self.team2 = self.team2, self.team1
+        return
 
     def BeginFrame(self, info):
         self.time = info.get("time")
@@ -205,14 +215,14 @@ class NHL94GameState():
         self.team1.end_frame()
         self.team2.end_frame()
 
-        self.debug_print()
+        #self.debug_print()
 
     def debug_print(self):
         print("===================================================================")
         print(f"Game time: {self.time}, Last time: {self.last_time}")
         self.puck.debug_print("Puck")
         self.nz_puck.debug_print("NZ Puck")
-        print("Team 1 State:")
+        print("=== Team 1 State: ===")
         self.team1.debug_print()
-        print("Team 2 State:")
+        print("=== Team 2 State: ===")
         self.team2.debug_print()
