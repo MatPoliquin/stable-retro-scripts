@@ -5,9 +5,9 @@ from game_wrappers.nhl94_ai import NHL94AISystem
 
 from game_wrappers.pong_obs import PongObservationEnv
 from game_wrappers.fighter_obs import FighterObservationEnv
-from game_wrappers.display import PvPGameDisplayEnv, GameDisplayEnv
+from game_wrappers.display import GameDisplayEnv
+from game_wrappers.display_pvp import PvPGameDisplayEnv
 from game_wrappers.ai_sys import AISys
-from game_wrappers.compare_model_display import CompareModelDisplay
 
 class GameWrapperManager(object):
     def __new__(cls):
@@ -19,13 +19,11 @@ class GameWrapperManager(object):
         self.pvp_display_env = None
         self.sp_display_env = None
         self.ai_sys = None
-        self.compare_model = None
 
     def init(self, args):
         self.pvp_display_env = PvPGameDisplayEnv
         self.sp_display_env = GameDisplayEnv
         self.ai_sys = AISys
-        self.compare_model = CompareModelDisplay
 
         # overide with game specific wrappers
         if args.env == 'NHL941on1-Genesis' or args.env == 'NHL942on2-Genesis' or args.env == 'NHL94-Genesis':
