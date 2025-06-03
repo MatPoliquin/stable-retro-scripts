@@ -1,5 +1,7 @@
 """
-Pong Observation wrapper
+Fighter game Observation wrapper
+Supports:
+MortalKombatII-Genesis
 """
 
 import gymnasium as gym
@@ -7,11 +9,11 @@ from gymnasium import spaces
 from gymnasium.spaces import Dict, Box
 import numpy as np
 
-NUM_PARAMS = 6
-MAX_XY = 210
-MAX_VEL_XY = 2
+NUM_PARAMS = 2
+MIN_X = 284
+MAX_X = 1147
 
-class PongObservationEnv(gym.Wrapper):
+class FighterObservationEnv(gym.Wrapper):
     def __init__(self, env, args, num_players, rf_name):
         gym.Wrapper.__init__(self, env)
 
@@ -28,10 +30,8 @@ class PongObservationEnv(gym.Wrapper):
         else:
             self.observation_space = spaces.Box(low, high, dtype=np.float32)
 
-        self.last_ball_x = 0
-        self.last_ball_y = 0
-        self.last_p1_score = 0
-        self.last_p2_score = 0
+        self.last_p1_health = 0
+        self.last_p2_health = 0
 
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
@@ -47,48 +47,40 @@ class PongObservationEnv(gym.Wrapper):
             return self.state, info
 
     def calc_reward(self, info):
-        p1_score = info.get('score2')
-        p2_score = info.get('score1')
+        p1_health = info.get('health')
+        p2_health = info.get('enemy_health')
 
         rew = 0
 
-        if(p1_score > self.last_p1_score):
-            rew=1.0
-        if(p2_score > self.last_p2_score):
-            rew=-1.0
+        if(p1_health < self.last_p1_health):
+            rew = -1.0
+        if(p2_health < self.last_p2_health):
+            rew = 1.0
 
-        self.last_p1_score = p1_score
-        self.last_p2_score = p2_score
+        self.last_p1_health = p1_health
+        self.last_p2_health = p2_health
 
         return rew
 
     def step(self, ac):
         ob, rew, terminated, truncated, info = self.env.step(ac)
 
-        rew = self.calc_reward(info)
-
-        ball_x = info.get('ball_x')
-        ball_y = info.get('ball_y')
-        p1_y = info.get('p1_pos')
-        p2_y = info.get('p2_pos')
-
-        ball_velx = (self.last_ball_x - ball_x)
-        ball_vely = (self.last_ball_y - ball_y)
-
-        self.state = (p1_y / MAX_XY, p2_y / MAX_XY, \
-                     ball_x / MAX_XY, ball_y / MAX_XY, \
-                     ball_velx / MAX_VEL_XY, ball_vely / MAX_VEL_XY)
-
-        self.last_ball_x = ball_x
-        self.last_ball_y = ball_y
-
         if self.nn == 'CombinedPolicy':
+            rew = self.calc_reward(info)
+
+            max_width = (MAX_X - MIN_X)
+            p1_pos_x = (info.get('x_position') - MIN_X) / max_width
+            #p1_pos_y = info.get('y_position')
+            p2_pos_x = (info.get('enemy_x_position') - MIN_X) / max_width
+            #p2_pos_y = info.get('enemy_y_position')
+
+            self.state = (p1_pos_x, p2_pos_x)
             return {
                  'image': ob,
                  'scalar': self.state
             }, rew, terminated, truncated, info
         else:
-            return self.state, rew, terminated, truncated, info
+            return ob, rew, terminated, truncated, info
 
     def seed(self, s):
         self.rng.seed(s)

@@ -164,7 +164,7 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
 
     env.seed(seed)
 
-    if not isMLP(args.nn):
+    if not isMLP(args.nn) or args.nn == 'CombinedPolicy':
         env = VecFrameStack(env, n_stack=4)
         #env = VecTransposeImage(env)
 
