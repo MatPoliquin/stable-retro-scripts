@@ -2,8 +2,46 @@ import unittest
 import subprocess
 import sys
 import os
+import torch
 
+#========================================================
+# Pytorch
+#========================================================
+class TestPyTorchInstallation(unittest.TestCase):
+    def test_torch_import(self):
+        """Test if torch module can be imported."""
+        try:
+            import torch
+        except ImportError:
+            self.fail("PyTorch is not installed or cannot be imported.")
 
+    def test_torch_version(self):
+        """Test if torch.version is accessible and returns a string."""
+        version = torch.__version__
+        self.assertIsInstance(version, str, "Torch version is not a string.")
+        self.assertTrue(len(version) > 0, "Torch version string is empty.")
+
+    def test_tensor_creation(self):
+        """Test if we can create a tensor."""
+        tensor = torch.tensor([1,2,3])
+        self.assertTrue(torch.is_tensor(tensor), "Created object is not a tensor.")
+
+    def test_tensor_operations(self):
+        """Test basic tensor operations."""
+        a = torch.tensor([1,2,3])
+        b = torch.tensor([4,5,6])
+        c = a + b
+        expected = torch.tensor([5,7,9])
+        self.assertTrue(torch.equal(c, expected), "Tensor addition result is incorrect.")
+
+    def test_cuda_availability(self):
+        """Check if CUDA is available or not."""
+        cuda_available = torch.cuda.is_available()
+        self.assertIsInstance(cuda_available, bool, "CUDA availability should be boolean.")
+
+#========================================================
+# Stable-baselines 3
+#========================================================
 class TestSB3(unittest.TestCase):
 
     def test_single_player(self):
@@ -70,6 +108,7 @@ class TestSB3(unittest.TestCase):
             env = WarpFrame(env)                         # Downsamples the game frame buffer to 84x84 greyscale pixel
             env = FrameStack(env, 4)                     # Creates a stack of the last 4 frames to encode velocity
             env = ClipRewardEnv(env)                     # Make sure returned reward from env is not out of bounds
+            env = DummyVecEnv([lambda: env])
 
             # Create p1 model that will be trained with PPO2 algo
             p1_model = PPO(policy=POLICY, env=env, verbose=False)
@@ -121,6 +160,9 @@ class TestSB3(unittest.TestCase):
             env_2p.close()
             sys.stdout = original_stdout
 
+#========================================================
+# Scripts
+#========================================================
 class TestScripts(unittest.TestCase):
 
     def test_trainer(self):
@@ -142,12 +184,62 @@ class TestScripts(unittest.TestCase):
         #self.assertIn("Expected output or status", result.stdout)
 
     def test_model_vs_game(self):
-        #TODO
-        return
+        command = [
+            "python3",
+            "model_vs_game.py",
+            "--env=Airstriker-Genesis",
+            "--num_timesteps=1_000",
+            "--model_1=../models/airstriker_nature_cnn.zip"
+        ]
+
+        # Run the command and check that it completes successfully
+        try:
+            result = subprocess.run(command, check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as e:
+            self.fail(f"Command failed with return code {e.returncode}\nSTDERR: {e.stderr}")
 
     def test_model_vs_model(self):
-        #TODO
+        command = [
+            "python3",
+            "model_vs_model.py",
+            "--env=Pong-Atari2600",
+            "--load_p1_model=../models/pong_nature_cnn.zip",
+            "--load_p2_model=../models/pong_nature_cnn.zip"
+        ]
+
+        # Run the command and check that it completes successfully
+        try:
+            result = subprocess.run(command, check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as e:
+            self.fail(f"Command failed with return code {e.returncode}\nSTDERR: {e.stderr}")
         return
+
+#========================================================
+# Models
+#========================================================
+class TestModels(unittest.TestCase):
+    base_command = [
+        "python3",
+        "model_trainer.py",
+        "--env=Pong-Atari2600",
+        "--num_env=2",
+        "--num_timesteps=1_000"
+    ]
+
+    def run_command(self, nn_policy):
+        command = self.base_command + [f"--nn={nn_policy}"]
+        try:
+            result = subprocess.run(command, check=True, capture_output=True, text=True)
+            return result
+        except subprocess.CalledProcessError as e:
+            self.fail(f"Command failed with return code {e.returncode}\nSTDERR: {e.stderr}")
+
+    def test_policies(self):
+        for policy in ["CnnPolicy", "CustomCnnPolicy", "CustomMlpPolicy", "MlpPolicy", "CombinedPolicy", "ImpalaCnnPolicy"]:
+            with self.subTest(nn_policy=policy):
+                result = self.run_command(policy)
+                # Example assertion, modify as needed:
+                # self.assertIn("Training completed", result.stdout)
 
 if __name__ == '__main__':
     # Run the unit tests and display simple report
