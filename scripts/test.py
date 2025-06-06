@@ -3,6 +3,7 @@ import subprocess
 import sys
 import os
 import torch
+import argparse
 
 #========================================================
 # Pytorch
@@ -92,9 +93,8 @@ class TestSB3(unittest.TestCase):
             import retro
             import numpy as np
             from stable_baselines3 import PPO
-            from stable_baselines3.common.vec_env import DummyVecEnv
+            from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
             from stable_baselines3.common.atari_wrappers import WarpFrame, ClipRewardEnv
-            from gymnasium.wrappers import FrameStack
 
             GAME_ENV = 'Pong-Atari2600'
             STATE_1P = 'Start'
@@ -104,11 +104,12 @@ class TestSB3(unittest.TestCase):
 
             original_stdout = sys.stdout
             # Create Env
-            env = retro.make(game=GAME_ENV, state=STATE_1P) # Creates the env that contains the genesis emulator
+            env = retro.make(game=GAME_ENV, state=STATE_1P, render_mode="rgb_array") # Creates the env that contains the genesis emulator
             env = WarpFrame(env)                         # Downsamples the game frame buffer to 84x84 greyscale pixel
-            env = FrameStack(env, 4)                     # Creates a stack of the last 4 frames to encode velocity
             env = ClipRewardEnv(env)                     # Make sure returned reward from env is not out of bounds
             env = DummyVecEnv([lambda: env])
+            env = VecFrameStack(env, n_stack=4)
+
 
             # Create p1 model that will be trained with PPO2 algo
             p1_model = PPO(policy=POLICY, env=env, verbose=False)
@@ -124,11 +125,12 @@ class TestSB3(unittest.TestCase):
             env.close()
 
             # Create 2 player env
-            env_2p = retro.make(game=GAME_ENV, state=STATE_2P, players=2) # Creates the env that contains the genesis emulator
+            env_2p = retro.make(game=GAME_ENV, state=STATE_2P, players=2, render_mode="rgb_array") # Creates the env that contains the genesis emulator
             env_2p = WarpFrame(env_2p)                         # Downsamples the game frame buffer to 84x84 greyscale pixel
-            env_2p = FrameStack(env_2p, 4)                     # Creates a stack of the last 4 frames to encode velocity
             env_2p = ClipRewardEnv(env_2p)                     # Make sure returned reward from env is not out of bounds
             env_2p = DummyVecEnv([lambda: env_2p])
+            env_2p = VecFrameStack(env_2p, n_stack=4)
+
             #env_2p = VecTransposeImage(env_2p)
 
             # Test the trained model
@@ -144,7 +146,7 @@ class TestSB3(unittest.TestCase):
 
                 #actions = env_2p.unwrapped.action_space.sample()
                 actions = np.append(p1_actions[0], p2_actions[0])
-                print(actions)
+                #print(actions)
 
                 # pass those actions to the environement (emulator) so it can generate the next frame
                 # return:
@@ -242,5 +244,32 @@ class TestModels(unittest.TestCase):
                 # self.assertIn("Training completed", result.stdout)
 
 if __name__ == '__main__':
-    # Run the unit tests and display simple report
-    unittest.main(verbosity=2)
+    parser = argparse.ArgumentParser(description="Run unit tests with verbosity option.")
+    parser.add_argument(
+        '-v', '--verbosity',
+        type=int,
+        default=2,  # default verbosity = 2 (detailed)
+        choices=[0, 1, 2],
+        help="Set verbosity level for unittest (0 = quiet, 1 = default, 2 = detailed). Default is 2."
+    )
+    parser.add_argument(
+        '--test',
+        type=str,
+        default=None,
+        help="Specify a test or test pattern to run (e.g., TestSB3.test_single_player)"
+    )
+    args, unknown = parser.parse_known_args()
+
+    # Build argv to pass to unittest.main()
+    # Start with script name
+    unittest_argv = [sys.argv[0]]
+
+    if args.test:
+        # Add the test name or pattern to argv for unittest
+        unittest_argv.append(args.test)
+
+    # Append any unknown args (like -v, etc. not parsed by argparse)
+    unittest_argv.extend(unknown)
+
+    # Run the unit tests and display report with user-defined verbosity
+    unittest.main(verbosity=args.verbosity, argv=unittest_argv)
