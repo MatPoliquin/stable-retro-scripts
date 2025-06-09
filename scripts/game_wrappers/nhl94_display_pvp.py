@@ -9,10 +9,9 @@ environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame # pylint: disable=wrong-import-position,wrong-import-order
 import pygame.freetype # pylint: disable=wrong-import-position,wrong-import-order
 
-class NHL94PvPGameDisplayEnv(gym.Wrapper):
+class NHL94PvPGameDisplayEnv():
     def __init__(self, env, args, model1_desc, model2_desc, model1_params, model2_params, button_names):
-        gym.Wrapper.__init__(self, env)
-
+        self.env = env
 
         self.FB_WIDTH = args.display_width
         self.FB_HEIGHT = args.display_height
@@ -130,7 +129,7 @@ class NHL94PvPGameDisplayEnv(gym.Wrapper):
     def step(self, ac):
         ob, rew, done, info = self.env.step(ac)
 
-        framebuffer = self.render()
+        framebuffer = self.env.render()
 
         self.draw_frame(framebuffer)
 

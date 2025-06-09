@@ -32,7 +32,7 @@ class GameDisplayEnv(gym.Wrapper):
     MAX_REWARDS = 200
 
     def __init__(self, env, args, total_params, nn_type, button_names):
-        super().__init__(env)
+        self.env = env
 
         # Layout positions as a dict for readability
         self.positions = {

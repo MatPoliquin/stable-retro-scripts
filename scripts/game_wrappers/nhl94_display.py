@@ -9,7 +9,7 @@ import pygame
 import pygame.freetype
 
 
-class NHL94GameDisplayEnv(gym.Wrapper):
+class NHL94GameDisplayEnv():
     FB_WIDTH = 1920
     FB_HEIGHT = 1080
     GAME_WIDTH = 320 * 4
@@ -30,7 +30,7 @@ class NHL94GameDisplayEnv(gym.Wrapper):
     MAX_REWARDS = 200
 
     def __init__(self, env, args, total_params, nn_type, button_names):
-        super().__init__(env)
+        self.env = env
 
         # Layout positions as a dict for readability
         self.positions = {
@@ -114,7 +114,7 @@ class NHL94GameDisplayEnv(gym.Wrapper):
 
         self.set_reward(rew)
 
-        framebuffer = self.render()
+        framebuffer = self.env.render()
 
         self.draw_frame(framebuffer, None, obs, info)
 

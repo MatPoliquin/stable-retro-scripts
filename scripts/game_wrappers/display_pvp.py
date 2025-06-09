@@ -15,10 +15,8 @@ import pygame.freetype # pylint: disable=wrong-import-position
 FB_WIDTH = 1920
 FB_HEIGHT = 1080
 
-class PvPGameDisplayEnv(gym.Wrapper):
+class PvPGameDisplayEnv():
     def __init__(self, env, args, model1_desc, model2_desc, model1_params, model2_params, button_names):
-        gym.Wrapper.__init__(self, env)
-
         self.GAME_WIDTH = 320 * 4
         self.GAME_HEIGHT = 240 * 4
         self.BASIC_INFO_X = (FB_WIDTH >> 1) - 50
@@ -38,6 +36,7 @@ class PvPGameDisplayEnv(gym.Wrapper):
 
         # Init Window
         pygame.init()
+        self.env = env
         self.screen = pygame.display.set_mode((args.display_width, args.display_height))
         self.main_surf = pygame.Surface((FB_WIDTH, FB_HEIGHT))
         self.main_surf.set_colorkey((0,0,0))
@@ -125,13 +124,12 @@ class PvPGameDisplayEnv(gym.Wrapper):
         return self.env.reset(**kwargs)
 
     def set_ai_sys_info(self, ai_sys):
-
         return
 
     def step(self, ac):
         ob, rew, done, info = self.env.step(ac)
 
-        framebuffer = self.render()
+        framebuffer = self.env.render()
 
         self.draw_frame(framebuffer)
 
