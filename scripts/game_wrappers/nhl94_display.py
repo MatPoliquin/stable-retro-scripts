@@ -7,7 +7,7 @@ from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
 from game_wrappers.nhl94_gamestate import NHL94GameState
 import pygame
 import pygame.freetype
-
+import cv2
 
 class NHL94GameDisplayEnv():
     FB_WIDTH = 1920
@@ -92,6 +92,16 @@ class NHL94GameDisplayEnv():
             pygame.K_s: 10,
             pygame.K_d: 11,
         }
+
+        # Initialize OpenCV video writer
+        if args.video:
+            fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            self.video_writer = cv2.VideoWriter(args.video_path, fourcc, 60.0, (self.FB_WIDTH, self.FB_HEIGHT))
+
+    def close(self):
+        if self.args.video:
+            self.video_writer.release()
+        pygame.quit()
 
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
@@ -273,11 +283,19 @@ class NHL94GameDisplayEnv():
 
         pygame.display.flip()
 
+        if self.args.video:
+            # Capture the current Pygame screen as an array
+            frame = pygame.surfarray.array3d(self.screen)
+            # Convert from (width, height, channels) to (height, width, channels) and RGB to BGR for OpenCV
+            frame_bgr = cv2.cvtColor(np.transpose(frame, (1, 0, 2)), cv2.COLOR_RGB2BGR)
+            self.video_writer.write(frame_bgr)
+
         keystate = self.get_input()
         self.process_key_state(keystate)
 
     def process_key_state(self, keystate):
         if keystate[pygame.K_q] or keystate[pygame.K_ESCAPE]:
+            self.close()
             raise SystemExit("User requested exit")
 
         for key, idx in self.key_action_map.items():

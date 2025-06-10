@@ -30,6 +30,8 @@ def parse_cmdline(argv):
     parser.add_argument('--fullscreen', default=False, action='store_true')
     parser.add_argument('--rf', type=str, default='')
     #parser.add_argument('--useframeskip', default=False, action='store_true')
+    parser.add_argument('--video', default=False, action='store_true')
+    parser.add_argument('--video_path', type=str, default='../retro_game.avi')
 
     args = parser.parse_args(argv)
 
