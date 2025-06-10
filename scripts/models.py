@@ -6,8 +6,45 @@ from torchsummary import summary
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.policies import ActorCriticPolicy
 import gymnasium as gym
+import timm
+
+# ==========================================================================================
+class ViTFeatureExtractor(BaseFeaturesExtractor):
+    def __init__(self, observation_space, features_dim=256):
+        super(ViTFeatureExtractor, self).__init__(observation_space, features_dim)
+
+        # Expecting image observation only (C, H, W)
+        channels, height, width = observation_space.shape
+
+        # Load pretrained ViT base model with patch size 16 (adjust as you see fit)
+        self.vit = timm.create_model('vit_base_patch16_224', pretrained=True)
+
+        # Adjust input conv if there is channel mismatch
+        if channels != 3:
+            self.vit.patch_embed.proj = nn.Conv2d(channels, self.vit.embed_dim, kernel_size=16, stride=16)
+
+        # Remove classifier head, keep feature extraction only
+        self.vit.head = nn.Identity()
+
+        # Project ViT output dimension to desired features_dim
+        self.linear = nn.Linear(self.vit.embed_dim, features_dim)
+
+    def forward(self, observations: th.Tensor) -> th.Tensor:
+        # Resize input to 224x224 as ViT expects fixed input size
+        x = nn.functional.interpolate(observations, size=(224, 224), mode='bilinear', align_corners=False)
+
+        features = self.vit(x)
+        return self.linear(features)
 
 
+class ViTPolicy(ActorCriticPolicy):
+    def __init__(self, *args, **kwargs):
+        super(ViTPolicy, self).__init__(
+            *args,
+            **kwargs,
+            features_extractor_class=ViTFeatureExtractor,
+            features_extractor_kwargs=dict(features_dim=256),
+        )
 # ==========================================================================================
 class CustomCombinedExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.spaces.Dict, cnn_output_dim=128):
@@ -254,6 +291,9 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
     elif args.nn == 'CombinedPolicy':
         #size = args.nnsize
         nn_type = CustomPolicy
+        policy_kwargs = {}
+    elif args.nn == 'ViTPolicy':
+        nn_type = ViTPolicy
         policy_kwargs = {}
 
     if player_alg == 'ppo2':

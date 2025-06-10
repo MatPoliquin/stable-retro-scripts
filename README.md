@@ -14,6 +14,7 @@
 *   Nature CNN (from DeepMind)
 *   Impala CNN (from DeepMind)
 *   Combined Input models (image + scalar)
+*   Vision Transformers
 
 NHL94 (1 on 1)           |  Wrestlemania: The Arcade game |  Virtua Fighter 1
 :-------------------------:|:-------------------------:|:-------------------------:
@@ -41,7 +42,7 @@ git clone https://github.com/Farama-Foundation/stable-retro.git
 cd stable-retro
 pip3 install -e .
 
-pip3 install "stable_baselines3[extra]" pygame torchsummary
+pip3 install "stable_baselines3[extra]" pygame torchsummary opencv-python timm
 ```
 
 Windows WSL2 + Ubuntu 22.04 setup guide: https://www.youtube.com/watch?v=vPnJiUR21Og
