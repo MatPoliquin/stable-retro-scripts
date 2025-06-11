@@ -14,7 +14,10 @@
 *   Nature CNN (from DeepMind)
 *   Impala CNN (from DeepMind)
 *   Combined Input models (image + scalar)
+
+Experimental:
 *   Vision Transformers
+*   DART(Decision-making AI with Reinforcement Learning and Transformers)
 
 NHL94 (1 on 1)           |  Wrestlemania: The Arcade game |  Virtua Fighter 1
 :-------------------------:|:-------------------------:|:-------------------------:

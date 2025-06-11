@@ -8,6 +8,120 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 import gymnasium as gym
 import timm
 
+
+# ==========================================================================================
+class DartFeatureExtractor(BaseFeaturesExtractor):
+    """
+    Feature extractor for Dart model that uses decision trees for feature extraction.
+    """
+    def __init__(self, observation_space, features_dim=64):
+        super(DartFeatureExtractor, self).__init__(observation_space, features_dim)
+
+        # Determine input dimension based on observation space
+        if isinstance(observation_space, gym.spaces.Dict):
+            self.is_dict = True
+            self.flatten = nn.Flatten()
+            with th.no_grad():
+                sample = observation_space.sample()
+                sample_tensor = {k: th.as_tensor(v[None]).float() for k, v in sample.items()}
+                flattened_dim = sum(v.numel() for v in sample_tensor.values())
+        else:
+            self.is_dict = False
+            with th.no_grad():
+                sample_tensor = th.as_tensor(observation_space.sample()[None]).float()
+                flattened_dim = sample_tensor.numel()
+
+        # Tree-like layers with residual connections
+        self.tree_layer1 = nn.Sequential(
+            nn.Linear(flattened_dim, features_dim),
+            nn.ReLU(),
+            nn.Linear(features_dim, features_dim),
+        )
+
+        self.tree_layer2 = nn.Sequential(
+            nn.Linear(features_dim, features_dim),
+            nn.ReLU(),
+            nn.Linear(features_dim, features_dim),
+        )
+
+        self._features_dim = features_dim
+
+    def forward(self, observations):
+        if self.is_dict:
+            flattened = []
+            for key, value in observations.items():
+                flattened.append(self.flatten(value))
+            x = th.cat(flattened, dim=1)
+        else:
+            x = observations.flatten(start_dim=1)
+
+        out1 = self.tree_layer1(x)
+        out2 = self.tree_layer2(out1)
+        return out1 + out2  # Residual connection
+
+# ==========================================================================================
+class DartPolicy(ActorCriticPolicy):
+    """
+    Policy network for Dart model with tree-like feature extraction.
+    """
+    def __init__(self, observation_space, action_space, lr_schedule, net_arch=None, *args, **kwargs):
+        # Remove features_extractor_kwargs from kwargs if present
+        features_extractor_kwargs = kwargs.pop('features_extractor_kwargs', {})
+        features_extractor_kwargs['features_dim'] = features_extractor_kwargs.get('features_dim', 64)
+
+        super(DartPolicy, self).__init__(
+            observation_space,
+            action_space,
+            lr_schedule,
+            net_arch=net_arch or dict(pi=[64, 64], vf=[64, 64]),
+            features_extractor_class=DartFeatureExtractor,
+            features_extractor_kwargs=features_extractor_kwargs,
+            *args,
+            **kwargs
+        )
+
+        # Get the actual latent dimension from mlp_extractor
+        latent_dim_pi = self.mlp_extractor.latent_dim_pi
+        latent_dim_vf = self.mlp_extractor.latent_dim_vf
+
+        # Additional tree-like processing in policy head
+        self.policy_net = nn.Sequential(
+            nn.Linear(latent_dim_pi, latent_dim_pi),
+            nn.ReLU(),
+            nn.Linear(latent_dim_pi, latent_dim_pi),
+            nn.ReLU()
+        )
+
+        # Value head should output a single value
+        self.value_net = nn.Sequential(
+            nn.Linear(latent_dim_vf, latent_dim_vf),
+            nn.ReLU(),
+            nn.Linear(latent_dim_vf, 1),  # Output single value
+            nn.ReLU()
+        )
+
+    def forward(self, obs, deterministic=False):
+        features = self.extract_features(obs)
+        latent_pi, latent_vf = self.mlp_extractor(features)
+
+        # Additional tree-like processing
+        latent_pi = self.policy_net(latent_pi)
+
+        # Get value estimate (should be scalar per observation)
+        values = self.value_net(latent_vf).squeeze(-1)  # Remove extra dimension
+
+        distribution = self._get_action_dist_from_latent(latent_pi)
+        actions = distribution.get_actions(deterministic=deterministic)
+        return actions, values, distribution.log_prob(actions)
+
+    def predict_values(self, obs):
+        """
+        Get the value estimates for observations
+        """
+        features = self.extract_features(obs)
+        _, latent_vf = self.mlp_extractor(features)
+        return self.value_net(latent_vf).squeeze(-1)
+
 # ==========================================================================================
 class ViTFeatureExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space, features_dim=256):
@@ -270,48 +384,61 @@ def get_model_probabilities(model, state):
     return probs_np
 
 def init_model(output_path, player_model, player_alg, args, env, logger):
-    policy_kwargs=None
+    policy_kwargs = None
     nn_type = args.nn
+    size = args.nnsize
+
     if args.nn == 'MlpPolicy':
-        size = args.nnsize
         nn_type = 'MlpPolicy'
         policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=dict(pi=[size, size], vf=[size, size]))
     elif args.nn == 'CustomMlpPolicy':
-        size = args.nnsize
         nn_type = CustomMlpPolicy
         policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=[size, size], dropout_prob=0.3)
     elif args.nn == 'CustomCnnPolicy':
-        #size = args.nnsize
         nn_type = 'CnnPolicy'
-        policy_kwargs = dict(features_extractor_class=CustomCNN, features_extractor_kwargs=dict(features_dim=128),)
+        policy_kwargs = dict(features_extractor_class=CustomCNN, features_extractor_kwargs=dict(features_dim=128))
     elif args.nn == 'ImpalaCnnPolicy':
-        #size = args.nnsize
         nn_type = 'CnnPolicy'
-        policy_kwargs = dict(features_extractor_class=CustomImpalaFeatureExtractor,)
+        policy_kwargs = dict(features_extractor_class=CustomImpalaFeatureExtractor)
     elif args.nn == 'CombinedPolicy':
-        #size = args.nnsize
         nn_type = CustomPolicy
         policy_kwargs = {}
     elif args.nn == 'ViTPolicy':
         nn_type = ViTPolicy
         policy_kwargs = {}
+    elif args.nn == 'DartPolicy':
+        nn_type = DartPolicy
+        policy_kwargs = dict(
+            net_arch=dict(pi=[size, size], vf=[size, size]),
+            features_extractor_kwargs=dict(features_dim=128)
+        )
 
     if player_alg == 'ppo2':
         if player_model == '':
             batch_size = (128 * args.num_env) // 4
             print("batch_size:%d" % batch_size)
-            model = PPO(policy=nn_type, env=env, policy_kwargs=policy_kwargs, verbose=1, n_steps = 2048, n_epochs = 4, batch_size = batch_size, learning_rate = 2.5e-4, clip_range = 0.2, vf_coef = 0.5, ent_coef = 0.01,
-                 max_grad_norm=0.5, clip_range_vf=None)
+            model = PPO(
+                policy=nn_type,
+                env=env,
+                policy_kwargs=policy_kwargs,
+                verbose=1,
+                n_steps=2048,
+                n_epochs=4,
+                batch_size=batch_size,
+                learning_rate=2.5e-4,
+                clip_range=0.2,
+                vf_coef=0.5,
+                ent_coef=0.01,
+                max_grad_norm=0.5,
+                clip_range_vf=None
+            )
         else:
             model = PPO.load(os.path.expanduser(player_model), env=env)
     elif player_alg == 'a2c':
         if player_model == '':
             model = A2C(policy=nn_type, env=env, policy_kwargs=policy_kwargs, verbose=1)
         else:
-            model = A2C(policy=nn_type, env=env, verbose=1, tensorboard_log=output_path)
+            model = A2C.load(os.path.expanduser(player_model), env=env, verbose=1, tensorboard_log=output_path)
 
     model.set_logger(logger)
-
-    #print_model_info(model)
-
     return model
