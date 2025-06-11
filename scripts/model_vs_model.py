@@ -30,6 +30,7 @@ def parse_cmdline(argv):
     parser.add_argument('--display_height', type=int, default='810')
     parser.add_argument('--deterministic', default=True, action='store_true')
     parser.add_argument('--rf', type=str, default='')
+    parser.add_argument('--hyperparams', type=str, default='../hyperparams/default.json')
 
     args = parser.parse_args(argv)
 

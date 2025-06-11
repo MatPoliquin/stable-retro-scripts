@@ -7,7 +7,7 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.policies import ActorCriticPolicy
 import gymnasium as gym
 import timm
-
+import json
 
 # ==========================================================================================
 class DartFeatureExtractor(BaseFeaturesExtractor):
@@ -383,10 +383,21 @@ def get_model_probabilities(model, state):
     probs_np = probs.detach().cpu().numpy()
     return probs_np
 
+def load_hyperparameters(json_file):
+    with open(json_file, 'r') as f:
+        hyperparams = json.load(f)
+    return hyperparams
+
 def init_model(output_path, player_model, player_alg, args, env, logger):
     policy_kwargs = None
     nn_type = args.nn
     size = args.nnsize
+
+    # Load hyperparameters from JSON if file provided
+    if args.hyperparams and os.path.isfile(args.hyperparams):
+        hyperparams = load_hyperparameters(args.hyperparams)
+    else:
+        hyperparams = {}
 
     if args.nn == 'MlpPolicy':
         nn_type = 'MlpPolicy'
@@ -415,22 +426,22 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
 
     if player_alg == 'ppo2':
         if player_model == '':
-            batch_size = (128 * args.num_env) // 4
+            batch_size = hyperparams.get('batch_size', (128 * args.num_env) // 4)
             print("batch_size:%d" % batch_size)
             model = PPO(
                 policy=nn_type,
                 env=env,
                 policy_kwargs=policy_kwargs,
                 verbose=1,
-                n_steps=2048,
-                n_epochs=4,
+                n_steps=hyperparams.get('n_steps', 2048),
+                n_epochs=hyperparams.get('n_epochs', 4),
                 batch_size=batch_size,
-                learning_rate=2.5e-4,
-                clip_range=0.2,
-                vf_coef=0.5,
-                ent_coef=0.01,
-                max_grad_norm=0.5,
-                clip_range_vf=None
+                learning_rate=hyperparams.get('learning_rate', 2.5e-4),
+                clip_range=hyperparams.get('clip_range', 0.2),
+                vf_coef=hyperparams.get('vf_coef', 0.5),
+                ent_coef=hyperparams.get('ent_coef', 0.01),
+                max_grad_norm=hyperparams.get('max_grad_norm', 0.5),
+                clip_range_vf=hyperparams.get('clip_range_vf', None)
             )
         else:
             model = PPO.load(os.path.expanduser(player_model), env=env)

@@ -30,6 +30,7 @@ def parse_cmdline(argv):
     parser.add_argument('--fullscreen', default=False, action='store_true')
     parser.add_argument('--deterministic', default=True, action='store_true')
     parser.add_argument('--rf', type=str, default='')
+    parser.add_argument('--hyperparams', type=str, default='../hyperparams/default.json')
     #parser.add_argument('--useframeskip', default=False, action='store_true')
 
     args = parser.parse_args(argv)

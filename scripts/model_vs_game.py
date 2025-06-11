@@ -32,6 +32,7 @@ def parse_cmdline(argv):
     #parser.add_argument('--useframeskip', default=False, action='store_true')
     parser.add_argument('--video', default=False, action='store_true')
     parser.add_argument('--video_path', type=str, default='../retro_game.avi')
+    parser.add_argument('--hyperparams', type=str, default='../hyperparams/default.json')
 
     args = parser.parse_args(argv)
 
