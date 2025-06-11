@@ -1,7 +1,7 @@
 {
   "learning_rate": 0.00025,
-  "batch_size": 256,
-  "n_steps": 1024,
+  "batch_size": 512,
+  "n_steps": 2048,
   "n_epochs": 4,
   "clip_range": 0.2,
   "vf_coef": 0.5,
@@ -9,9 +9,8 @@
   "max_grad_norm": 0.5,
   "clip_range_vf": null,
   "net_arch": {
-    "pi": [64, 64],
-    "vf": [64, 64]
+    "pi": [256, 256],
+    "vf": [256, 256]
   },
-  "features_dim": 128,
-  "dropout_prob": 0.3
+  "features_dim": 128
 }

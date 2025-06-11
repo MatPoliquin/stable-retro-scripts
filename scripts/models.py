@@ -386,6 +386,9 @@ def get_model_probabilities(model, state):
 def load_hyperparameters(json_file):
     with open(json_file, 'r') as f:
         hyperparams = json.load(f)
+
+    print(hyperparams)
+
     return hyperparams
 
 def init_model(output_path, player_model, player_alg, args, env, logger):
@@ -401,13 +404,23 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
 
     if args.nn == 'MlpPolicy':
         nn_type = 'MlpPolicy'
-        policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=dict(pi=[size, size], vf=[size, size]))
+        policy_kwargs = dict(
+            activation_fn=th.nn.ReLU,
+            net_arch=hyperparams.get('net_arch', dict(pi=[size, size], vf=[size, size]))
+        )
     elif args.nn == 'CustomMlpPolicy':
         nn_type = CustomMlpPolicy
-        policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=[size, size], dropout_prob=0.3)
+        policy_kwargs = dict(
+            activation_fn=th.nn.ReLU,
+            net_arch=hyperparams.get("net_arch", [size, size]),
+            dropout_prob=hyperparams.get("dropout_prob", 0.3)
+        )
     elif args.nn == 'CustomCnnPolicy':
         nn_type = 'CnnPolicy'
-        policy_kwargs = dict(features_extractor_class=CustomCNN, features_extractor_kwargs=dict(features_dim=128))
+        policy_kwargs = dict(
+            features_extractor_class=CustomCNN,
+            features_extractor_kwargs=dict(features_dim=hyperparams.get('features_dim', 128))
+        )
     elif args.nn == 'ImpalaCnnPolicy':
         nn_type = 'CnnPolicy'
         policy_kwargs = dict(features_extractor_class=CustomImpalaFeatureExtractor)
@@ -420,13 +433,13 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
     elif args.nn == 'DartPolicy':
         nn_type = DartPolicy
         policy_kwargs = dict(
-            net_arch=dict(pi=[size, size], vf=[size, size]),
-            features_extractor_kwargs=dict(features_dim=128)
+            net_arch=hyperparams.get('net_arch', dict(pi=[size, size], vf=[size, size])),
+            features_extractor_kwargs=dict(features_dim=hyperparams.get('features_dim', 128))
         )
 
     if player_alg == 'ppo2':
         if player_model == '':
-            batch_size = hyperparams.get('batch_size', (128 * args.num_env) // 4)
+            batch_size = hyperparams.get('batch_size', 256) * args.num_env
             print("batch_size:%d" % batch_size)
             model = PPO(
                 policy=nn_type,
