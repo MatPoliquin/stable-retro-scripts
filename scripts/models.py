@@ -1,5 +1,6 @@
 import os
 from stable_baselines3 import PPO, A2C
+import torch
 import torch as th
 import torch.nn as nn
 from torchsummary import summary
@@ -9,6 +10,57 @@ import gymnasium as gym
 import timm
 import json
 
+# ==========================================================================================
+class AttentionMLP(BaseFeaturesExtractor):
+    """
+    Custom MLP with self-attention for hockey.
+    Input: Structured data (e.g., player positions, velocities).
+    Output: Feature vector for RL policy/value heads.
+    """
+    def __init__(self, observation_space, features_dim=64):
+        super().__init__(observation_space, features_dim)
+        self.num_features = observation_space.shape[0]
+
+        # Self-attention layer
+        self.query = nn.Linear(self.num_features, self.num_features)
+        self.key = nn.Linear(self.num_features, self.num_features)
+
+        # MLP layers
+        self.mlp = nn.Sequential(
+            nn.Linear(self.num_features, 64),
+            nn.ReLU(),
+            nn.Linear(64, features_dim),
+            nn.ReLU()
+        )
+
+    def forward(self, x):
+        # Self-attention
+        q = self.query(x)  # [batch_size, num_features]
+        k = self.key(x)    # [batch_size, num_features]
+
+        # Compute attention scores
+        # q.unsqueeze(1): [batch_size, 1, num_features]
+        # k.unsqueeze(2): [batch_size, num_features, 1]
+        # bmm result: [batch_size, 1, 1]
+        attention_scores = torch.bmm(q.unsqueeze(1), k.unsqueeze(2)) / (self.num_features ** 0.5)
+
+        # Apply softmax - need to specify dimension
+        weights = torch.softmax(attention_scores, dim=-1)  # Apply along last dimension
+
+        # Apply attention weights
+        attended_x = weights.squeeze(-1) * x  # [batch_size, num_features]
+
+        # MLP
+        return self.mlp(attended_x)
+
+class AttentionMLPPolicy(ActorCriticPolicy):
+    def __init__(self, *args, **kwargs):
+        super().__init__(
+            *args,
+            **kwargs,
+            features_extractor_class=AttentionMLP,
+            features_extractor_kwargs={"features_dim": 64},
+        )
 # ==========================================================================================
 class DartFeatureExtractor(BaseFeaturesExtractor):
     """
@@ -436,6 +488,9 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
             net_arch=hyperparams.get('net_arch', dict(pi=[size, size], vf=[size, size])),
             features_extractor_kwargs=dict(features_dim=hyperparams.get('features_dim', 128))
         )
+    elif args.nn == 'AttentionMLPPolicy':
+        nn_type = AttentionMLPPolicy
+        policy_kwargs = {}
 
     if player_alg == 'ppo2':
         if player_model == '':
