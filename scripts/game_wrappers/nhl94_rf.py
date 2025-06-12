@@ -128,8 +128,8 @@ def isdone_scoregoal(state):
     #if state.p2_haspuck or state.g2_haspuck:
     #    return True
 
-    #if state.puck_y < 100:
-    #    return True
+    if state.puck.y < 100:
+        return True
 
     if state.time < 100:
         return True
@@ -439,7 +439,7 @@ def isdone_passing(state):
     if state.puck.y < 100:
         return True
 
-    if t2.haspuck or t2.haspuck:
+    if t2.player_haspuck or t2.goalie_haspuck:
         return True
 
     if state.time < 100:
@@ -460,7 +460,11 @@ def rf_passing(state):
         rew = -1.0
 
     if t1.stats.passing > t1.last_stats.passing:
-        rew = 1.0
+        if t1.players[0].y > GameConsts.CREASE_UPPER_BOUND and t1.players[1].y > GameConsts.CREASE_UPPER_BOUND:
+            if (t1.players[0].x < -GameConsts.CREASE_MAX_X and t1.players[1].x > GameConsts.CREASE_MAX_X) or \
+            (t1.players[1].x < -GameConsts.CREASE_MAX_X and t1.players[0].x > GameConsts.CREASE_MAX_X):
+                rew = 1.0
+        rew = 0.2
 
     return rew
 
