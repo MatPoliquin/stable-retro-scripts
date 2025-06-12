@@ -27,9 +27,9 @@ class AttentionMLP(BaseFeaturesExtractor):
 
         # MLP layers
         self.mlp = nn.Sequential(
-            nn.Linear(self.num_features, 64),
+            nn.Linear(self.num_features, 128),
             nn.ReLU(),
-            nn.Linear(64, features_dim),
+            nn.Linear(128, features_dim),
             nn.ReLU()
         )
 
@@ -59,7 +59,7 @@ class AttentionMLPPolicy(ActorCriticPolicy):
             *args,
             **kwargs,
             features_extractor_class=AttentionMLP,
-            features_extractor_kwargs={"features_dim": 64},
+            features_extractor_kwargs={"features_dim": 128},
         )
 # ==========================================================================================
 class DartFeatureExtractor(BaseFeaturesExtractor):
@@ -412,15 +412,6 @@ class CustomMlpPolicy(ActorCriticPolicy):
         self.mlp_extractor = CustomMLPExtractor(self.features_dim, net_arch, dropout_prob)
 
 # ==========================================================================================
-# Warning: input size is hardcoded for now
-def print_model_info(model):
-
-     if args.nn == 'CnnPolicy':
-         summary(model.policy, (4, 84, 84))
-     elif args.nn == 'MlpPolicy':
-         summary(model.policy, (1, 6))
-
-     return total_params
 
 def get_num_parameters(model):
     total_params = sum(p.numel() for p in model.policy.parameters() if p.requires_grad)
@@ -443,14 +434,85 @@ def load_hyperparameters(json_file):
 
     return hyperparams
 
+def print_model_summary(env, player_model, model):
+    # Print model summary
+    if player_model == '':  # Only for newly created models
+        print("\nModel Architecture Summary:")
+
+        # Get the policy network
+        policy = model.policy
+
+        # Print basic info
+        print(f"\nPolicy Network Type: {policy.__class__.__name__}")
+        print(f"Observation Space: {env.observation_space}")
+        print(f"Action Space: {env.action_space}")
+
+        # Print feature extractor info if available
+        if hasattr(policy, 'features_extractor'):
+            print("\nFeature Extractor Architecture:")
+            fe = policy.features_extractor
+            print(f"Type: {fe.__class__.__name__}")
+
+            # Print layers for common extractor types
+            if isinstance(fe, (CustomCNN, CustomImpalaFeatureExtractor, ViTFeatureExtractor)):
+                for name, layer in fe.named_children():
+                    print(f"  {name}: {layer.__class__.__name__}")
+                    if hasattr(layer, 'weight'):
+                        print(f"    Weight shape: {layer.weight.shape}")
+
+            # Special handling for CNN-based extractors
+            if hasattr(fe, 'cnn'):
+                print("\nCNN Layers:")
+                for name, layer in fe.cnn.named_children():
+                    print(f"  {name}: {layer.__class__.__name__}")
+                    if isinstance(layer, nn.Conv2d):
+                        print(f"    in_channels: {layer.in_channels}")
+                        print(f"    out_channels: {layer.out_channels}")
+                        print(f"    kernel_size: {layer.kernel_size}")
+
+        # Print MLP extractor info if available
+        if hasattr(policy, 'mlp_extractor'):
+            print("\nMLP Extractor Architecture:")
+            mlp = policy.mlp_extractor
+            print(f"Type: {mlp.__class__.__name__}")
+
+            if hasattr(mlp, 'shared_net'):
+                print("\nShared Layers:")
+                for i, layer in enumerate(mlp.shared_net):
+                    print(f"  Layer {i}: {layer.__class__.__name__}")
+                    if hasattr(layer, 'weight'):
+                        print(f"    Weight shape: {layer.weight.shape}")
+
+            if hasattr(mlp, 'policy_net'):
+                print("\nPolicy Head:")
+                for i, layer in enumerate(mlp.policy_net):
+                    print(f"  Layer {i}: {layer.__class__.__name__}")
+
+            if hasattr(mlp, 'value_net'):
+                print("\nValue Head:")
+                for i, layer in enumerate(mlp.value_net):
+                    print(f"  Layer {i}: {layer.__class__.__name__}")
+
+        # Print action distribution info
+        if hasattr(policy, 'action_dist'):
+            print("\nAction Distribution:")
+            print(f"Type: {policy.action_dist.__class__.__name__}")
+
+        # Print total parameters
+        total_params = sum(p.numel() for p in policy.parameters() if p.requires_grad)
+        print(f"\nTotal Trainable Parameters: {total_params:,}")
+
 def init_model(output_path, player_model, player_alg, args, env, logger):
     policy_kwargs = None
     nn_type = args.nn
     size = args.nnsize
 
-    # Load hyperparameters from JSON if file provided
-    if args.hyperparams and os.path.isfile(args.hyperparams):
-        hyperparams = load_hyperparameters(args.hyperparams)
+    # Load hyperparameters from JSON
+    if args.hyperparams:
+        if os.path.isfile(args.hyperparams):
+            hyperparams = load_hyperparameters(args.hyperparams)
+        else:
+            raise FileNotFoundError(f"Hyperparameters file not found: {args.hyperparams}")
     else:
         hyperparams = {}
 
@@ -518,6 +580,9 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
             model = A2C(policy=nn_type, env=env, policy_kwargs=policy_kwargs, verbose=1)
         else:
             model = A2C.load(os.path.expanduser(player_model), env=env, verbose=1, tensorboard_log=output_path)
+
+
+    print_model_summary(env, player_model, model)
 
     model.set_logger(logger)
     return model
