@@ -556,7 +556,7 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
 
     if player_alg == 'ppo2':
         if player_model == '':
-            batch_size = hyperparams.get('batch_size', 256) * args.num_env
+            batch_size = hyperparams.get('batch_size', 256)
             print("batch_size:%d" % batch_size)
             model = PPO(
                 policy=nn_type,
