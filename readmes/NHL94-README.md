@@ -2,6 +2,7 @@
 
 
 ## Examples
+Note: Currently there is two NHL 94 env in stable-retro: The original game and the '1 on 1' rom hack which as the name implies is for 1 on 1 matches instead of full teams
 
 Models (Player 1) vs in-game AI (Player 2):
 ```bash
