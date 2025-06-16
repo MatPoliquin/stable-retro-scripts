@@ -170,7 +170,7 @@ class TestScripts(unittest.TestCase):
     def test_trainer(self):
         command = [
             "python3",
-            "model_trainer.py",
+            "train.py",
             "--env=Airstriker-Genesis",
             "--num_env=2",
             "--num_timesteps=1_000"
@@ -188,7 +188,8 @@ class TestScripts(unittest.TestCase):
     def test_model_vs_game(self):
         command = [
             "python3",
-            "model_vs_game.py",
+            "play.py"
+            "--mode=model_vs_game",
             "--env=Airstriker-Genesis",
             "--num_timesteps=1_000",
             "--model_1=../models/airstriker_nature_cnn.zip"
@@ -203,7 +204,8 @@ class TestScripts(unittest.TestCase):
     def test_model_vs_model(self):
         command = [
             "python3",
-            "model_vs_model.py",
+            "play.py"
+            "--mode=model_vs_model",
             "--env=Pong-Atari2600",
             "--load_p1_model=../models/pong_nature_cnn.zip",
             "--load_p2_model=../models/pong_nature_cnn.zip"
@@ -222,7 +224,7 @@ class TestScripts(unittest.TestCase):
 class TestModels(unittest.TestCase):
     base_command = [
         "python3",
-        "model_trainer.py",
+        "train.py",
         "--env=Pong-Atari2600",
         "--num_env=2",
         "--num_timesteps=1_000"

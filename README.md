@@ -67,7 +67,7 @@ Currently there is two NHL 94 env in stable-retro: The original game and the '1 
 ### Train a model
 Note: Airstriker is a public domain rom and is already included in stable-retro
 ```bash
-python3 model_trainer.py --env=Airstriker-Genesis --num_env=8 --num_timesteps=100_000_000 --play
+python3 train.py --env=Airstriker-Genesis --num_env=8 --num_timesteps=100_000_000 --play
 ```
 
 ## RetroArch

@@ -2,6 +2,8 @@ import os
 from stable_baselines3 import PPO, A2C
 import gymnasium as gym
 import json
+import torch as th
+from torchsummary import summary
 from models import CustomMlpPolicy, CustomPolicy, ViTPolicy, DartPolicy, AttentionMLPPolicy, CustomCNN, CustomImpalaFeatureExtractor
 
 def get_num_parameters(model):
