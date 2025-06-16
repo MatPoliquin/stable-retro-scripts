@@ -5,6 +5,7 @@ import json
 import torch as th
 from torchsummary import summary
 from models import CustomMlpPolicy, CustomPolicy, ViTPolicy, DartPolicy, AttentionMLPPolicy, CustomCNN, CustomImpalaFeatureExtractor
+from es import EvolutionStrategies
 
 def get_num_parameters(model):
     total_params = sum(p.numel() for p in model.policy.parameters() if p.requires_grad)
@@ -110,8 +111,12 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
             )
         else:
             model = PPO.load(os.path.expanduser(player_model), env=env)
+            model.set_logger(logger)
+    elif player_alg == 'es':
+        es = EvolutionStrategies(env, args, 1, None)
+        return es
 
     #print_model_summary(env.unwrapped, player_model, model)
 
-    model.set_logger(logger)
+
     return model

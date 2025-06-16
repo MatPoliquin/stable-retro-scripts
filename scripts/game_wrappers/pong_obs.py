@@ -1,24 +1,23 @@
 """
 Pong Observation wrapper
 """
-
 import gymnasium as gym
 from gymnasium import spaces
 from gymnasium.spaces import Dict, Box
 import numpy as np
 
-NUM_PARAMS = 6
-MAX_XY = 210
-MAX_VEL_XY = 2
-
 class PongObservationEnv(gym.Wrapper):
     def __init__(self, env, args, num_players, rf_name):
         gym.Wrapper.__init__(self, env)
 
+        self.NUM_PARAMS = 6
+        self.MAX_XY = 210
+        self.MAX_VEL_XY = 2
+
         self.nn = args.nn
 
-        low = np.array([-1] * NUM_PARAMS, dtype=np.float32)
-        high = np.array([1] * NUM_PARAMS, dtype=np.float32)
+        low = np.array([-1] * self.NUM_PARAMS, dtype=np.float32)
+        high = np.array([1] * self.NUM_PARAMS, dtype=np.float32)
 
         if self.nn == 'CombinedPolicy':
             self.observation_space = spaces.Dict({
@@ -36,7 +35,7 @@ class PongObservationEnv(gym.Wrapper):
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
 
-        self.state = tuple([0] * NUM_PARAMS)
+        self.state = tuple([0] * self.NUM_PARAMS)
 
         if self.nn == 'CombinedPolicy':
              return {
@@ -75,9 +74,9 @@ class PongObservationEnv(gym.Wrapper):
         ball_velx = (self.last_ball_x - ball_x)
         ball_vely = (self.last_ball_y - ball_y)
 
-        self.state = (p1_y / MAX_XY, p2_y / MAX_XY, \
-                     ball_x / MAX_XY, ball_y / MAX_XY, \
-                     ball_velx / MAX_VEL_XY, ball_vely / MAX_VEL_XY)
+        self.state = (p1_y / self.MAX_XY, p2_y / self.MAX_XY, \
+                     ball_x / self.MAX_XY, ball_y / self.MAX_XY, \
+                     ball_velx / self.MAX_VEL_XY, ball_vely / self.MAX_VEL_XY)
 
         self.last_ball_x = ball_x
         self.last_ball_y = ball_y

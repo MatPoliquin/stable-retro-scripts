@@ -68,14 +68,16 @@ class ModelTrainer:
         print(self.env.observation_space)
 
     def train(self):
-        #if self.args.alg_verbose:
         com_print('========= Start Training ==========')
-        self.p1_model.learn(total_timesteps=self.args.num_timesteps)
-        #if self.args.alg_verbose:
+
+        if self.args.alg == 'es':
+            self.p1_model.train(num_generations=500)
+        else:
+            self.p1_model.learn(total_timesteps=self.args.num_timesteps)
+
         com_print('========= End Training ==========')
 
-        self.p1_model.save(self.model_savepath )
-        #if self.args.alg_verbose:
+        self.p1_model.save(self.model_savepath)
         com_print('Model saved to:%s' % self.model_savepath)
 
         return self.model_savepath
@@ -83,6 +85,13 @@ class ModelTrainer:
     def play(self, args, continuous=True):
         #if self.args.alg_verbose:
         com_print('========= Start Play Loop ==========')
+
+        # Special case of ES
+        if self.args.alg == 'es':
+            final_reward = self.p1_model.evaluate(render=True, num_episodes=5)
+            print(f"Final evaluation reward: {final_reward:.2f}")
+            return
+
         state = self.env.reset()
         while True:
             self.env.render(mode='human')
