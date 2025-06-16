@@ -108,11 +108,6 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
             )
         else:
             model = PPO.load(os.path.expanduser(player_model), env=env)
-    elif player_alg == 'a2c':
-        if player_model == '':
-            model = A2C(policy=nn_type, env=env, policy_kwargs=policy_kwargs, verbose=1)
-        else:
-            model = A2C.load(os.path.expanduser(player_model), env=env, verbose=1, tensorboard_log=output_path)
 
     #print_model_summary(env.unwrapped, player_model, model)
 
