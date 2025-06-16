@@ -3,6 +3,7 @@ from stable_baselines3 import PPO, A2C
 import torch
 import torch as th
 import torch.nn as nn
+import torch.nn.functional as F
 from torchsummary import summary
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.policies import ActorCriticPolicy
@@ -10,6 +11,80 @@ import gymnasium as gym
 import timm
 import json
 
+
+class EntityAttentionMLP(BaseFeaturesExtractor):
+    """
+    Enhanced attention MLP with both temporal and intra-frame (entity) attention.
+    Processes structured observations (like Pong's [paddle1, paddle2, ball]).
+    """
+    def __init__(self, observation_space, features_dim=128, num_frames=4):
+        super().__init__(observation_space, features_dim)
+        self.num_frames = num_frames
+        self.input_dim = observation_space.shape[0] // num_frames  # Features per frame
+        
+        # Entity projections (paddle1, paddle2, ball)
+        self.entity_proj = nn.Sequential(
+            nn.Linear(2, 32),  # Each entity represented by 2 values
+            nn.ReLU()
+        )
+        
+        # Temporal attention across frames
+        self.temp_attention = nn.Sequential(
+            nn.Linear(32, 32),
+            nn.Tanh(),
+            nn.Linear(32, 1)
+        )
+        
+        # Entity attention within frames
+        self.entity_attention = nn.Sequential(
+            nn.Linear(32, 32),
+            nn.Tanh(),
+            nn.Linear(32, 1)
+        )
+        
+        # Final feature processor
+        self.feature_net = nn.Sequential(
+            nn.Linear(32, features_dim),
+            nn.ReLU()
+        )
+
+    def forward(self, x):
+        # Reshape: (batch, num_frames*input_dim) -> (batch, num_frames, input_dim)
+        x = x.view(-1, self.num_frames, self.input_dim)
+        
+        # Split into entities per frame: [p1_y, p2_y, ball_x, ball_y, ball_vx, ball_vy]
+        # -> 3 entities: paddle1, paddle2, ball (position + velocity)
+        entities = torch.stack([
+            x[..., [0, 1]],  # Paddle1 (y + dummy)
+            x[..., [1, 0]],  # Paddle2 (y + dummy)
+            x[..., [2, 3]],  # Ball position
+            x[..., [4, 5]],  # Ball velocity
+        ], dim=2)  # Shape: (batch, num_frames, 4 entities, 2)
+        
+        # Project entities
+        entity_embeds = self.entity_proj(entities)  # (batch, num_frames, 4, 32)
+        
+        # Intra-frame attention (ball vs paddles)
+        entity_weights = F.softmax(self.entity_attention(entity_embeds), dim=2)
+        frame_embeds = torch.sum(entity_weights * entity_embeds, dim=2)  # (batch, num_frames, 32)
+        
+        # Temporal attention across frames
+        temp_weights = F.softmax(self.temp_attention(frame_embeds), dim=1)
+        context = torch.sum(temp_weights * frame_embeds, dim=1)  # (batch, 32)
+        
+        return self.feature_net(context)
+
+class EntityAttentionPolicy(ActorCriticPolicy):
+    def __init__(self, *args, num_frames=4, **kwargs):
+        super().__init__(
+            *args,
+            **kwargs,
+            features_extractor_class=EntityAttentionMLP,
+            features_extractor_kwargs={
+                "features_dim": 128,
+                "num_frames": num_frames
+            }
+        )
 # ==========================================================================================
 class AttentionMLP(BaseFeaturesExtractor):
     """

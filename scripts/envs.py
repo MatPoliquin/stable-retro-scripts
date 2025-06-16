@@ -9,7 +9,7 @@ import game_wrappers_mgr as games
 import cv2
 
 def isMLP(name):
-    return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy' or name == 'AttentionMLPPolicy'
+    return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy' or name == 'AttentionMLPPolicy' or name == 'EntityAttentionPolicy'
 
 class WarpFrameDict(gym.ObservationWrapper):
     def __init__(self, env, width=84, height=84, grayscale=True):
