@@ -6,7 +6,7 @@ import sys
 import time
 import argparse
 from common import get_model_file_name, com_print, init_logger, create_output_dir
-from models import init_model
+from models_utils import init_model
 from envs import init_env
 
 

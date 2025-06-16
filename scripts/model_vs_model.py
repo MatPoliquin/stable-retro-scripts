@@ -8,7 +8,7 @@ import argparse
 import numpy as np
 from common import com_print, init_logger
 from envs import init_env, init_play_env
-from models import init_model, get_model_probabilities, get_num_parameters
+from models_utils import init_model, get_model_probabilities, get_num_parameters
 
 def parse_cmdline(argv):
     parser = argparse.ArgumentParser()
