@@ -196,9 +196,9 @@ class PongObservationEnv(gym.Wrapper):
         ball_velx = (self.last_ball_x - ball_x)
         ball_vely = (self.last_ball_y - ball_y)
 
-        self.state = (p1_y / self.MAX_XY, p2_y / self.MAX_XY, \
-                     ball_x / self.MAX_XY, ball_y / self.MAX_XY, \
-                     ball_velx / self.MAX_VEL_XY, ball_vely / self.MAX_VEL_XY)
+        self.state = (p1_y / MAX_XY, p2_y / MAX_XY, \
+                     ball_x / MAX_XY, ball_y / MAX_XY, \
+                     ball_velx / MAX_VEL_XY, ball_vely / MAX_VEL_XY)
 
         self.last_ball_x = ball_x
         self.last_ball_y = ball_y

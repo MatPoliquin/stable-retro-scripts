@@ -126,7 +126,7 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
         es = EvolutionStrategies(env, args, 1, None)
         return es
 
-    #print_model_summary(args, env.unwrapped, player_model, model)
+    print_model_summary(args, env.unwrapped, player_model, model)
 
 
     return model
