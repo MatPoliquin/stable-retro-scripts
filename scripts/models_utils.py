@@ -4,7 +4,7 @@ import gymnasium as gym
 import json
 import torch as th
 from torchsummary import summary
-from models import CustomMlpPolicy, CustomPolicy, ViTPolicy, DartPolicy, AttentionMLPPolicy, EntityAttentionPolicy, CustomCNN, CustomImpalaFeatureExtractor
+from models import CustomMlpPolicy, CustomPolicy, ViTPolicy, DartPolicy, AttentionMLPPolicy, EntityAttentionPolicy, CustomCNN, CustomImpalaFeatureExtractor, CNNTransformer
 from es import EvolutionStrategies
 
 def get_num_parameters(model):
@@ -99,6 +99,12 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
     elif args.nn == 'EntityAttentionPolicy':
         nn_type = EntityAttentionPolicy
         policy_kwargs = {}
+    elif args.nn == 'CnnTransformerPolicy':
+        nn_type = 'CnnPolicy'
+        policy_kwargs = dict(
+            features_extractor_class=CNNTransformer,
+            features_extractor_kwargs=dict(features_dim=512, nhead=8, num_layers=3),
+        )
 
     if player_alg == 'ppo2':
         if player_model == '':

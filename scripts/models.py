@@ -4,6 +4,7 @@ import torch
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from torchsummary import summary
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.policies import ActorCriticPolicy
@@ -11,7 +12,48 @@ import gymnasium as gym
 import timm
 import json
 
+class CNNTransformer(BaseFeaturesExtractor):
+    def __init__(self, observation_space, features_dim=512, nhead=8, num_layers=3):
+        super().__init__(observation_space, features_dim)
+        c, h, w = observation_space.shape
+        self.cnn = nn.Sequential(
+            nn.Conv2d(c, 32, kernel_size=8, stride=4),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            nn.ReLU(),
+            nn.Flatten(),
+        )
 
+        # Calculate CNN output dim
+        with torch.no_grad():
+            dummy = torch.zeros(1, c, h, w)
+            cnn_out_dim = self.cnn(dummy).shape[1]
+
+        # Transformer
+        self.encoder_layer = TransformerEncoderLayer(
+            d_model=cnn_out_dim, nhead=nhead, dim_feedforward=256, dropout=0.1
+        )
+        self.transformer = TransformerEncoder(self.encoder_layer, num_layers=num_layers)
+        self.fc = nn.Linear(cnn_out_dim, features_dim)
+
+    def forward(self, observations):
+        # CNN extracts spatial features
+        cnn_features = self.cnn(observations)  # Shape: (batch_size, cnn_out_dim)
+
+        # Transformer expects (seq_len, batch_size, dim)
+        # We treat each frame as a "sequence of 1" for simplicity
+        cnn_features = cnn_features.unsqueeze(0)  # Shape: (1, batch_size, cnn_out_dim)
+
+        # Transformer processes temporal features
+        transformer_out = self.transformer(cnn_features)
+        transformer_out = transformer_out.squeeze(0)  # Back to (batch_size, cnn_out_dim)
+
+        # Final projection
+        return self.fc(transformer_out)
+
+# ==========================================================================================
 class EntityAttentionMLP(BaseFeaturesExtractor):
     """
     Enhanced attention MLP with both temporal and intra-frame (entity) attention.
@@ -21,27 +63,27 @@ class EntityAttentionMLP(BaseFeaturesExtractor):
         super().__init__(observation_space, features_dim)
         self.num_frames = num_frames
         self.input_dim = observation_space.shape[0] // num_frames  # Features per frame
-        
+
         # Entity projections (paddle1, paddle2, ball)
         self.entity_proj = nn.Sequential(
             nn.Linear(2, 32),  # Each entity represented by 2 values
             nn.ReLU()
         )
-        
+
         # Temporal attention across frames
         self.temp_attention = nn.Sequential(
             nn.Linear(32, 32),
             nn.Tanh(),
             nn.Linear(32, 1)
         )
-        
+
         # Entity attention within frames
         self.entity_attention = nn.Sequential(
             nn.Linear(32, 32),
             nn.Tanh(),
             nn.Linear(32, 1)
         )
-        
+
         # Final feature processor
         self.feature_net = nn.Sequential(
             nn.Linear(32, features_dim),
@@ -51,7 +93,7 @@ class EntityAttentionMLP(BaseFeaturesExtractor):
     def forward(self, x):
         # Reshape: (batch, num_frames*input_dim) -> (batch, num_frames, input_dim)
         x = x.view(-1, self.num_frames, self.input_dim)
-        
+
         # Split into entities per frame: [p1_y, p2_y, ball_x, ball_y, ball_vx, ball_vy]
         # -> 3 entities: paddle1, paddle2, ball (position + velocity)
         entities = torch.stack([
@@ -60,18 +102,18 @@ class EntityAttentionMLP(BaseFeaturesExtractor):
             x[..., [2, 3]],  # Ball position
             x[..., [4, 5]],  # Ball velocity
         ], dim=2)  # Shape: (batch, num_frames, 4 entities, 2)
-        
+
         # Project entities
         entity_embeds = self.entity_proj(entities)  # (batch, num_frames, 4, 32)
-        
+
         # Intra-frame attention (ball vs paddles)
         entity_weights = F.softmax(self.entity_attention(entity_embeds), dim=2)
         frame_embeds = torch.sum(entity_weights * entity_embeds, dim=2)  # (batch, num_frames, 32)
-        
+
         # Temporal attention across frames
         temp_weights = F.softmax(self.temp_attention(frame_embeds), dim=1)
         context = torch.sum(temp_weights * frame_embeds, dim=1)  # (batch, 32)
-        
+
         return self.feature_net(context)
 
 class EntityAttentionPolicy(ActorCriticPolicy):
@@ -406,7 +448,6 @@ class CustomImpalaFeatureExtractor(BaseFeaturesExtractor):
 
     def forward(self, observations):
         return self.cnn(observations)
-
 
 # ==========================================================================================
 class CustomCNN(BaseFeaturesExtractor):

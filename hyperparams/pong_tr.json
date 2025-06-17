@@ -1,0 +1,16 @@
+{
+  "learning_rate": 0.0003,
+  "batch_size": 512,
+  "n_steps": 2048,
+  "n_epochs": 10,
+  "clip_range": 0.2,
+  "vf_coef": 0.5,
+  "ent_coef": 0.01,
+  "max_grad_norm": 0.5,
+  "clip_range_vf": null,
+  "net_arch": {
+    "pi": [512, 512],
+    "vf": [512, 512]
+  },
+  "features_dim": 512
+}
