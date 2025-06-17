@@ -27,16 +27,23 @@ def load_hyperparameters(json_file):
 
     return hyperparams
 
-def print_model_summary(env, player_model, model):
-    print(env.observation_space)
-    obs_shape = env.observation_space.shape
-    pytorch_obs_shape = (obs_shape[2], obs_shape[0], obs_shape[1])
-    #pytorch_obs_shape = (3, obs_shape[0])
-    #
-    #summary(model.policy, (4, 84, 84))
-    #from envs import OBS_SPACE
-    summary(model.policy, pytorch_obs_shape)
+def print_model_summary(args, env, player_model, model):
 
+    print(env.observation_space)
+
+    if args.alg == 'es':
+        return
+
+    obs_shape = env.observation_space.shape
+
+    if args.nn in ('MlpPolicy', 'EntityAttentionPolicy', 'CustomMlpPolicy'): #'AttentionMLPPolicy',
+        pytorch_obs_shape = (1, obs_shape[0])
+    elif args.nn in('CnnPolicy','ImpalaCnnPolicy'):
+        pytorch_obs_shape = (obs_shape[2], obs_shape[0], obs_shape[1])
+    else: #other types are not supported for now
+        return
+
+    summary(model.policy, pytorch_obs_shape)
 
 def init_model(output_path, player_model, player_alg, args, env, logger):
     policy_kwargs = None
@@ -119,7 +126,7 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
         es = EvolutionStrategies(env, args, 1, None)
         return es
 
-    #print_model_summary(env.unwrapped, player_model, model)
+    #print_model_summary(args, env.unwrapped, player_model, model)
 
 
     return model

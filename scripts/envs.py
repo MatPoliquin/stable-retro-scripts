@@ -7,6 +7,7 @@ import gymnasium as gym
 import retro
 import game_wrappers_mgr as games
 import cv2
+from collections import deque
 
 def isMLP(name):
     return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy' or name == 'AttentionMLPPolicy' or name == 'EntityAttentionPolicy'
@@ -134,13 +135,6 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
 
             env.action_space.seed(seed + rank)
 
-            if isMLP(args.nn):
-                env = games.wrappers.obs_env(env, args, num_players, args.rf)
-                #if args.rf != '':
-                #    env.set_reward_function(args.rf)
-
-            env = Monitor(env, output_path and os.path.join(output_path, str(rank)), allow_early_resets=allow_early_resets)
-
             # TOFIX
             #if use_display:
             #    env = GameDisplayEnv(env, args, 17, 'CNN', None)
@@ -150,10 +144,21 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
                 else:
                     env = StochasticFrameSkip(env, n=4, stickprob=-1)
 
+            if isMLP(args.nn):
+                env = games.wrappers.obs_env(env, args, num_players, args.rf)
+                #if args.rf != '':
+                #    env.set_reward_function(args.rf)
+
+            env = Monitor(env, output_path and os.path.join(output_path, str(rank)), allow_early_resets=allow_early_resets)
+
+
             if not isMLP(args.nn):
                 env = WarpFrame(env)
             elif args.nn == 'CombinedPolicy':
                 env = WarpFrameDict(env)
+
+            #if args.nn == 'EntityAttentionPolicy':
+            #    env = EntityAttentionWrapper(env, num_frames=4)
 
             env = ClipRewardEnv(env)
 
