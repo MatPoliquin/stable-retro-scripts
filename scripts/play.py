@@ -1,5 +1,5 @@
 """
-Play NHL 94 with different modes:
+Play modes:
 - Player vs Model
 - Model vs Model
 - Model vs Game
@@ -9,12 +9,12 @@ import sys
 import argparse
 import numpy as np
 from common import com_print, init_logger
-from envs import init_env, init_play_env
+from env_utils import init_env, init_play_env
 from models_utils import init_model, get_model_probabilities, get_num_parameters
 import game_wrappers_mgr as games
 
 def parse_cmdline(argv):
-    parser = argparse.ArgumentParser(description='NHL 94 AI Player with different modes')
+    parser = argparse.ArgumentParser(description='Play with your model in different modes')
 
     # Mode selection
     parser.add_argument('--mode', type=str, default='player_vs_model',

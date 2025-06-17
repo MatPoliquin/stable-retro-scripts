@@ -7,7 +7,7 @@ import time
 import argparse
 from common import get_model_file_name, com_print, init_logger, create_output_dir
 from models_utils import init_model
-from envs import init_env
+from env_utils import init_env
 
 
 def parse_cmdline(argv):
