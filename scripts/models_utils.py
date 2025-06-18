@@ -127,7 +127,9 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
             )
         else:
             model = PPO.load(os.path.expanduser(player_model), env=env)
-            model.set_logger(logger)
+
+        model.set_logger(logger)
+
     elif player_alg == 'es':
         es = EvolutionStrategies(env, args, 1, None)
         return es
