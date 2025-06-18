@@ -39,16 +39,16 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
 
             env.action_space.seed(seed + rank)
 
+            if isMLP(args.nn):
+                env = games.wrappers.obs_env(env, args, num_players, args.rf)
+
+            env = Monitor(env, output_path and os.path.join(output_path, str(rank)), allow_early_resets=allow_early_resets)
+
             if use_frame_skip:
                 if use_sticky_action:
                     env = StochasticFrameSkip(env, n=4, stickprob=0.25)
                 else:
                     env = StochasticFrameSkip(env, n=4, stickprob=-1)
-
-            if isMLP(args.nn):
-                env = games.wrappers.obs_env(env, args, num_players, args.rf)
-
-            env = Monitor(env, output_path and os.path.join(output_path, str(rank)), allow_early_resets=allow_early_resets)
 
             if not isMLP(args.nn):
                 env = WarpFrame(env)
