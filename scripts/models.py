@@ -12,46 +12,163 @@ import gymnasium as gym
 import timm
 import json
 
+
 class CNNTransformer(BaseFeaturesExtractor):
-    def __init__(self, observation_space, features_dim=512, nhead=8, num_layers=3):
+    def __init__(self, observation_space, features_dim=512, nhead=8, num_layers=3,
+                 frame_stack=4, patch_size=16):
         super().__init__(observation_space, features_dim)
         c, h, w = observation_space.shape
+
+        # Assume c includes frame stacking (e.g., 4 frames * 3 channels = 12)
+        self.frame_stack = frame_stack
+        self.channels_per_frame = c // frame_stack
+        self.patch_size = patch_size
+
+        # Deeper CNN for better spatial features
         self.cnn = nn.Sequential(
-            nn.Conv2d(c, 32, kernel_size=8, stride=4),
+            nn.Conv2d(self.channels_per_frame, 64, kernel_size=7, stride=2, padding=3),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            nn.Conv2d(64, 128, kernel_size=5, stride=2, padding=2),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(256),
             nn.ReLU(),
-            nn.Flatten(),
+            nn.AdaptiveAvgPool2d((patch_size, patch_size))  # Consistent spatial dims
         )
 
-        # Calculate CNN output dim
-        with torch.no_grad():
-            dummy = torch.zeros(1, c, h, w)
-            cnn_out_dim = self.cnn(dummy).shape[1]
+        # Spatial patches to sequence
+        self.patch_dim = 256  # CNN output channels
+        self.num_patches = patch_size * patch_size
+        self.patch_to_embedding = nn.Linear(self.patch_dim, features_dim)
 
-        # Transformer
+        # Positional encoding for patches
+        self.pos_embedding = nn.Parameter(
+            torch.randn(1, self.num_patches * self.frame_stack, features_dim)
+        )
+
+        # Transformer for temporal and spatial attention
         self.encoder_layer = TransformerEncoderLayer(
-            d_model=cnn_out_dim, nhead=nhead, dim_feedforward=256, dropout=0.1
+            d_model=features_dim,
+            nhead=nhead,
+            dim_feedforward=features_dim * 4,
+            dropout=0.1,
+            activation='gelu'
         )
         self.transformer = TransformerEncoder(self.encoder_layer, num_layers=num_layers)
-        self.fc = nn.Linear(cnn_out_dim, features_dim)
 
-    def forward(self, observations):
-        # CNN extracts spatial features
-        cnn_features = self.cnn(observations)  # Shape: (batch_size, cnn_out_dim)
-
-        # Transformer expects (seq_len, batch_size, dim)
-        # We treat each frame as a "sequence of 1" for simplicity
-        cnn_features = cnn_features.unsqueeze(0)  # Shape: (1, batch_size, cnn_out_dim)
-
-        # Transformer processes temporal features
-        transformer_out = self.transformer(cnn_features)
-        transformer_out = transformer_out.squeeze(0)  # Back to (batch_size, cnn_out_dim)
+        # Learnable [CLS] token for aggregation
+        self.cls_token = nn.Parameter(torch.randn(1, 1, features_dim))
 
         # Final projection
-        return self.fc(transformer_out)
+        self.mlp_head = nn.Sequential(
+            nn.LayerNorm(features_dim),
+            nn.Linear(features_dim, features_dim)
+        )
+
+    def forward(self, observations):
+        batch_size = observations.shape[0]
+
+        # Reshape to separate frames
+        x = observations.view(batch_size, self.frame_stack, self.channels_per_frame,
+                            observations.shape[2], observations.shape[3])
+
+        # Process each frame through CNN
+        frame_features = []
+        for i in range(self.frame_stack):
+            frame = x[:, i]
+            features = self.cnn(frame)  # (B, 256, patch_size, patch_size)
+            # Flatten spatial patches
+            features = features.view(batch_size, self.patch_dim, -1).transpose(1, 2)
+            frame_features.append(features)
+
+        # Concatenate all frame patches
+        x = torch.cat(frame_features, dim=1)  # (B, num_patches * frame_stack, 256)
+
+        # Project patches to embedding dimension
+        x = self.patch_to_embedding(x)  # (B, num_patches * frame_stack, features_dim)
+
+        # Add positional embeddings
+        x = x + self.pos_embedding
+
+        # Prepend [CLS] token
+        cls_tokens = self.cls_token.expand(batch_size, -1, -1)
+        x = torch.cat([cls_tokens, x], dim=1)
+
+        # Transformer expects (seq_len, batch, dim)
+        x = x.transpose(0, 1)
+        x = self.transformer(x)
+
+        # Use [CLS] token output
+        cls_output = x[0]  # (batch, features_dim)
+
+        return self.mlp_head(cls_output)
+
+
+class MortalKombatCNNTransformer(BaseFeaturesExtractor):
+    """Optimized version specifically for Mortal Kombat with action-aware attention"""
+    def __init__(self, observation_space, features_dim=512, frame_stack=8):
+        super().__init__(observation_space, features_dim)
+        c, h, w = observation_space.shape
+
+        # Fighting game specific: detect character regions
+        self.character_detector = nn.Sequential(
+            nn.Conv2d(c, 64, kernel_size=5, stride=1, padding=2),
+            nn.ReLU(),
+            nn.Conv2d(64, 32, kernel_size=3, stride=1, padding=1),
+            nn.Sigmoid()  # Attention weights for character regions
+        )
+
+        # Main feature extractor with attention
+        self.backbone = nn.Sequential(
+            nn.Conv2d(c + 32, 128, kernel_size=7, stride=2, padding=3),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.Conv2d(128, 256, kernel_size=5, stride=2, padding=2),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d((7, 7))
+        )
+
+        # Temporal attention for combo detection
+        self.lstm = nn.LSTM(
+            input_size=512 * 7 * 7,
+            hidden_size=features_dim,
+            num_layers=2,
+            batch_first=True,
+            dropout=0.1
+        )
+
+        # Action prediction auxiliary head (helps learn better features)
+        self.action_predictor = nn.Sequential(
+            nn.Linear(features_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128)  # Predict common action patterns
+        )
+
+    def forward(self, observations):
+        # Detect character regions
+        attention_maps = self.character_detector(observations)
+
+        # Concatenate attention with original input
+        x = torch.cat([observations, attention_maps], dim=1)
+
+        # Extract spatial features
+        features = self.backbone(x)
+        features = features.flatten(start_dim=1)
+
+        # Add temporal dimension (assuming single frame, but architecture supports sequences)
+        features = features.unsqueeze(1)
+
+        # LSTM for temporal modeling
+        lstm_out, _ = self.lstm(features)
+        output = lstm_out[:, -1, :]  # Take last timestep
+
+        return output
 
 # ==========================================================================================
 class EntityAttentionMLP(BaseFeaturesExtractor):

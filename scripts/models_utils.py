@@ -4,7 +4,7 @@ import gymnasium as gym
 import json
 import torch as th
 from torchsummary import summary
-from models import CustomMlpPolicy, CustomPolicy, ViTPolicy, DartPolicy, AttentionMLPPolicy, EntityAttentionPolicy, CustomCNN, CustomImpalaFeatureExtractor, CNNTransformer
+from models import CustomMlpPolicy, CustomPolicy, ViTPolicy, DartPolicy, AttentionMLPPolicy, EntityAttentionPolicy, CustomCNN, CustomImpalaFeatureExtractor, CNNTransformer, MortalKombatCNNTransformer
 from es import EvolutionStrategies
 
 def get_num_parameters(model):
@@ -36,14 +36,19 @@ def print_model_summary(args, env, player_model, model):
 
     obs_shape = env.observation_space.shape
 
-    if args.nn in ('MlpPolicy', 'EntityAttentionPolicy', 'CustomMlpPolicy'): #'AttentionMLPPolicy',
+    if args.nn in ('MlpPolicy', 'EntityAttentionPolicy', 'CustomMlpPolicy'): #'AttentionMLPPolicy'
         pytorch_obs_shape = (1, obs_shape[0])
-    elif args.nn in('CnnPolicy','ImpalaCnnPolicy'):
+    elif args.nn in('CnnPolicy','ImpalaCnnPolicy'): #'CnnTransformerPolicy'
         pytorch_obs_shape = (obs_shape[2], obs_shape[0], obs_shape[1])
+        pytorch_obs_shape = (4,84,84)
     else: #other types are not supported for now
+        print(model.policy)
         return
 
-    summary(model.policy, pytorch_obs_shape)
+    try:
+        summary(model.policy, pytorch_obs_shape, device='cpu')
+    except Exception as e:
+        print(f"Could not generate model summary: {e}")
 
 def init_model(output_path, player_model, player_alg, args, env, logger):
     policy_kwargs = None
@@ -105,6 +110,11 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
             features_extractor_class=CNNTransformer,
             features_extractor_kwargs=dict(features_dim=512, nhead=8, num_layers=3),
         )
+    elif args.nn == 'MKCnnTransformerPolicy':
+        nn_type = 'CnnPolicy'
+        policy_kwargs = {}
+
+
 
     if player_alg == 'ppo2':
         if player_model == '':
