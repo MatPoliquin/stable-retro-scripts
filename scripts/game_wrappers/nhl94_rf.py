@@ -122,11 +122,11 @@ def isdone_scoregoal(state):
     t1 = state.team1
     t2 = state.team2
 
-    if t1.stats.score > t1.last_stats.score: #or self.game_state.p1_shots > self.game_state.last_p1_shots:
-        return True
-
-    #if state.p2_haspuck or state.g2_haspuck:
+    #if t1.stats.score > t1.last_stats.score: #or self.game_state.p1_shots > self.game_state.last_p1_shots:
     #    return True
+
+    if t2.player_haspuck or t2.goalie_haspuck:
+        return True
 
     if state.puck.y < 100:
         return True
@@ -148,8 +148,8 @@ def rf_scoregoal(state):
     if state.puck.y < 100:
         rew = -1.0
 
-    if t1.stats.score > t1.last_stats.score:
-        rew = 1.0
+    #if t1.stats.score > t1.last_stats.score:
+    #    rew = 1.0
 
     # reward scoring opportunities
     if t1.player_haspuck and t1.players[0].y < GameConsts.CREASE_UPPER_BOUND and t1.players[0].y  > GameConsts.CREASE_LOWER_BOUND:
