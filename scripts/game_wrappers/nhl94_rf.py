@@ -80,6 +80,37 @@ def set_model_input_2p(game_state):
             t1.nz_player_haspuck, t2.nz_goalie_haspuck)
 
 
+
+# =====================================================================
+# Common RF functions
+# =====================================================================
+def init_attackzone(env, env_name):
+
+    if env_name == 'NHL941on1-Genesis':
+        x, y = RandomPosAttackZone()
+        env.set_value("p1_x", x)
+        env.set_value("p1_y", y)
+        x, y = RandomPosAttackZone()
+        env.set_value("p2_x", x)
+        env.set_value("p2_y", y)
+
+    elif env_name == 'NHL942on2-Genesis':
+        x, y = RandomPosAttackZone()
+        env.set_value("p1_x", x)
+        env.set_value("p1_y", y)
+        x, y = RandomPosAttackZone()
+        env.set_value("p2_x", x)
+        env.set_value("p2_y", y)
+        x, y = RandomPosAttackZone()
+        env.set_value("p2_2_x", x)
+        env.set_value("p2_2_y", y)
+        x, y = RandomPosAttackZone()
+        env.set_value("p1_2_x", x)
+        env.set_value("p1_2_y", y)
+    else:
+        raise ValueError(f"Invalid environment name, got '{env_name}'")
+
+
 # =====================================================================
 # General
 # =====================================================================
@@ -107,23 +138,61 @@ def rf_general(state):
     return rew
 
 # =====================================================================
+# ScoreGoal - Cross Crease technic
+# =====================================================================
+def isdone_scoregoal_cc(state):
+    t1 = state.team1
+    t2 = state.team2
+
+    if t2.player_haspuck or t2.goalie_haspuck:
+        return True
+
+    if state.puck.y < 100:
+        return True
+
+    if state.time < 100:
+        return True
+
+    return False
+
+def rf_scoregoal_cc(state):
+    t1 = state.team1
+    t2 = state.team2
+
+    rew = 0.0
+
+    if t2.player_haspuck or t2.goalie_haspuck:
+        rew = -1.0
+
+    if state.puck.y < 100:
+        rew = -1.0
+
+    # reward scoring opportunities
+    t = t1.control - 1
+    assert t == 0 if state.numPlayers == 1 else True
+ 
+    if t1.player_haspuck and t1.players[t].y < GameConsts.CREASE_UPPER_BOUND and t1.players[t].y  > GameConsts.CREASE_LOWER_BOUND:
+        rew = 0.1
+        if t1.players[t].vx >= GameConsts.CREASE_MIN_VEL or t1.players[t].vx <= -GameConsts.CREASE_MIN_VEL:
+            rew = 0.3
+            if state.puck.x > -GameConsts.CREASE_MAX_X and state.puck.x < GameConsts.CREASE_MAX_X:
+                if abs(state.puck.x - t2.goalie.x) > GameConsts.CREASE_MIN_GOALIE_PUCK_DIST_X:
+                    rew = 1.0
+                else:
+                    rew = 0.5
+
+    return rew
+
+
+# =====================================================================
 # ScoreGoal
 # =====================================================================
-def init_scoregoal(env):
-    x, y = RandomPosAttackZone()
-    env.set_value("p2_x", x)
-    env.set_value("p2_y", y)
-
-    x, y = RandomPosAttackZone()
-    env.set_value("p1_x", x)
-    env.set_value("p1_y", y)
-
 def isdone_scoregoal(state):
     t1 = state.team1
     t2 = state.team2
 
-    #if t1.stats.score > t1.last_stats.score: #or self.game_state.p1_shots > self.game_state.last_p1_shots:
-    #    return True
+    if t1.stats.score > t1.last_stats.score: #or self.game_state.p1_shots > self.game_state.last_p1_shots:
+        return True
 
     if t2.player_haspuck or t2.goalie_haspuck:
         return True
@@ -148,76 +217,14 @@ def rf_scoregoal(state):
     if state.puck.y < 100:
         rew = -1.0
 
-    #if t1.stats.score > t1.last_stats.score:
-    #    rew = 1.0
+    if t1.stats.passing > t1.last_stats.passing:
+        rew = 0.1
 
-    # reward scoring opportunities
-    if t1.player_haspuck and t1.players[0].y < GameConsts.CREASE_UPPER_BOUND and t1.players[0].y  > GameConsts.CREASE_LOWER_BOUND:
-        if t1.players[0].vx >= GameConsts.CREASE_MIN_VEL or t1.players[0].vx <= -GameConsts.CREASE_MIN_VEL:
-            rew = 0.2
-            if state.puck.x > -GameConsts.CREASE_MAX_X and state.puck.x < GameConsts.CREASE_MAX_X:
-                if abs(state.puck.x - t2.goalie.x) > GameConsts.CREASE_MIN_GOALIE_PUCK_DIST_X:
-                    rew = 1.0
-                else:
-                    rew = 0.5
+    if t1.stats.shots > t1.last_stats.shots:
+        rew = 0.1
 
-    return rew
-
-# =====================================================================
-# ScoreGoal02
-# =====================================================================
-def init_scoregoal02(env):
-    x, y = RandomPosAttackZone()
-    env.set_value("p2_x", x)
-    env.set_value("p2_y", y)
-
-    x, y = RandomPosAttackZone()
-    env.set_value("p1_x", x)
-    env.set_value("p1_y", y)
-
-def isdone_scoregoal02(state):
-
-    if state.stats.score > state.last_stats.score:
-        return True
-
-    #if state.p1_shots > state.last_p1_shots:
-    #    init_scoregoal02(env)
-
-    #if state.p2_haspuck or state.g2_haspuck:
-    #    return True
-
-    #if state.puck_y < 100:
-    #    return True
-
-    if state.time < 250:
-        return True
-
-    return False
-
-def rf_scoregoal02(state):
-    t1 = state.team1
-    t2 = state.team2
-
-    rew = 0.0
-
-    if t2.haspuck or t2.goalie.haspuck:
-        rew = -1.0
-
-    if state.puck.y < 100:
-        rew = -1.0
-
-    if state.t1.stats.score > state.t1.last_stats.score:
+    if t1.stats.score > t1.last_stats.score:
         rew = 1.0
-
-    # reward scoring opportunities
-    if t1.haspuck and t1.players[0].y < GameConsts.CREASE_UPPER_BOUND and t1.players[0].y > GameConsts.CREASE_LOWER_BOUND:
-        if t1.players[0].vx >= GameConsts.CREASE_MIN_VEL or t1.players[0].vx <= -GameConsts.CREASE_MIN_VEL:
-            rew = 0.2
-            if state.puck.x > -GameConsts.CREASE_MAX_X and state.puck.x < GameConsts.CREASE_MAX_X:
-                if abs(state.puck.x - t2.goalie.x) > GameConsts.CREASE_MIN_GOALIE_PUCK_DIST_X:
-                    rew = 1.0
-                else:
-                    rew = 0.5
 
     return rew
 
@@ -474,8 +481,8 @@ def rf_passing(state):
 _reward_function_map = {
     "GetPuck_1P": (init_getpuck, rf_getpuck, isdone_getpuck, init_model_1p, set_model_input_1p),
     "GetPuck_2P": (init_getpuck, rf_getpuck, isdone_getpuck, init_model_2p, set_model_input_2p),
-    "ScoreGoal_1P": (init_scoregoal, rf_scoregoal, isdone_scoregoal, init_model_1p, set_model_input_1p),
-    "ScoreGoal_2P": (init_scoregoal02, rf_scoregoal02, isdone_scoregoal02, init_model_2p, set_model_input_2p),
+    "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_1p, set_model_input_1p),
+    "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model_2p, set_model_input_2p),
     "KeepPuck_1P": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model_1p, set_model_input_1p),
     "DefenseZone_1P": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_1p, set_model_input_1p),
     "DefenseZone_2P": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_2p, set_model_input_2p),

@@ -20,6 +20,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
         gym.Wrapper.__init__(self, env)
 
         self.nn = args.nn
+        self.env_name = args.env
 
         self.rf_name = rf_name
         self.init_function, self.reward_function, self.done_function, self.init_model, self.set_model_input = register_functions(self.rf_name)
@@ -114,7 +115,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
         ob, rew, terminated, truncated, info = self.env.step(ac2)
 
         if not self.ram_inited:
-            self.init_function(self.env)
+            self.init_function(self.env, self.env_name)
             self.ram_inited = True
 
         self.prev_state = copy.deepcopy(self.game_state)

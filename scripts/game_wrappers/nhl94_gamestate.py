@@ -178,6 +178,7 @@ class NHL94GameState():
         self.puck = Player()
         self.time = 0
         self.last_time = 0
+        self.numPlayers = numPlayers
 
         #For model input
         self.nz_puck = Player()
