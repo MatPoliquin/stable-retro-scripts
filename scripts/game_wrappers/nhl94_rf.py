@@ -112,13 +112,40 @@ def init_attackzone(env, env_name):
 
 
 # =====================================================================
-# General
+# General - One model for both offense and defense
 # =====================================================================
-def init_general(state):
-    return
+def init_general(env, env_name):
+    if env_name == 'NHL941on1-Genesis':
+        x, y = RandomPos()
+        env.set_value("p1_x", x)
+        env.set_value("p1_y", y)
+        x, y = RandomPos()
+        env.set_value("p2_x", x)
+        env.set_value("p2_y", y)
+    elif env_name == 'NHL942on2-Genesis':
+        x, y = RandomPos()
+        env.set_value("p1_x", x)
+        env.set_value("p1_y", y)
+        x, y = RandomPos()
+        env.set_value("p2_x", x)
+        env.set_value("p2_y", y)
+        x, y = RandomPos()
+        env.set_value("p2_2_x", x)
+        env.set_value("p2_2_y", y)
+        x, y = RandomPos()
+        env.set_value("p1_2_x", x)
+        env.set_value("p1_2_y", y)
 
 def isdone_general(state):
-    if state.time < 10:
+    t1 = state.team1
+    t2 = state.team2
+
+    if state.time < 100:
+        return True
+    
+    if t1.stats.score > t1.last_stats.score:
+        return True
+    if t2.stats.score > t2.last_stats.score:
         return True
 
     return False
@@ -126,15 +153,53 @@ def isdone_general(state):
 def rf_general(state):
     t1 = state.team1
     t2 = state.team2
-
     rew = 0.0
-
+    
+    # Big rewards for scoring/conceding
     if t1.stats.score > t1.last_stats.score:
-        rew = 1.0
-
+        rew += 1.0
     if t2.stats.score > t2.last_stats.score:
-        rew = -1.0
-
+        rew -= 1.0
+    
+    # Determine if we should focus on offense or defense
+    offensive_mode = (t1.player_haspuck or 
+                     (not t2.player_haspuck and state.puck.y > -50))
+    
+    if offensive_mode:
+        # Offensive rewards
+        if t1.stats.shots > t1.last_stats.shots:
+            rew += 0.2
+        if t1.stats.passing > t1.last_stats.passing:
+            rew += 0.1
+        
+        # Reward for moving puck toward opponent goal
+        if t1.player_haspuck:
+            if state.puck.vy < 0:
+                rew += 0.01 * state.puck.vy
+                
+        # Cross-crease opportunity reward
+        if (t1.player_haspuck and 
+            t1.players[t1.control-1].y < GameConsts.CREASE_UPPER_BOUND and 
+            t1.players[t1.control-1].y > GameConsts.CREASE_LOWER_BOUND and
+            abs(state.puck.x - t2.goalie.x) > GameConsts.CREASE_MIN_GOALIE_PUCK_DIST_X):
+            rew += 0.3
+    else:
+        # Defensive rewards
+        if t1.stats.bodychecks > t1.last_stats.bodychecks:
+            rew += 0.2
+            
+        # Reward for moving toward puck when we don't have it
+        if not t1.player_haspuck and t1.distToPuck < t1.last_distToPuck:
+            rew += 0.1 * (1 - (t1.distToPuck / 200.0)**0.5)
+            
+        # Penalty for opponent shots
+        if t2.stats.shots > t2.last_stats.shots:
+            rew -= 0.1
+            
+        # Reward for clearing puck from our zone
+        #if state.puck.y < state.last_puck_y and state.puck.y < -50:
+        #    rew += 0.05
+    
     return rew
 
 # =====================================================================
@@ -183,6 +248,44 @@ def rf_scoregoal_cc(state):
 
     return rew
 
+# =====================================================================
+# ScoreGoal - One Timers
+# =====================================================================
+def isdone_scoregoal_ot(state):
+    t1 = state.team1
+    t2 = state.team2
+
+    if t2.player_haspuck or t2.goalie_haspuck:
+        return True
+
+    if state.puck.y < 100:
+        return True
+
+    if state.time < 100:
+        return True
+
+    return False
+
+def rf_scoregoal_ot(state):
+    t1 = state.team1
+    t2 = state.team2
+
+    rew = 0.0
+
+    if t2.player_haspuck or t2.goalie_haspuck:
+        rew = -1.0
+
+    if state.puck.y < 100:
+        rew = -1.0
+
+    #if t1.stats.passing > t1.last_stats.passing:
+    #    rew = 0.1
+
+    # reward one timers
+    if t1.stats.onetimer > t1.last_stats.onetimer:
+        rew = 1.0
+
+    return rew
 
 # =====================================================================
 # ScoreGoal
@@ -217,11 +320,11 @@ def rf_scoregoal(state):
     if state.puck.y < 100:
         rew = -1.0
 
-    if t1.stats.passing > t1.last_stats.passing:
-        rew = 0.1
+    #if t1.stats.passing > t1.last_stats.passing:
+    #    rew = 0.1
 
-    if t1.stats.shots > t1.last_stats.shots:
-        rew = 0.1
+    #if t1.stats.shots > t1.last_stats.shots:
+    #    rew = 0.1
 
     if t1.stats.score > t1.last_stats.score:
         rew = 1.0
@@ -482,12 +585,13 @@ _reward_function_map = {
     "GetPuck_1P": (init_getpuck, rf_getpuck, isdone_getpuck, init_model_1p, set_model_input_1p),
     "GetPuck_2P": (init_getpuck, rf_getpuck, isdone_getpuck, init_model_2p, set_model_input_2p),
     "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_1p, set_model_input_1p),
+    "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, init_model_2p, set_model_input_2p),
     "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model_2p, set_model_input_2p),
     "KeepPuck_1P": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model_1p, set_model_input_1p),
     "DefenseZone_1P": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_1p, set_model_input_1p),
     "DefenseZone_2P": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_2p, set_model_input_2p),
     "Passing_2P": (init_passing, rf_passing, isdone_passing, init_model_2p_passing, set_model_input_2p_passing),
-    "General_1P": (init_general, rf_general, isdone_general, init_model_1p, set_model_input_1p),
+    "General": (init_general, rf_general, isdone_general, init_model_2p, set_model_input_2p),
 }
 
 def register_functions(name: str) -> Tuple[Callable, Callable, Callable]:

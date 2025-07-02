@@ -26,6 +26,7 @@ class Stats:
     attackzone: int = 0
     faceoffwon: int = 0
     passing: int = 0
+    onetimer: int = 0
     fullstar_x: int = 0
     fullstar_y: int = 0
     emptystar_x: int = 0
@@ -33,7 +34,7 @@ class Stats:
 
     def debug_print(self, prefix="Stats"):
         print(f"{prefix} - score: {self.score}, shots: {self.shots}, bodychecks: {self.bodychecks}, "
-              f"attackzone: {self.attackzone}, faceoffwon: {self.faceoffwon}, passing: {self.passing}, "
+              f"attackzone: {self.attackzone}, faceoffwon: {self.faceoffwon}, passing: {self.passing}, onetimer: {self.onetimer},"
               f"fullstar: ({self.fullstar_x},{self.fullstar_y}), emptystar: ({self.emptystar_x},{self.emptystar_y})")
 
 class Team():
@@ -77,6 +78,7 @@ class Team():
         self.stats.attackzone = info.get(f"{self.ram_var_prefix}attackzone")
         self.stats.faceoffwon = info.get(f"{self.ram_var_prefix}faceoffwon")
         self.stats.passing = info.get(f"{self.ram_var_prefix}passing")
+        self.stats.onetimer = info.get(f"{self.ram_var_prefix}onetimer")
 
         # special case for team 1 as the stable-retro ram var name don't have the prefix
         if self.controller == 1:
