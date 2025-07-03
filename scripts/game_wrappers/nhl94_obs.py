@@ -62,6 +62,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.b_button_pressed = False
         self.c_button_pressed = False
 
+        self.slapshot_frames_held = 0      # 0 means not in slapshot mode
+        self.SLAPSHOT_HOLD_FRAMES = 60     # Number of frames to hold C for slapshot
+
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
 
@@ -99,7 +102,23 @@ class NHL94Observation2PEnv(gym.Wrapper):
             self.b_button_pressed = False
 
         # Hack to allow for slapshots
-        if ac[GameConsts.INPUT_MODE] != 1:
+        # Handle slapshot via INPUT_MODE
+        if ac[GameConsts.INPUT_MODE] == 1:
+            if self.slapshot_frames_held == 0:
+                # Just started slapshot
+                self.slapshot_frames_held = 1
+                ac[GameConsts.INPUT_C] = 1  # Press C
+            else:
+                # Continue holding slapshot
+                self.slapshot_frames_held += 1
+                ac[GameConsts.INPUT_C] = 1  # Keep C pressed
+
+                # Release after holding long enough
+                if self.slapshot_frames_held >= self.SLAPSHOT_HOLD_FRAMES:
+                    self.slapshot_frames_held = 0
+                    ac[GameConsts.INPUT_C] = 0
+        else:
+            # Not in slapshot mode - handle normal C button presses
             if self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
                 ac[GameConsts.INPUT_C] = 0
                 self.c_button_pressed = False
@@ -107,6 +126,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
                 self.c_button_pressed = True
             else:
                 self.c_button_pressed = False
+            self.slapshot_frames_held = 0  # Reset if INPUT_MODE not pressed
 
         ac2 = ac
         if self.num_players == 2:
