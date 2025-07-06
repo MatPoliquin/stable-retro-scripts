@@ -14,9 +14,13 @@ class Player:
     y: int = 0
     vx: int = 0
     vy: int = 0
+    orientation: int = 0  # New field for orientation (0-7)
+    ori_x: float = 0.0    # Normalized x component of orientation
+    ori_y: float = 0.0    # Normalized y component of orientation
 
     def debug_print(self, prefix="Player"):
-        print(f"{prefix} - x: {self.x}, y: {self.y}, vx: {self.vx}, vy: {self.vy}")
+        print(f"{prefix} - x: {self.x}, y: {self.y}, vx: {self.vx}, vy: {self.vy}, "
+              f"orientation: {self.orientation}, ori_vec: ({self.ori_x:.2f}, {self.ori_y:.2f})")
 
 @dataclass
 class Stats:
@@ -64,7 +68,6 @@ class Team():
         self.nz_goalie_haspuck = 0.0
 
     def has_puck(self, pos_x, pos_y):
-        #print(pos_x, pos_y, self.stats.fullstar_x, self.stats.fullstar_y)
         return (abs(pos_x - self.stats.fullstar_x) < self.HAS_PUCK_TRESHOLD and abs(pos_y - self.stats.fullstar_y) < self.HAS_PUCK_TRESHOLD)
 
     def has_control(self, pos_x, pos_y):
@@ -104,12 +107,19 @@ class Team():
                 self.players[p].y = info.get(f"{self.ram_var_prefix}y")
                 self.players[p].vx = info.get(f"{self.ram_var_prefix}vel_x")
                 self.players[p].vy = info.get(f"{self.ram_var_prefix}vel_y")
+                self.players[p].orientation = info.get(f"{self.ram_var_prefix}ori", 0)
             else:
                 pi = p + 1
                 self.players[p].x = info.get(f"{self.ram_var_prefix}{pi}_x")
                 self.players[p].y = info.get(f"{self.ram_var_prefix}{pi}_y")
                 self.players[p].vx = info.get(f"{self.ram_var_prefix}{pi}_vel_x")
                 self.players[p].vy = info.get(f"{self.ram_var_prefix}{pi}_vel_y")
+                self.players[p].orientation = info.get(f"{self.ram_var_prefix}{pi}_ori", 0)
+            
+            # Convert orientation to vector
+            angle = self.players[p].orientation * (2 * math.pi / 8)
+            self.players[p].ori_x = math.cos(angle)
+            self.players[p].ori_y = math.sin(angle)
 
         # Knowing if the player has the puck is tricky since the fullstar in the game is not aligned with the player every frame
         # There is an offset of up to 2 sometimes
@@ -120,7 +130,7 @@ class Team():
 
         self.goalie_haspuck = self.has_puck(self.goalie.x, self.goalie.y)
 
-        # Check which player is beeing controlled
+        # Check which player is being controlled
         if self.goalie_haspuck:
             self.control = 0
         elif self.player_haspuck:
@@ -136,12 +146,15 @@ class Team():
         self.last_stats = deepcopy(self.stats)
         self.last_distToPuck = self.distToPuck
 
-        # Normalize for model input. TODO: also make positions and velocities relative to controlled player
+        # Normalize for model input
         for p in range(0, self.num_players):
             self.nz_players[p].x = self.players[p].x / GameConsts.MAX_PLAYER_X
             self.nz_players[p].y = self.players[p].y / GameConsts.MAX_PLAYER_Y
             self.nz_players[p].vx = self.players[p].vx / GameConsts.MAX_VEL_XY
             self.nz_players[p].vy = self.players[p].vy / GameConsts.MAX_VEL_XY
+            # Orientation vector is already normalized (-1 to 1)
+            self.nz_players[p].ori_x = self.players[p].ori_x
+            self.nz_players[p].ori_y = self.players[p].ori_y
 
         self.nz_goalie.x = self.goalie.x / GameConsts.MAX_PLAYER_X
         self.nz_goalie.y = self.goalie.y / GameConsts.MAX_PLAYER_Y

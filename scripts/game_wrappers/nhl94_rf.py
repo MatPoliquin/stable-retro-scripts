@@ -31,23 +31,27 @@ def RandomPosDefenseZone():
     return x, y
 
 def init_model_1p(num_players):
-    return 16
+    # Original 16 + 2 orientation components for each player (1 controlled + 1 opponent)
+    return 16 + 2 + 2  # 20 total
 
 def set_model_input_1p(game_state):
     t1 = game_state.team1
     t2 = game_state.team2
 
     return (t1.nz_players[0].x, t1.nz_players[0].y, \
-                        t1.nz_players[0].vx, t1.nz_players[0].vy, \
-                        t2.nz_players[0].x, t2.nz_players[0].y, \
-                        t2.nz_players[0].vx, t2.nz_players[0].vy, \
-                        game_state.nz_puck.x, game_state.nz_puck.y, \
-                        game_state.nz_puck.vx, game_state.nz_puck.vy, \
-                        t2.nz_goalie.x, t2.nz_goalie.y, \
-                        t1.nz_player_haspuck, t2.nz_goalie_haspuck)
+            t1.nz_players[0].vx, t1.nz_players[0].vy, \
+            t1.nz_players[0].ori_x, t1.nz_players[0].ori_y, \
+            t2.nz_players[0].x, t2.nz_players[0].y, \
+            t2.nz_players[0].vx, t2.nz_players[0].vy, \
+            t2.nz_players[0].ori_x, t2.nz_players[0].ori_y, \
+            game_state.nz_puck.x, game_state.nz_puck.y, \
+            game_state.nz_puck.vx, game_state.nz_puck.vy, \
+            t2.nz_goalie.x, t2.nz_goalie.y, \
+            t1.nz_player_haspuck, t2.nz_goalie_haspuck)
 
 def init_model_2p(num_players):
-    return 24
+    # Original 24 + 2 orientation components per player (2 controlled + 2 opponents)
+    return 24 + (4 * 2)  # 32 total
 
 def set_model_input_2p(game_state):
     t1 = game_state.team1
@@ -55,40 +59,49 @@ def set_model_input_2p(game_state):
 
     p1_x, p1_y = t1.nz_players[0].x, t1.nz_players[0].y
     p1_vel_x, p1_vel_y = t1.nz_players[0].vx, t1.nz_players[0].vy
+    p1_ori_x, p1_ori_y = t1.nz_players[0].ori_x, t1.nz_players[0].ori_y
     p1_2_x, p1_2_y = t1.nz_players[1].x, t1.nz_players[1].y
     p1_2_vel_x, p1_2_vel_y = t1.nz_players[1].vx, t1.nz_players[1].vy
+    p1_2_ori_x, p1_2_ori_y = t1.nz_players[1].ori_x, t1.nz_players[1].ori_y
 
-    # First two slots is for pos/vel of player beeing controled (empty or full star)
-    # So swap them if necessary
+    # Swap controlled player to first position if needed
     if t1.control == 2:
         p1_x, p1_2_x = p1_2_x, p1_x
         p1_y, p1_2_y = p1_2_y, p1_y
         p1_vel_x, p1_2_vel_x = p1_2_vel_x, p1_vel_x
         p1_vel_y, p1_2_vel_y = p1_2_vel_y, p1_vel_y
+        p1_ori_x, p1_2_ori_x = p1_2_ori_x, p1_ori_x
+        p1_ori_y, p1_2_ori_y = p1_2_ori_y, p1_ori_y
 
     return (p1_x, p1_y, \
             p1_vel_x, p1_vel_y, \
+            p1_ori_x, p1_ori_y, \
             p1_2_x, p1_2_y, \
             p1_2_vel_x, p1_2_vel_y, \
+            p1_2_ori_x, p1_2_ori_y, \
             t2.nz_players[0].x, t2.nz_players[0].y, \
             t2.nz_players[0].vx, t2.nz_players[0].vy, \
+            t2.nz_players[0].ori_x, t2.nz_players[0].ori_y, \
             t2.nz_players[1].x, t2.nz_players[1].y, \
             t2.nz_players[1].vx, t2.nz_players[1].vy, \
+            t2.nz_players[1].ori_x, t2.nz_players[1].ori_y, \
             game_state.nz_puck.x, game_state.nz_puck.y, \
             game_state.nz_puck.vx, game_state.nz_puck.vy, \
             t2.nz_goalie.x, t2.nz_goalie.y, \
             t1.nz_player_haspuck, t2.nz_goalie_haspuck)
 
 def init_model_5p(num_players):
-    return 44  # 5 players * 4 (x,y,vx,vy) + 5 opponents * 4 + puck * 4 + goalie * 2 + 2 has_puck flags
+    # Original 48 + 2 orientation components per player (5 controlled + 5 opponents)
+    return 48 + (10 * 2)  # 68 total
 
 def set_model_input_5p(game_state):
     t1 = game_state.team1
     t2 = game_state.team2
 
-    # Get all player positions and velocities
+    # Get all player positions, velocities and orientations
     p1_players = [(t1.nz_players[i].x, t1.nz_players[i].y,
-                   t1.nz_players[i].vx, t1.nz_players[i].vy) for i in range(5)]
+                   t1.nz_players[i].vx, t1.nz_players[i].vy,
+                   t1.nz_players[i].ori_x, t1.nz_players[i].ori_y) for i in range(5)]
 
     # Determine controlled player (first slot should be the puck controller)
     controlled_idx = max(0, t1.control - 1) if t1.control > 0 else 0
@@ -97,16 +110,19 @@ def set_model_input_5p(game_state):
     if controlled_idx != 0:
         p1_players[0], p1_players[controlled_idx] = p1_players[controlled_idx], p1_players[0]
 
-    # Flatten team 1 players
+    # Team 2 players (maintain original order)
+    t2_players = [(t2.nz_players[i].x, t2.nz_players[i].y,
+                   t2.nz_players[i].vx, t2.nz_players[i].vy,
+                   t2.nz_players[i].ori_x, t2.nz_players[i].ori_y) for i in range(5)]
+
+    # Flatten all player data
     t1_data = []
     for player_data in p1_players:
         t1_data.extend(player_data)
 
-    # Team 2 players (maintain original order)
     t2_data = []
-    for i in range(5):
-        t2_data.extend([t2.nz_players[i].x, t2.nz_players[i].y,
-                       t2.nz_players[i].vx, t2.nz_players[i].vy])
+    for player_data in t2_players:
+        t2_data.extend(player_data)
 
     return tuple(t1_data + t2_data + [
         game_state.nz_puck.x, game_state.nz_puck.y,
@@ -120,7 +136,6 @@ def set_model_input_5p(game_state):
 # Common RF functions
 # =====================================================================
 def init_attackzone(env, env_name):
-
     if env_name == 'NHL941on1-Genesis':
         x, y = RandomPosAttackZone()
         env.set_value("p1_x", x)
@@ -146,6 +161,7 @@ def init_attackzone(env, env_name):
         # Team 1 players
         for i in range(5):
             x, y = RandomPosAttackZone()
+            #print(x,y)
             if i == 0:
                 env.set_value("p1_x", x)
                 env.set_value("p1_y", y)
