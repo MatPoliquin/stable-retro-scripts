@@ -17,6 +17,10 @@ class Player:
     orientation: int = 0  # New field for orientation (0-7)
     ori_x: float = 0.0    # Normalized x component of orientation
     ori_y: float = 0.0    # Normalized y component of orientation
+    rel_puck_x: float = 0.0  # Relative puck x position
+    rel_puck_y: float = 0.0  # Relative puck y position
+    rel_puck_vx: float = 0.0 # Relative puck x velocity
+    rel_puck_vy: float = 0.0 # Relative puck y velocity
 
     def debug_print(self, prefix="Player"):
         print(f"{prefix} - x: {self.x}, y: {self.y}, vx: {self.vx}, vy: {self.vy}, "
@@ -73,7 +77,7 @@ class Team():
     def has_control(self, pos_x, pos_y):
         return (abs(pos_x - self.stats.emptystar_x) < self.HAS_PUCK_TRESHOLD and abs(pos_y - self.stats.emptystar_y) < self.HAS_PUCK_TRESHOLD)
 
-    def begin_frame(self, info: Dict[str, Any]) -> None:
+    def begin_frame(self, info: Dict[str, Any], puck_x: int, puck_y: int, puck_vx: int, puck_vy: int) -> None:
         # General state
         self.stats.score = info.get(f"{self.ram_var_prefix}score")
         self.stats.shots = info.get(f"{self.ram_var_prefix}shots")
@@ -115,11 +119,24 @@ class Team():
                 self.players[p].vx = info.get(f"{self.ram_var_prefix}{pi}_vel_x")
                 self.players[p].vy = info.get(f"{self.ram_var_prefix}{pi}_vel_y")
                 self.players[p].orientation = info.get(f"{self.ram_var_prefix}{pi}_ori", 0)
-            
+
             # Convert orientation to vector
             angle = self.players[p].orientation * (2 * math.pi / 8)
             self.players[p].ori_x = math.cos(angle)
             self.players[p].ori_y = math.sin(angle)
+
+            # Calculate relative puck position and velocity
+            self.players[p].rel_puck_x = puck_x - self.players[p].x
+            self.players[p].rel_puck_y = puck_y - self.players[p].y
+            self.players[p].rel_puck_vx = puck_vx - self.players[p].vx
+            self.players[p].rel_puck_vy = puck_vy - self.players[p].vy
+
+        # Calculate relative puck position for goalie
+        self.goalie.rel_puck_x = puck_x - self.goalie.x
+        self.goalie.rel_puck_y = puck_y - self.goalie.y
+        self.goalie.rel_puck_vx = puck_vx - self.goalie.vx
+        self.goalie.rel_puck_vy = puck_vy - self.goalie.vy
+
 
         # Knowing if the player has the puck is tricky since the fullstar in the game is not aligned with the player every frame
         # There is an offset of up to 2 sometimes
@@ -142,10 +159,6 @@ class Team():
                 if self.has_control(self.players[p].x, self.players[p].y):
                     self.control = p + 1
 
-    def end_frame(self) -> None:
-        self.last_stats = deepcopy(self.stats)
-        self.last_distToPuck = self.distToPuck
-
         # Normalize for model input
         for p in range(0, self.num_players):
             self.nz_players[p].x = self.players[p].x / GameConsts.MAX_PLAYER_X
@@ -155,15 +168,29 @@ class Team():
             # Orientation vector is already normalized (-1 to 1)
             self.nz_players[p].ori_x = self.players[p].ori_x
             self.nz_players[p].ori_y = self.players[p].ori_y
+            # Normalize relative puck position and velocity
+            self.nz_players[p].rel_puck_x = self.players[p].rel_puck_x / GameConsts.MAX_PUCK_X
+            self.nz_players[p].rel_puck_y = self.players[p].rel_puck_y / GameConsts.MAX_PUCK_Y
+            self.nz_players[p].rel_puck_vx = self.players[p].rel_puck_vx / GameConsts.MAX_VEL_XY
+            self.nz_players[p].rel_puck_vy = self.players[p].rel_puck_vy / GameConsts.MAX_VEL_XY
 
         self.nz_goalie.x = self.goalie.x / GameConsts.MAX_PLAYER_X
         self.nz_goalie.y = self.goalie.y / GameConsts.MAX_PLAYER_Y
         self.nz_goalie.vx = self.goalie.vx / GameConsts.MAX_VEL_XY
         self.nz_goalie.vy = self.goalie.vy / GameConsts.MAX_VEL_XY
+        # Normalize relative puck position and velocity for goalie
+        self.nz_goalie.rel_puck_x = self.goalie.rel_puck_x / GameConsts.MAX_PUCK_X
+        self.nz_goalie.rel_puck_y = self.goalie.rel_puck_y / GameConsts.MAX_PUCK_Y
+        self.nz_goalie.rel_puck_vx = self.goalie.rel_puck_vx / GameConsts.MAX_VEL_XY
+        self.nz_goalie.rel_puck_vy = self.goalie.rel_puck_vy / GameConsts.MAX_VEL_XY
 
         # 0.0 and 1.0 switched around due to current models trained that way
         self.nz_player_haspuck = 0.0 if self.player_haspuck else 1.0
         self.nz_goalie_haspuck = 0.0 if self.goalie_haspuck else 1.0
+
+    def end_frame(self) -> None:
+        self.last_stats = deepcopy(self.stats)
+        self.last_distToPuck = self.distToPuck
 
     def debug_print(self):
         print(f"Team controller: {self.controller}")
@@ -212,21 +239,21 @@ class NHL94GameState():
         self.puck.vx = info.get("puck_vel_x")
         self.puck.vy = info.get("puck_vel_y")
 
-        self.team1.begin_frame(info)
-        self.team2.begin_frame(info)
+        self.team1.begin_frame(info, self.puck.x, self.puck.y, self.puck.vx, self.puck.vy)
+        self.team2.begin_frame(info, self.puck.x, self.puck.y, self.puck.vx, self.puck.vy)
 
         # Distance
         self.team1.distToPuck = GameConsts.Distance((self.team1.players[0].x, self.team1.players[0].y), (self.puck.x, self.puck.y))
         self.team2.distToPuck = GameConsts.Distance((self.team2.players[0].x, self.team2.players[0].y), (self.puck.x, self.puck.y))
-
-    def EndFrame(self):
-        self.last_time = self.time
 
         #Puck
         self.nz_puck.x = self.puck.x / GameConsts.MAX_PUCK_X
         self.nz_puck.y = self.puck.y / GameConsts.MAX_PUCK_Y
         self.nz_puck.vx = self.puck.vx / GameConsts.MAX_VEL_XY
         self.nz_puck.vy = self.puck.vy / GameConsts.MAX_VEL_XY
+
+    def EndFrame(self):
+        self.last_time = self.time
 
         self.team1.end_frame()
         self.team2.end_frame()
