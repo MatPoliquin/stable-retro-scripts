@@ -21,6 +21,10 @@ class Player:
     rel_puck_y: float = 0.0  # Relative puck y position
     rel_puck_vx: float = 0.0 # Relative puck x velocity
     rel_puck_vy: float = 0.0 # Relative puck y velocity
+    rel_controlled_x: float = 0.0  # New: Relative to controlled player x position
+    rel_controlled_y: float = 0.0  # New: Relative to controlled player y position
+    rel_controlled_vx: float = 0.0 # New: Relative to controlled player x velocity
+    rel_controlled_vy: float = 0.0 # New: Relative to controlled player y velocity
 
     def debug_print(self, prefix="Player"):
         print(f"{prefix} - x: {self.x}, y: {self.y}, vx: {self.vx}, vy: {self.vy}, "
@@ -137,7 +141,6 @@ class Team():
         self.goalie.rel_puck_vx = puck_vx - self.goalie.vx
         self.goalie.rel_puck_vy = puck_vy - self.goalie.vy
 
-
         # Knowing if the player has the puck is tricky since the fullstar in the game is not aligned with the player every frame
         # There is an offset of up to 2 sometimes
         self.player_haspuck = False
@@ -159,6 +162,24 @@ class Team():
                 if self.has_control(self.players[p].x, self.players[p].y):
                     self.control = p + 1
 
+        # Calculate relative positions to controlled player
+        controlled_x = self.goalie.x if self.control == 0 else self.players[self.control-1].x
+        controlled_y = self.goalie.y if self.control == 0 else self.players[self.control-1].y
+        controlled_vx = self.goalie.vx if self.control == 0 else self.players[self.control-1].vx
+        controlled_vy = self.goalie.vy if self.control == 0 else self.players[self.control-1].vy
+
+        for p in range(0, self.num_players):
+            self.players[p].rel_controlled_x = self.players[p].x - controlled_x
+            self.players[p].rel_controlled_y = self.players[p].y - controlled_y
+            self.players[p].rel_controlled_vx = self.players[p].vx - controlled_vx
+            self.players[p].rel_controlled_vy = self.players[p].vy - controlled_vy
+
+        # For goalie
+        self.goalie.rel_controlled_x = self.goalie.x - controlled_x
+        self.goalie.rel_controlled_y = self.goalie.y - controlled_y
+        self.goalie.rel_controlled_vx = self.goalie.vx - controlled_vx
+        self.goalie.rel_controlled_vy = self.goalie.vy - controlled_vy
+
         # Normalize for model input
         for p in range(0, self.num_players):
             self.nz_players[p].x = self.players[p].x / GameConsts.MAX_PLAYER_X
@@ -173,6 +194,11 @@ class Team():
             self.nz_players[p].rel_puck_y = self.players[p].rel_puck_y / GameConsts.MAX_PUCK_Y
             self.nz_players[p].rel_puck_vx = self.players[p].rel_puck_vx / GameConsts.MAX_VEL_XY
             self.nz_players[p].rel_puck_vy = self.players[p].rel_puck_vy / GameConsts.MAX_VEL_XY
+            # Normalize relative controlled player position and velocity
+            self.nz_players[p].rel_controlled_x = self.players[p].rel_controlled_x / GameConsts.MAX_PLAYER_X
+            self.nz_players[p].rel_controlled_y = self.players[p].rel_controlled_y / GameConsts.MAX_PLAYER_Y
+            self.nz_players[p].rel_controlled_vx = self.players[p].rel_controlled_vx / GameConsts.MAX_VEL_XY
+            self.nz_players[p].rel_controlled_vy = self.players[p].rel_controlled_vy / GameConsts.MAX_VEL_XY
 
         self.nz_goalie.x = self.goalie.x / GameConsts.MAX_PLAYER_X
         self.nz_goalie.y = self.goalie.y / GameConsts.MAX_PLAYER_Y
@@ -183,6 +209,11 @@ class Team():
         self.nz_goalie.rel_puck_y = self.goalie.rel_puck_y / GameConsts.MAX_PUCK_Y
         self.nz_goalie.rel_puck_vx = self.goalie.rel_puck_vx / GameConsts.MAX_VEL_XY
         self.nz_goalie.rel_puck_vy = self.goalie.rel_puck_vy / GameConsts.MAX_VEL_XY
+        # Normalize relative controlled player position and velocity for goalie
+        self.nz_goalie.rel_controlled_x = self.goalie.rel_controlled_x / GameConsts.MAX_PLAYER_X
+        self.nz_goalie.rel_controlled_y = self.goalie.rel_controlled_y / GameConsts.MAX_PLAYER_Y
+        self.nz_goalie.rel_controlled_vx = self.goalie.rel_controlled_vx / GameConsts.MAX_VEL_XY
+        self.nz_goalie.rel_controlled_vy = self.goalie.rel_controlled_vy / GameConsts.MAX_VEL_XY
 
         # 0.0 and 1.0 switched around due to current models trained that way
         self.nz_player_haspuck = 0.0 if self.player_haspuck else 1.0

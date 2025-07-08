@@ -5,7 +5,7 @@ NHL94 Reward Functions
 import random
 from typing import Tuple, Callable
 from game_wrappers.nhl94_const import GameConsts
-from nhl94_mi import init_model, init_model_1p, init_model_2p, set_model_input, set_model_input_1p, set_model_input_2p
+from game_wrappers.nhl94_mi import init_model, init_model_rel_puck, init_model_1p, init_model_2p, set_model_input, set_model_input_1p, set_model_input_2p, set_model_input_rel_puck
 
 # =====================================================================
 # Common functions
@@ -179,6 +179,12 @@ def isdone_scoregoal_cc(state):
     if t2.player_haspuck or t2.goalie_haspuck:
         return True
 
+    if t1.stats.shots > t1.last_stats.shots:
+        return True
+
+    if t1.stats.score > t1.last_stats.score:
+        return True
+
     if state.puck.y < 100:
         return True
 
@@ -194,24 +200,31 @@ def rf_scoregoal_cc(state):
     rew = 0.0
 
     if t2.player_haspuck or t2.goalie_haspuck:
-        rew = -1.0
+        return -1.0
 
     if state.puck.y < 100:
-        rew = -1.0
+        return -1.0
+
+    # Punish for shots and scores because the AI might try to do that to avoid negative rewards when losing the puch to opponent
+    if t1.stats.shots > t1.last_stats.shots:
+        return -1.0
+
+    if t1.stats.score > t1.last_stats.score:
+        return -1.0
 
     # reward scoring opportunities
     t = t1.control - 1
     assert t == 0 if state.numPlayers == 1 else True
 
     if t1.player_haspuck and t1.players[t].y < GameConsts.CREASE_UPPER_BOUND and t1.players[t].y  > GameConsts.CREASE_LOWER_BOUND:
-        rew = 0.1
+        rew = 0.2
         if t1.players[t].vx >= GameConsts.CREASE_MIN_VEL or t1.players[t].vx <= -GameConsts.CREASE_MIN_VEL:
-            rew = 0.3
+            rew = 0.4
             if state.puck.x > -GameConsts.CREASE_MAX_X and state.puck.x < GameConsts.CREASE_MAX_X:
                 if abs(state.puck.x - t2.goalie.x) > GameConsts.CREASE_MIN_GOALIE_PUCK_DIST_X:
                     rew = 1.0
                 else:
-                    rew = 0.5
+                    rew = 0.7
 
     return rew
 
@@ -574,7 +587,7 @@ def rf_passing(state):
 _reward_function_map = {
     "GetPuck_1P": (init_getpuck, rf_getpuck, isdone_getpuck, init_model, set_model_input),
     "GetPuck_2P": (init_getpuck, rf_getpuck, isdone_getpuck, init_model, set_model_input),
-    "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model, set_model_input),
+    "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_rel_puck, set_model_input_rel_puck),
     "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, init_model, set_model_input),
     "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model, set_model_input),
     "KeepPuck_1P": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model, set_model_input),
