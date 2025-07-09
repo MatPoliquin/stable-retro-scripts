@@ -23,7 +23,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.env_name = args.env
 
         self.rf_name = rf_name
-        self.init_function, self.reward_function, self.done_function, self.init_model, self.set_model_input = register_functions(self.rf_name)
+        self.init_function, self.reward_function, self.done_function, self.init_model, self.set_model_input, self.input_overide = register_functions(self.rf_name)
 
         self.num_players_per_team = 0
         if args.env == 'NHL941on1-Genesis':
@@ -130,6 +130,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
             else:
                 self.c_button_pressed = False
             self.slapshot_frames_held = 0  # Reset if INPUT_MODE not pressed
+
+        # Reward functions might need to override input
+        self.input_overide(ac)
 
         ac2 = ac
         if self.num_players == 2:

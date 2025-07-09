@@ -31,6 +31,9 @@ def RandomPosDefenseZone():
     #print(x,y)
     return x, y
 
+def input_overide(ac):
+    ac[GameConsts.INPUT_C] = 0
+
 def init_attackzone(env, env_name):
     if env_name == 'NHL941on1-Genesis':
         x, y = RandomPosAttackZone()
@@ -585,16 +588,14 @@ def rf_passing(state):
 # Register Functions
 # =====================================================================
 _reward_function_map = {
-    "GetPuck_1P": (init_getpuck, rf_getpuck, isdone_getpuck, init_model, set_model_input),
-    "GetPuck_2P": (init_getpuck, rf_getpuck, isdone_getpuck, init_model, set_model_input),
-    "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_rel_puck, set_model_input_rel_puck),
-    "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, init_model, set_model_input),
-    "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model, set_model_input),
-    "KeepPuck_1P": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model, set_model_input),
-    "DefenseZone_1P": (init_defensezone, rf_defensezone, isdone_defensezone, init_model, set_model_input),
-    "DefenseZone_2P": (init_defensezone, rf_defensezone, isdone_defensezone, init_model, set_model_input),
-    "Passing_2P": (init_passing, rf_passing, isdone_passing, init_model, set_model_input),
-    "General": (init_general, rf_general, isdone_general, init_model_2p, set_model_input_2p),
+    "GetPuck": (init_getpuck, rf_getpuck, isdone_getpuck, init_model, set_model_input, input_overide),
+    "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_rel_puck, set_model_input_rel_puck, input_overide),
+    "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, init_model, set_model_input, input_overide),
+    "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model, set_model_input, input_overide),
+    "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model, set_model_input, input_overide),
+    "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model, set_model_input, input_overide),
+    "Passing": (init_passing, rf_passing, isdone_passing, init_model, set_model_input, input_overide),
+    "General": (init_general, rf_general, isdone_general, init_model_2p, set_model_input_2p, input_overide),
 }
 
 def register_functions(name: str) -> Tuple[Callable, Callable, Callable]:
