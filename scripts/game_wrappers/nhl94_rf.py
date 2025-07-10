@@ -34,6 +34,9 @@ def RandomPosDefenseZone():
 def input_overide(ac):
     ac[GameConsts.INPUT_C] = 0
 
+def input_overide_empty(ac):
+    return
+
 def init_attackzone(env, env_name):
     if env_name == 'NHL941on1-Genesis':
         x, y = RandomPosAttackZone()
@@ -590,12 +593,12 @@ def rf_passing(state):
 _reward_function_map = {
     "GetPuck": (init_getpuck, rf_getpuck, isdone_getpuck, init_model, set_model_input, input_overide),
     "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_rel_puck, set_model_input_rel_puck, input_overide),
-    "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, init_model, set_model_input, input_overide),
-    "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model, set_model_input, input_overide),
+    "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, init_model, set_model_input, input_overide_empty),
+    "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model, set_model_input, input_overide_empty),
     "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model, set_model_input, input_overide),
-    "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model, set_model_input, input_overide),
+    "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model, set_model_input, input_overide_empty),
     "Passing": (init_passing, rf_passing, isdone_passing, init_model, set_model_input, input_overide),
-    "General": (init_general, rf_general, isdone_general, init_model_2p, set_model_input_2p, input_overide),
+    "General": (init_general, rf_general, isdone_general, init_model_2p, set_model_input_2p, input_overide_empty),
 }
 
 def register_functions(name: str) -> Tuple[Callable, Callable, Callable]:
