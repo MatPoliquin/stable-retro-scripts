@@ -95,43 +95,83 @@ class NHL94Observation2PEnv(gym.Wrapper):
         if self.prev_state != None and self.num_players == 2:
             self.prev_state.Flip()
 
-        #ac2 = [0,0,0,0,0,0,0,0,0,0,0,0] + p2_ac
-        if self.b_button_pressed and ac[GameConsts.INPUT_B] == 1:
-            ac[GameConsts.INPUT_B] = 0
-            self.b_button_pressed = False
-        elif not self.b_button_pressed and ac[GameConsts.INPUT_B] == 1:
-            self.b_button_pressed = True
-        else:
-            self.b_button_pressed = False
-
-        # Hack to allow for slapshots
-        # Handle slapshot via INPUT_MODE
-        if ac[GameConsts.INPUT_MODE] == 1:
-            if self.slapshot_frames_held == 0:
-                # Just started slapshot
-                self.slapshot_frames_held = 1
-                ac[GameConsts.INPUT_C] = 1  # Press C
+        # Handle different action space types
+        if isinstance(ac, (list, np.ndarray)) and len(ac) == 12:
+            # FILTERED action space (12-button array)
+            # B button handling
+            if self.b_button_pressed and ac[GameConsts.INPUT_B] == 1:
+                ac[GameConsts.INPUT_B] = 0
+                self.b_button_pressed = False
+            elif not self.b_button_pressed and ac[GameConsts.INPUT_B] == 1:
+                self.b_button_pressed = True
             else:
-                # Continue holding slapshot
-                self.slapshot_frames_held += 1
-                ac[GameConsts.INPUT_C] = 1  # Keep C pressed
+                self.b_button_pressed = False
 
-                # Release after holding long enough
-                if self.slapshot_frames_held >= self.SLAPSHOT_HOLD_FRAMES:
-                    self.slapshot_frames_held = 0
+            # C button handling (slapshot)
+            if ac[GameConsts.INPUT_MODE] == 1:
+                if self.slapshot_frames_held == 0:
+                    self.slapshot_frames_held = 1
+                    ac[GameConsts.INPUT_C] = 1
+                else:
+                    self.slapshot_frames_held += 1
+                    ac[GameConsts.INPUT_C] = 1
+                    if self.slapshot_frames_held >= self.SLAPSHOT_HOLD_FRAMES:
+                        self.slapshot_frames_held = 0
+                        ac[GameConsts.INPUT_C] = 0
+            else:
+                if self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
                     ac[GameConsts.INPUT_C] = 0
-        else:
-            # Not in slapshot mode - handle normal C button presses
-            if self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
-                ac[GameConsts.INPUT_C] = 0
-                self.c_button_pressed = False
-            elif not self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
-                self.c_button_pressed = True
+                    self.c_button_pressed = False
+                elif not self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
+                    self.c_button_pressed = True
+                else:
+                    self.c_button_pressed = False
+                self.slapshot_frames_held = 0
+        elif isinstance(ac, (list, np.ndarray)) and len(ac) == 3:
+            # MULTI_DISCRETE action space (3-button array)
+            # Process MULTI_DISCRETE actions for NHL94 format:
+            # ac = [vertical, horizontal, action] where:
+            #   0 = no input
+            #   1 = first option (e.g., "UP")
+            #   2 = second option (e.g., "DOWN")
+
+            # Make a copy to avoid modifying original
+            processed_ac = list(ac).copy()
+
+            # B button handling (action button 1)
+            if processed_ac[2] == 1:  # B pressed
+                if self.b_button_pressed:
+                    processed_ac[2] = 0  # Release B if already pressed
+                    self.b_button_pressed = False
+                else:
+                    self.b_button_pressed = True
             else:
-                self.c_button_pressed = False
-            self.slapshot_frames_held = 0  # Reset if INPUT_MODE not pressed
+                self.b_button_pressed = False
+
+            # C button handling (action button 2 - slapshot)
+            if processed_ac[2] == 2:  # C pressed
+                if self.slapshot_frames_held == 0:
+                    self.slapshot_frames_held = 1
+                else:
+                    self.slapshot_frames_held += 1
+                    if self.slapshot_frames_held >= self.SLAPSHOT_HOLD_FRAMES:
+                        processed_ac[2] = 0  # Release C after hold duration
+                        self.slapshot_frames_held = 0
+            else:
+                self.slapshot_frames_held = 0
+
+            ac = processed_ac
+
+
+        else:
+            # Handle other cases or raise error
+            raise ValueError(f"Unsupported action format: {ac}")
+
+
+
 
         # Reward functions might need to override input
+        #print(ac)
         self.input_overide(ac)
 
         ac2 = ac

@@ -49,6 +49,10 @@ def parse_cmdline(argv):
     parser.add_argument('--load_p1_model', type=str, default='', help='Model path for player 1 in model_vs_model mode')
     parser.add_argument('--load_p2_model', type=str, default='', help='Model path for player 2 in model_vs_model mode')
 
+    parser.add_argument('--action_type', type=str, default='FILTERED',
+                       choices=['FILTERED', 'DISCRETE', 'MULTI_DISCRETE'],
+                       help='Action type: FILTERED, DISCRETE, or MULTI_DISCRETE')
+
     args = parser.parse_args(argv)
 
     # Set default num_players based on mode

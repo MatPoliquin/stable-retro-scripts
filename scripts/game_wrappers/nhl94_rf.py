@@ -3,6 +3,7 @@ NHL94 Reward Functions
 """
 
 import random
+import numpy as np
 from typing import Tuple, Callable
 from game_wrappers.nhl94_const import GameConsts
 from game_wrappers.nhl94_mi import init_model, init_model_rel_puck, init_model_1p, init_model_2p, set_model_input, set_model_input_1p, set_model_input_2p, set_model_input_rel_puck
@@ -32,7 +33,11 @@ def RandomPosDefenseZone():
     return x, y
 
 def input_overide(ac):
-    ac[GameConsts.INPUT_C] = 0
+    if isinstance(ac, (list, np.ndarray)) and len(ac) == 12:
+        ac[GameConsts.INPUT_B] = 0
+        ac[GameConsts.INPUT_C] = 0
+    elif isinstance(ac, (list, np.ndarray)) and len(ac) == 3:
+        ac[2] = 0
 
 def input_overide_empty(ac):
     return

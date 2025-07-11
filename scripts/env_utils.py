@@ -13,11 +13,20 @@ def isMLP(name):
     return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy' or name == 'AttentionMLPPolicy' or name == 'EntityAttentionPolicy'
 
 
-def make_retro(*, game, state=None, num_players, max_episode_steps=4500, **kwargs):
+def make_retro(*, game, state=None, num_players, max_episode_steps=4500, action_type='FILTERED', **kwargs):
     import retro  # pylint: disable=import-outside-toplevel,reimported
     if state is None:
         state = retro.State.DEFAULT
-    env = retro.make(game, state, **kwargs, players=num_players, render_mode="rgb_array")
+
+    # Convert action_type string to retro.Actions enum
+    action_map = {
+        'FILTERED': retro.Actions.FILTERED,
+        'DISCRETE': retro.Actions.DISCRETE,
+        'MULTI_DISCRETE': retro.Actions.MULTI_DISCRETE
+    }
+    action_enum = action_map.get(action_type.upper(), retro.Actions.FILTERED)
+
+    env = retro.make(game, state, **kwargs, players=num_players, render_mode="rgb_array", use_restricted_actions=action_enum)
     #env = NHL94Discretizer(env)
     #if max_episode_steps is not None:
     #    env = TimeLimit(env, max_episode_steps=max_episode_steps)
@@ -35,7 +44,7 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
         def _thunk():
             games.wrappers.init(args)
 
-            env = make_retro(game=args.env, use_restricted_actions=retro.Actions.FILTERED, state=state, num_players=num_players)
+            env = make_retro(game=args.env, action_type=args.action_type, state=state, num_players=num_players)
 
             env.action_space.seed(seed + rank)
 
@@ -72,7 +81,14 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
 
 
 def get_button_names(args):
-    env = retro.make(game=args.env, state=args.state, use_restricted_actions=retro.Actions.FILTERED, players=args.num_players)
+    action_map = {
+        'FILTERED': retro.Actions.FILTERED,
+        'DISCRETE': retro.Actions.DISCRETE,
+        'MULTI_DISCRETE': retro.Actions.MULTI_DISCRETE
+    }
+    action_enum = action_map.get(args.action_type.upper(), retro.Actions.FILTERED)
+
+    env = retro.make(game=args.env, state=args.state, use_restricted_actions=action_enum, players=args.num_players)
     print(env.buttons)
     return env.buttons
 
