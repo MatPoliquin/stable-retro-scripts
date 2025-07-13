@@ -6,7 +6,7 @@ import random
 import numpy as np
 from typing import Tuple, Callable
 from game_wrappers.nhl94_const import GameConsts
-from game_wrappers.nhl94_mi import init_model, init_model_rel_puck, init_model_1p, init_model_2p, set_model_input, set_model_input_1p, set_model_input_2p, set_model_input_rel_puck
+from game_wrappers.nhl94_mi import init_model, init_model_rel, init_model_rel_dist, init_model_1p, init_model_2p, set_model_input, set_model_input_1p, set_model_input_2p, set_model_input_rel, set_model_input_rel_dist
 
 # =====================================================================
 # Common functions
@@ -222,6 +222,9 @@ def rf_scoregoal_cc(state):
 
     if t1.stats.score > t1.last_stats.score:
         return -1.0
+
+    if t1.stats.passing > t1.last_stats.passing:
+        rew = 0.5
 
     # reward scoring opportunities
     t = t1.control - 1
@@ -597,7 +600,7 @@ def rf_passing(state):
 # =====================================================================
 _reward_function_map = {
     "GetPuck": (init_getpuck, rf_getpuck, isdone_getpuck, init_model, set_model_input, input_overide),
-    "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_rel_puck, set_model_input_rel_puck, input_overide),
+    "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_rel_dist, set_model_input_rel_dist, input_overide),
     "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, init_model, set_model_input, input_overide_empty),
     "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model, set_model_input, input_overide_empty),
     "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model, set_model_input, input_overide),

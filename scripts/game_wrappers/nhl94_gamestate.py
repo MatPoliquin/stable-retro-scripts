@@ -25,6 +25,8 @@ class Player:
     rel_controlled_y: float = 0.0  # New: Relative to controlled player y position
     rel_controlled_vx: float = 0.0 # New: Relative to controlled player x velocity
     rel_controlled_vy: float = 0.0 # New: Relative to controlled player y velocity
+    dist_to_controlled: float = 0.0  # New: Distance to controlled player
+    dist_to_puck: float = 0.0  # New: Distance to puck
 
     def debug_print(self, prefix="Player"):
         print(f"{prefix} - x: {self.x}, y: {self.y}, vx: {self.vx}, vy: {self.vy}, "
@@ -180,6 +182,27 @@ class Team():
         self.goalie.rel_controlled_vx = self.goalie.vx - controlled_vx
         self.goalie.rel_controlled_vy = self.goalie.vy - controlled_vy
 
+        # Calculate distances to controlled player and puck
+        for p in range(0, self.num_players):
+            self.players[p].dist_to_controlled = GameConsts.Distance(
+                (self.players[p].x, self.players[p].y),
+                (controlled_x, controlled_y)
+            )
+            self.players[p].dist_to_puck = GameConsts.Distance(
+                (self.players[p].x, self.players[p].y),
+                (puck_x, puck_y)
+            )
+        
+        # For goalie
+        self.goalie.dist_to_controlled = GameConsts.Distance(
+            (self.goalie.x, self.goalie.y),
+            (controlled_x, controlled_y)
+        )
+        self.goalie.dist_to_puck = GameConsts.Distance(
+            (self.goalie.x, self.goalie.y),
+            (puck_x, puck_y)
+        )
+
         # Normalize for model input
         for p in range(0, self.num_players):
             self.nz_players[p].x = self.players[p].x / GameConsts.MAX_PLAYER_X
@@ -199,6 +222,9 @@ class Team():
             self.nz_players[p].rel_controlled_y = self.players[p].rel_controlled_y / GameConsts.MAX_PLAYER_Y
             self.nz_players[p].rel_controlled_vx = self.players[p].rel_controlled_vx / GameConsts.MAX_VEL_XY
             self.nz_players[p].rel_controlled_vy = self.players[p].rel_controlled_vy / GameConsts.MAX_VEL_XY
+            # Normalize distances
+            self.nz_players[p].dist_to_controlled = self.players[p].dist_to_controlled / GameConsts.MAX_PLAYER_X
+            self.nz_players[p].dist_to_puck = self.players[p].dist_to_puck / GameConsts.MAX_PUCK_X
 
         self.nz_goalie.x = self.goalie.x / GameConsts.MAX_PLAYER_X
         self.nz_goalie.y = self.goalie.y / GameConsts.MAX_PLAYER_Y
@@ -214,6 +240,9 @@ class Team():
         self.nz_goalie.rel_controlled_y = self.goalie.rel_controlled_y / GameConsts.MAX_PLAYER_Y
         self.nz_goalie.rel_controlled_vx = self.goalie.rel_controlled_vx / GameConsts.MAX_VEL_XY
         self.nz_goalie.rel_controlled_vy = self.goalie.rel_controlled_vy / GameConsts.MAX_VEL_XY
+        # Normalize distances for goalie
+        self.nz_goalie.dist_to_controlled = self.goalie.dist_to_controlled / GameConsts.MAX_PLAYER_X
+        self.nz_goalie.dist_to_puck = self.goalie.dist_to_puck / GameConsts.MAX_PUCK_X
 
         # 0.0 and 1.0 switched around due to current models trained that way
         self.nz_player_haspuck = 0.0 if self.player_haspuck else 1.0

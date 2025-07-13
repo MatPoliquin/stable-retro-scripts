@@ -136,7 +136,7 @@ def set_model_input(game_state) -> Tuple[float, ...]:
 #==================================
 # Uses relative puck pos and remove puck vel
 #==================================
-def init_model_rel_puck(num_players: int) -> int:
+def init_model_rel(num_players: int) -> int:
     """Initialize model input size based on number of players per team.
 
     Args:
@@ -152,7 +152,7 @@ def init_model_rel_puck(num_players: int) -> int:
     # Plus 2 features for puck relative to controlled player
     return (num_players * 6 * 2) + 2 + 2 + 2 + 2
 
-def set_model_input_rel_puck(game_state) -> Tuple[float, ...]:
+def set_model_input_rel(game_state) -> Tuple[float, ...]:
     """Create unified model input vector for any number of players.
 
     Args:
@@ -187,11 +187,18 @@ def set_model_input_rel_puck(game_state) -> Tuple[float, ...]:
     # Add controlled team players in order (without relative puck position)
     for i in player_order:
         player = t1.nz_players[i]
-        t1_players.extend([
-            player.x, player.y,
-            player.vx, player.vy,
-            player.ori_x, player.ori_y  # Removed rel_puck_x/y
-        ])
+        if i == 0:
+            t1_players.extend([
+                player.x, player.y,
+                player.vx, player.vy,
+                player.ori_x, player.ori_y  # Removed rel_puck_x/y
+            ])
+        else:
+            t1_players.extend([
+                player.rel_controlled_x, player.rel_controlled_y,
+                player.rel_controlled_vx, player.rel_controlled_vy,
+                player.ori_x, player.ori_y  # Removed rel_puck_x/y
+            ])
 
     # Add opponent team players in original order (without relative puck position)
     for i in range(num_players):
@@ -209,3 +216,99 @@ def set_model_input_rel_puck(game_state) -> Tuple[float, ...]:
         t1.nz_player_haspuck, t2.nz_goalie_haspuck,
         nz_puck_rel_controlled_x, nz_puck_rel_controlled_y  # Puck relative to controlled player
     ])
+
+def init_model_rel_dist(num_players: int) -> int:
+    """Initialize model input size with relative positions and distances to controlled player.
+    
+    Args:
+        num_players: Number of players per team (1, 2, or 5)
+        
+    Returns:
+        Total size of the model input vector
+    """
+    # Features per controlled player: 6 (x,y,vx,vy,ori_x,ori_y)
+    # Features per teammate: 6 (rel_x,rel_y,rel_vx,rel_vy,ori_x,ori_y) + 1 distance
+    # Features per opponent: 6 (rel_x,rel_y,rel_vx,rel_vy,ori_x,ori_y) + 1 distance
+    # Puck features: 2 (x,y) + 2 (rel_x,rel_y)
+    # Goalie features: 2 (x,y)
+    # Possession flags: 2
+    return 6 + ((num_players-1)*7) + (num_players*7) + 4 + 2 + 2
+
+def set_model_input_rel_dist(game_state) -> Tuple[float, ...]:
+    """Standalone version with relative positions and distances to controlled player.
+    
+    Args:
+        game_state: The current game state object
+        
+    Returns:
+        Tuple of normalized values for model input
+    """
+    t1 = game_state.team1
+    t2 = game_state.team2
+    num_players = game_state.numPlayers
+
+    # Find controlled player (default to first player if goalie is controlled)
+    controlled_idx = max(0, t1.control - 1) if t1.control > 0 else 0
+    controlled_player = t1.nz_players[controlled_idx]
+
+    # Initialize feature list
+    features = []
+
+    # 1. Add controlled player's absolute position and orientation
+    features.extend([
+        controlled_player.x,
+        controlled_player.y,
+        controlled_player.vx,
+        controlled_player.vy,
+        controlled_player.ori_x,
+        controlled_player.ori_y
+    ])
+
+    # 2. Add teammates' relative positions and distances (skip controlled player)
+    for i in range(num_players):
+        if i != controlled_idx:
+            player = t1.nz_players[i]
+            features.extend([
+                player.rel_controlled_x,
+                player.rel_controlled_y,
+                player.rel_controlled_vx,
+                player.rel_controlled_vy,
+                player.ori_x,
+                player.ori_y,
+                player.dist_to_controlled  # Already normalized
+            ])
+
+    # 3. Add opponents' relative positions and distances
+    for i in range(num_players):
+        player = t2.nz_players[i]
+        features.extend([
+            player.rel_controlled_x,
+            player.rel_controlled_y,
+            player.rel_controlled_vx,
+            player.rel_controlled_vy,
+            player.ori_x,
+            player.ori_y,
+            player.dist_to_controlled  # Already normalized
+        ])
+
+    # 4. Add puck information (absolute and relative to controlled)
+    features.extend([
+        game_state.nz_puck.x,
+        game_state.nz_puck.y,
+        controlled_player.rel_puck_x,  # Relative to controlled player
+        controlled_player.rel_puck_y   # Relative to controlled player
+    ])
+
+    # 5. Add opponent goalie position
+    features.extend([
+        t2.nz_goalie.x,
+        t2.nz_goalie.y
+    ])
+
+    # 6. Add possession flags
+    features.extend([
+        t1.nz_player_haspuck,
+        t2.nz_goalie_haspuck
+    ])
+
+    return tuple(features)
