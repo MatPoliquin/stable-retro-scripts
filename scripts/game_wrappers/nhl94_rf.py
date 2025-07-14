@@ -606,7 +606,7 @@ _reward_function_map = {
     "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model, set_model_input, input_overide),
     "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model, set_model_input, input_overide_empty),
     "Passing": (init_passing, rf_passing, isdone_passing, init_model, set_model_input, input_overide),
-    "General": (init_general, rf_general, isdone_general, init_model_2p, set_model_input_2p, input_overide_empty),
+    "General": (init_general, rf_general, isdone_general, init_model_rel_dist, set_model_input_rel_dist, input_overide_empty),
 }
 
 def register_functions(name: str) -> Tuple[Callable, Callable, Callable]:

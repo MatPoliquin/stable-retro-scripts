@@ -68,8 +68,6 @@ class Team():
         self.control = 0
         self.player_haspuck = False
         self.goalie_haspuck = False
-        self.distToPuck = 0
-        self.last_distToPuck = 0
 
         # for model input
         self.nz_players = [Player() for _ in range(num_players)]
@@ -192,7 +190,7 @@ class Team():
                 (self.players[p].x, self.players[p].y),
                 (puck_x, puck_y)
             )
-        
+
         # For goalie
         self.goalie.dist_to_controlled = GameConsts.Distance(
             (self.goalie.x, self.goalie.y),
@@ -250,7 +248,6 @@ class Team():
 
     def end_frame(self) -> None:
         self.last_stats = deepcopy(self.stats)
-        self.last_distToPuck = self.distToPuck
 
     def debug_print(self):
         print(f"Team controller: {self.controller}")
@@ -299,14 +296,11 @@ class NHL94GameState():
         self.puck.vx = info.get("puck_vel_x")
         self.puck.vy = info.get("puck_vel_y")
 
+        #Teams
         self.team1.begin_frame(info, self.puck.x, self.puck.y, self.puck.vx, self.puck.vy)
         self.team2.begin_frame(info, self.puck.x, self.puck.y, self.puck.vx, self.puck.vy)
 
-        # Distance
-        self.team1.distToPuck = GameConsts.Distance((self.team1.players[0].x, self.team1.players[0].y), (self.puck.x, self.puck.y))
-        self.team2.distToPuck = GameConsts.Distance((self.team2.players[0].x, self.team2.players[0].y), (self.puck.x, self.puck.y))
-
-        #Puck
+        #Normalize Puck
         self.nz_puck.x = self.puck.x / GameConsts.MAX_PUCK_X
         self.nz_puck.y = self.puck.y / GameConsts.MAX_PUCK_Y
         self.nz_puck.vx = self.puck.vx / GameConsts.MAX_VEL_XY
