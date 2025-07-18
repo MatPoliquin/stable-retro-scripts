@@ -279,6 +279,12 @@ class NHL94GameState():
         self.last_time = 0
         self.numPlayers = numPlayers
 
+        self.action = [0] * 6 # Up, Down, Left, Right, B, C
+
+        # Slapshot tracking
+        self.slapshot_frames_held = 0
+        self.SLAPSHOT_HOLD_FRAMES = 60  # Max frames to hold for slapshot
+
         #For model input
         self.nz_puck = Player()
 
@@ -287,7 +293,21 @@ class NHL94GameState():
         self.team1, self.team2 = self.team2, self.team1
         return
 
-    def BeginFrame(self, info):
+    def BeginFrame(self, info, action):
+        self.action = action
+
+        # Handle slapshot frames
+        if action[5]:  # C button pressed
+            if self.slapshot_frames_held == 0:
+                self.slapshot_frames_held = 1
+            else:
+                self.slapshot_frames_held += 1
+                if self.slapshot_frames_held >= self.SLAPSHOT_HOLD_FRAMES:
+                    self.slapshot_frames_held = 0  # Reset after max hold
+        else:
+            self.slapshot_frames_held = 0  # Reset if C not pressed
+
+
         self.time = info.get("time")
 
         #Puck

@@ -95,6 +95,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
         if self.prev_state != None and self.num_players == 2:
             self.prev_state.Flip()
 
+
+        gamestate_ac = [0] * 6
+
         # Handle different action space types
         if isinstance(ac, (list, np.ndarray)) and len(ac) == 12:
             # FILTERED action space (12-button array)
@@ -127,6 +130,14 @@ class NHL94Observation2PEnv(gym.Wrapper):
                 else:
                     self.c_button_pressed = False
                 self.slapshot_frames_held = 0
+
+            gamestate_ac[0] = ac[GameConsts.INPUT_UP] == 1
+            gamestate_ac[1] = ac[GameConsts.INPUT_DOWN] == 1
+            gamestate_ac[2] = ac[GameConsts.INPUT_LEFT] == 1
+            gamestate_ac[3] = ac[GameConsts.INPUT_RIGHT] == 1
+            gamestate_ac[4] = ac[GameConsts.INPUT_B] == 1
+            gamestate_ac[5] = ac[GameConsts.INPUT_C] == 1
+
         elif isinstance(ac, (list, np.ndarray)) and len(ac) == 3:
             # MULTI_DISCRETE action space (3-button array)
             # Process MULTI_DISCRETE actions for NHL94 format:
@@ -162,6 +173,12 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
             ac = processed_ac
 
+            gamestate_ac[0] = ac[0] == 1
+            gamestate_ac[1] = ac[0] == 2
+            gamestate_ac[2] = ac[1] == 1
+            gamestate_ac[3] = ac[1] == 2
+            gamestate_ac[4] = ac[2] == 1
+            gamestate_ac[5] = ac[2] == 2
 
         else:
             # Handle other cases or raise error
@@ -186,7 +203,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         self.prev_state = copy.deepcopy(self.game_state)
 
-        self.game_state.BeginFrame(info)
+        self.game_state.BeginFrame(info, gamestate_ac)
 
         # Calculate Reward and check if episode is done
         rew = self.reward_function(self.game_state)

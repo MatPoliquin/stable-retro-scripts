@@ -313,3 +313,46 @@ def set_model_input_rel_dist(game_state) -> Tuple[float, ...]:
     ])
 
     return tuple(features)
+
+def init_model_rel_dist_buttons(num_players: int) -> int:
+    """Initialize model input size with relative positions, distances, and button states.
+
+    Args:
+        num_players: Number of players per team (1, 2, or 5)
+
+    Returns:
+        Total size of the model input vector
+    """
+    # Same as rel_dist model but adds:
+    # - Current button states (6 buttons)
+    # - Slapshot frames held (1 value)
+    return init_model_rel_dist(num_players) + 6 + 1
+
+def set_model_input_rel_dist_buttons(game_state) -> Tuple[float, ...]:
+    """Model input with relative positions, distances, and button states for slapshots.
+
+    Args:
+        game_state: The current game state object
+
+    Returns:
+        Tuple of normalized values for model input including button states
+    """
+    # Get all features from the rel_dist version
+    features = list(set_model_input_rel_dist(game_state))
+
+    # Add button states (normalized to 0/1)
+    button_features = [
+        float(game_state.action[0]),  # Up
+        float(game_state.action[1]),  # Down
+        float(game_state.action[2]),  # Left
+        float(game_state.action[3]),  # Right
+        float(game_state.action[4]),  # B button
+        float(game_state.action[5]),  # C button
+    ]
+
+    # Add slapshot frames held (normalized 0-1)
+    slapshot_frames = getattr(game_state, 'slapshot_frames_held', 0)
+    normalized_slapshot = min(slapshot_frames / 60.0, 1.0)  # Normalize to 0-1 based on max hold frames
+
+    # Combine all features
+    return tuple(features + button_features + [normalized_slapshot])
