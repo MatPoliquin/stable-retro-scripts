@@ -288,7 +288,7 @@ def set_model_input_rel_dist(game_state) -> Tuple[float, ...]:
             player.rel_controlled_vy,
             player.ori_x,
             player.ori_y,
-            player.dist_to_controlled  # Already normalized
+            player.dist_to_controlled_opp  # Already normalized
         ])
 
     # 4. Add puck information (absolute and relative to controlled)

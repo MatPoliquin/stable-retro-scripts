@@ -7,6 +7,7 @@ from game_wrappers.nhl94_const import GameConsts
 from typing import Dict, Any
 from copy import deepcopy
 from dataclasses import dataclass
+import time
 
 @dataclass
 class Player:
@@ -26,11 +27,21 @@ class Player:
     rel_controlled_vx: float = 0.0 # New: Relative to controlled player x velocity
     rel_controlled_vy: float = 0.0 # New: Relative to controlled player y velocity
     dist_to_controlled: float = 0.0  # New: Distance to controlled player
+    dist_to_controlled_opp: float = 0.0  # New: Distance to controlled opponent player
     dist_to_puck: float = 0.0  # New: Distance to puck
+    passing_lane_clear: bool = False
 
     def debug_print(self, prefix="Player"):
         print(f"{prefix} - x: {self.x}, y: {self.y}, vx: {self.vx}, vy: {self.vy}, "
-              f"orientation: {self.orientation}, ori_vec: ({self.ori_x:.2f}, {self.ori_y:.2f})")
+            f"orientation: {self.orientation}, ori_vec: ({self.ori_x:.2f}, {self.ori_y:.2f})\n"
+            f"  rel_puck: ({self.rel_puck_x:.1f}, {self.rel_puck_y:.1f}) "
+            f"rel_puck_vel: ({self.rel_puck_vx:.1f}, {self.rel_puck_vy:.1f})\n"
+            f"  rel_controlled: ({self.rel_controlled_x:.1f}, {self.rel_controlled_y:.1f}) "
+            f"rel_controlled_vel: ({self.rel_controlled_vx:.1f}, {self.rel_controlled_vy:.1f})\n"
+            f"  dist_to_controlled: {self.dist_to_controlled:.1f}, "
+            f"dist_to_controlled_opp: {self.dist_to_controlled_opp:.1f}, "
+            f"dist_to_puck: {self.dist_to_puck:.1f}\n"
+            f"  passing_lane_clear: {self.passing_lane_clear}")
 
 @dataclass
 class Stats:
@@ -243,31 +254,39 @@ class Team():
         self.nz_goalie.dist_to_puck = self.goalie.dist_to_puck / GameConsts.MAX_PUCK_X
 
         # 0.0 and 1.0 switched around due to current models trained that way
-        self.nz_player_haspuck = 0.0 if self.player_haspuck else 1.0
-        self.nz_goalie_haspuck = 0.0 if self.goalie_haspuck else 1.0
+        self.nz_player_haspuck = 1.0 if self.player_haspuck else 0.0
+        self.nz_goalie_haspuck = 1.0 if self.goalie_haspuck else 0.0
 
     def end_frame(self) -> None:
         self.last_stats = deepcopy(self.stats)
 
     def debug_print(self):
-        print(f"Team controller: {self.controller}")
+        print(f"\nTeam controller: {self.controller}")
         print(f"Team player prefix: {self.ram_var_prefix}")
         self.stats.debug_print("Stats")
         self.last_stats.debug_print("Last Stats")
         print(f"Number of players: {self.num_players}")
-        for idx, player in enumerate(self.players):
-            player.debug_print(f"Player {idx}")
-        self.goalie.debug_print("Goalie")
         print(f"Control: {self.control}")
         print(f"Player has puck: {self.player_haspuck}")
         print(f"Goalie has puck: {self.goalie_haspuck}")
-        print(f"Distance to puck: {self.distToPuck}, Last distance to puck: {self.last_distToPuck}")
-        print("Normalized players:")
-        for idx, player in enumerate(self.nz_players):
-            player.debug_print(f"NZ Player {idx}")
-        self.nz_goalie.debug_print("NZ Goalie")
+
+        # Print all players with full details
+        for idx, player in enumerate(self.players):
+            player.debug_print(f"Player {idx}")
+
+        # Print goalie
+        self.goalie.debug_print("Goalie")
+
+        # Print normalized values
+        print("\nNormalized values:")
         print(f"NZ Player has puck: {self.nz_player_haspuck}")
         print(f"NZ Goalie has puck: {self.nz_goalie_haspuck}")
+        for idx, player in enumerate(self.nz_players):
+            print(f"NZ Player {idx}: "
+                f"pos=({player.x:.2f},{player.y:.2f}) "
+                f"vel=({player.vx:.2f},{player.vy:.2f}) "
+                f"ori=({player.ori_x:.2f},{player.ori_y:.2f})")
+        self.nz_goalie.debug_print("NZ Goalie")
 
 
 class NHL94GameState():
@@ -292,6 +311,88 @@ class NHL94GameState():
     def Flip(self):
         self.team1, self.team2 = self.team2, self.team1
         return
+
+    def _is_passing_lane_clear(self, start_pos, end_pos, opponents):
+        """Check if a straight-line path between two points is obstructed."""
+        for opponent in opponents:
+            if self._line_intersects_circle(start_pos, end_pos, (opponent.x, opponent.y), radius=10):
+                return False
+        return True
+
+    def _line_intersects_circle(self, start, end, circle_center, radius):
+        """Check if a line segment from 'start' to 'end' intersects a circle.
+
+        Args:
+            start: Tuple (x, y) of line segment start point
+            end: Tuple (x, y) of line segment end point
+            circle_center: Tuple (x, y) of circle center
+            radius: Radius of the circle
+
+        Returns:
+            bool: True if the line segment intersects the circle
+        """
+        # Vector from start to end
+        line_vec = (end[0] - start[0], end[1] - start[1])
+        # Vector from start to circle center
+        circle_vec = (circle_center[0] - start[0], circle_center[1] - start[1])
+
+        # Length of line segment squared
+        line_len_sq = line_vec[0]**2 + line_vec[1]**2
+
+        # Projection of circle_vec onto line_vec (dot product)
+        projection = circle_vec[0] * line_vec[0] + circle_vec[1] * line_vec[1]
+
+        # Normalized projection (0 to 1 means closest point is on the segment)
+        t = max(0, min(1, projection / line_len_sq)) if line_len_sq != 0 else 0
+
+        # Closest point on the line segment to the circle center
+        closest_point = (
+            start[0] + t * line_vec[0],
+            start[1] + t * line_vec[1]
+        )
+
+        # Distance from closest point to circle center
+        distance_sq = (circle_center[0] - closest_point[0])**2 + \
+                    (circle_center[1] - closest_point[1])**2
+
+        return distance_sq <= radius**2
+
+    def _update_passing_lanes(self):
+        # Test cases
+        assert self._line_intersects_circle((0,0), (10,0), (5,3), 3)  # True (line passes through circle)
+        assert not self._line_intersects_circle((0,0), (10,0), (5,4), 3)  # False (line too far)
+        assert self._line_intersects_circle((0,0), (0,0), (0,0), 1)  # True (zero-length segment at center)
+
+        """Compute passing lanes for all players in both teams."""
+        for team in [self.team1, self.team2]:
+            opponents = self.team2 if team.controller == 1 else self.team1
+            controlled_idx = max(0, team.control - 1) if team.control > 0 else 0
+            controlled_player = team.players[controlled_idx] if team.control > 0 else team.goalie
+
+            for i, player in enumerate(team.players):
+                if i != controlled_idx:  # Skip controlled player
+                    player.passing_lane_clear = self._is_passing_lane_clear(
+                        (controlled_player.x, controlled_player.y),
+                        (player.x, player.y),
+                        opponents.players
+                    )
+
+    def _update_opponent_controlled_distances(self):
+        """Update distances to the opponent's controlled player for all players."""
+        for team in [self.team1, self.team2]:
+            # Get the opponent's controlled player (goalie if control=0, else skater)
+            opponent_team = self.team2 if team.controller == 1 else self.team1
+            opp_controlled_player = (
+                opponent_team.goalie if opponent_team.control == 0
+                else opponent_team.players[opponent_team.control - 1]
+            )
+
+            # Update distances for all players in the current team
+            for player in team.players + [team.goalie]:
+                player.dist_to_controlled_opp = GameConsts.Distance(
+                    (player.x, player.y),
+                    (opp_controlled_player.x, opp_controlled_player.y)
+                )
 
     def BeginFrame(self, info, action):
         self.action = action
@@ -320,6 +421,11 @@ class NHL94GameState():
         self.team1.begin_frame(info, self.puck.x, self.puck.y, self.puck.vx, self.puck.vy)
         self.team2.begin_frame(info, self.puck.x, self.puck.y, self.puck.vx, self.puck.vy)
 
+        # Compute passing lanes AFTER both teams are updated
+        self._update_passing_lanes()
+
+        self._update_opponent_controlled_distances()
+
         #Normalize Puck
         self.nz_puck.x = self.puck.x / GameConsts.MAX_PUCK_X
         self.nz_puck.y = self.puck.y / GameConsts.MAX_PUCK_Y
@@ -333,13 +439,28 @@ class NHL94GameState():
         self.team2.end_frame()
 
         #self.debug_print()
+        #time.sleep(5)
 
     def debug_print(self):
-        print("===================================================================")
+        print("\n" + "="*80)
         print(f"Game time: {self.time}, Last time: {self.last_time}")
-        self.puck.debug_print("Puck")
+        print(f"Slapshot frames held: {self.slapshot_frames_held}/{self.SLAPSHOT_HOLD_FRAMES}")
+
+        # Puck info
+        print("\nPuck State:")
+        self.puck.debug_print("Raw Puck")
         self.nz_puck.debug_print("NZ Puck")
-        print("=== Team 1 State: ===")
+
+        # Team states
+        print("\n" + "="*40 + " Team 1 State " + "="*40)
         self.team1.debug_print()
-        print("=== Team 2 State: ===")
+
+        print("\n" + "="*40 + " Team 2 State " + "="*40)
         self.team2.debug_print()
+
+        # Action state
+        action_names = ["Up", "Down", "Left", "Right", "B", "C"]
+        print("\nCurrent Actions:")
+        for name, val in zip(action_names, self.action):
+            print(f"{name}: {'ON' if val else 'OFF'}", end=" | ")
+        print()
