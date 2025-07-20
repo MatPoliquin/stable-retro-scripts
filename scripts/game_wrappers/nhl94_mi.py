@@ -227,12 +227,12 @@ def init_model_rel_dist(num_players: int) -> int:
         Total size of the model input vector
     """
     # Features per controlled player: 6 (x,y,vx,vy,ori_x,ori_y)
-    # Features per teammate: 6 (rel_x,rel_y,rel_vx,rel_vy,ori_x,ori_y) + 1 distance
+    # Features per teammate: 6 (rel_x,rel_y,rel_vx,rel_vy,ori_x,ori_y) + 1 distance + 1 passable
     # Features per opponent: 6 (rel_x,rel_y,rel_vx,rel_vy,ori_x,ori_y) + 1 distance
     # Puck features: 2 (x,y) + 2 (rel_x,rel_y) + dist
     # Goalie features: 2 (x,y)
     # Possession flags: 2
-    return 6 + ((num_players-1)*7) + (num_players*7) + 4 + 2 + 2 + 1
+    return 6 + ((num_players-1)*7) + (num_players*7) + 4 + 2 + 2 + 1 + (num_players - 1)
 
 def set_model_input_rel_dist(game_state) -> Tuple[float, ...]:
     """Standalone version with relative positions and distances to controlled player.
@@ -275,7 +275,8 @@ def set_model_input_rel_dist(game_state) -> Tuple[float, ...]:
                 player.rel_controlled_vy,
                 player.ori_x,
                 player.ori_y,
-                player.dist_to_controlled  # Already normalized
+                player.dist_to_controlled,
+                player.passing_lane_clear
             ])
 
     # 3. Add opponents' relative positions and distances

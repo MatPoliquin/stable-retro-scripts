@@ -39,6 +39,13 @@ def input_overide(ac):
     elif isinstance(ac, (list, np.ndarray)) and len(ac) == 3:
         ac[2] = 0
 
+def input_overide_no_shoot(ac):
+    if isinstance(ac, (list, np.ndarray)) and len(ac) == 12:
+        ac[GameConsts.INPUT_C] = 0
+    elif isinstance(ac, (list, np.ndarray)) and len(ac) == 3:
+        if ac[2] == 1:
+            ac[2] = 0
+
 def input_overide_empty(ac):
     return
 
@@ -542,23 +549,6 @@ def rf_defensezone(state):
 # =====================================================================
 # Passing
 # =====================================================================
-def init_passing(env):
-    x, y = RandomPosAttackZone()
-    env.set_value("p2_x", x)
-    env.set_value("p2_y", y)
-
-    x, y = RandomPosAttackZone()
-    env.set_value("p2_2_x", x)
-    env.set_value("p2_2_y", y)
-
-    x, y = RandomPosAttackZone()
-    env.set_value("p1_x", x)
-    env.set_value("p1_y", y)
-
-    x, y = RandomPosAttackZone()
-    env.set_value("p1_2_x", x)
-    env.set_value("p1_2_y", y)
-
 def isdone_passing(state):
     t1 = state.team1
     t2 = state.team2
@@ -586,12 +576,15 @@ def rf_passing(state):
     if state.puck.y < 100:
         rew = -1.0
 
+    if t1.stats.score > t1.last_stats.score:
+        rew = -1.0
+
     if t1.stats.passing > t1.last_stats.passing:
         if t1.players[0].y > GameConsts.CREASE_UPPER_BOUND and t1.players[1].y > GameConsts.CREASE_UPPER_BOUND:
             if (t1.players[0].x < -GameConsts.CREASE_MAX_X and t1.players[1].x > GameConsts.CREASE_MAX_X) or \
             (t1.players[1].x < -GameConsts.CREASE_MAX_X and t1.players[0].x > GameConsts.CREASE_MAX_X):
                 rew = 1.0
-        rew = 0.2
+        rew = 1.0
 
     return rew
 
@@ -605,7 +598,7 @@ _reward_function_map = {
     "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model, set_model_input, input_overide_empty),
     "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model, set_model_input, input_overide),
     "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model, set_model_input, input_overide_empty),
-    "Passing": (init_passing, rf_passing, isdone_passing, init_model, set_model_input, input_overide),
+    "Passing": (init_attackzone, rf_passing, isdone_passing, init_model_rel_dist, set_model_input_rel_dist, input_overide_no_shoot),
     "General": (init_general, rf_general, isdone_general, init_model_rel_dist, set_model_input_rel_dist, input_overide_empty),
 }
 

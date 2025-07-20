@@ -212,6 +212,7 @@ class Team():
             (puck_x, puck_y)
         )
 
+    def Normalize(self):
         # Normalize for model input
         for p in range(0, self.num_players):
             self.nz_players[p].x = self.players[p].x / GameConsts.MAX_PLAYER_X
@@ -256,6 +257,11 @@ class Team():
         # 0.0 and 1.0 switched around due to current models trained that way
         self.nz_player_haspuck = 1.0 if self.player_haspuck else 0.0
         self.nz_goalie_haspuck = 1.0 if self.goalie_haspuck else 0.0
+
+        # Normalize
+        for p in range(0, self.num_players):
+            self.nz_players[p].dist_to_controlled_opp = self.players[p].dist_to_controlled_opp / GameConsts.MAX_PLAYER_X
+            self.nz_players[p].passing_lane_clear = float(self.players[p].passing_lane_clear)  # Convert bool to 0.0/1.0
 
     def end_frame(self) -> None:
         self.last_stats = deepcopy(self.stats)
@@ -376,7 +382,7 @@ class NHL94GameState():
                         (player.x, player.y),
                         opponents.players
                     )
-
+        
     def _update_opponent_controlled_distances(self):
         """Update distances to the opponent's controlled player for all players."""
         for team in [self.team1, self.team2]:
@@ -393,6 +399,7 @@ class NHL94GameState():
                     (player.x, player.y),
                     (opp_controlled_player.x, opp_controlled_player.y)
                 )
+
 
     def BeginFrame(self, info, action):
         self.action = action
@@ -425,6 +432,9 @@ class NHL94GameState():
         self._update_passing_lanes()
 
         self._update_opponent_controlled_distances()
+
+        self.team1.Normalize()
+        self.team2.Normalize()
 
         #Normalize Puck
         self.nz_puck.x = self.puck.x / GameConsts.MAX_PUCK_X
