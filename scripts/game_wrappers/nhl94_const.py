@@ -19,6 +19,7 @@ class GameConsts():
     INPUT_Z = 11
     INPUT_MAX = 12
 
+    NET_DEPTH = 10
     P1_NET_Y = -264
     P1_NET_LEFT_POLL = -19
     P1_NET_RIGHT_POLL = 19

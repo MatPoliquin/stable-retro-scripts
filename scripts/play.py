@@ -3,6 +3,7 @@ Play modes:
 - Player vs Model
 - Model vs Model
 - Model vs Game
+- Player vs Game (new mode)
 """
 
 import sys
@@ -18,8 +19,8 @@ def parse_cmdline(argv):
 
     # Mode selection
     parser.add_argument('--mode', type=str, default='player_vs_model',
-                       choices=['player_vs_model', 'model_vs_model', 'model_vs_game'],
-                       help='Game mode: player_vs_model, model_vs_model, or model_vs_game')
+                       choices=['player_vs_model', 'model_vs_model', 'model_vs_game', 'player_vs_game'],
+                       help='Game mode: player_vs_model, model_vs_model, model_vs_game, or player_vs_game')
 
     # Common arguments
     parser.add_argument('--env', type=str, default='NHL941on1-Genesis')
@@ -56,7 +57,7 @@ def parse_cmdline(argv):
     args = parser.parse_args(argv)
 
     # Set default num_players based on mode
-    if args.mode == 'model_vs_game':
+    if args.mode == 'model_vs_game' or args.mode == 'player_vs_game':
         args.num_players = 1
 
     return args
@@ -86,14 +87,15 @@ class NHL94Player:
 
     def init_player_or_game_mode(self):
         """Initialize for player vs model or model vs game modes"""
-        num_players = 1 if self.args.mode == 'model_vs_game' else 2
+        num_players = 1 if self.args.mode in ['model_vs_game', 'player_vs_game'] else 2
         self.p1_env = init_env(None, 1, self.args.state, 1, self.args, True)
         self.display_env = init_play_env(self.args, num_players, False, self.need_display, False)
 
-        self.ai_sys = games.wrappers.ai_sys(self.args, self.p1_env, self.logger)
-        if self.args.model_1 != '' or self.args.model_2 != '':
-            models = [self.args.model_1, self.args.model_2]
-            self.ai_sys.SetModels(models)
+        if self.args.mode != 'player_vs_game':
+            self.ai_sys = games.wrappers.ai_sys(self.args, self.p1_env, self.logger)
+            if self.args.model_1 != '' or self.args.model_2 != '':
+                models = [self.args.model_1, self.args.model_2]
+                self.ai_sys.SetModels(models)
 
     def play(self, continuous=True, need_reset=True):
         """Main game loop"""
@@ -126,31 +128,46 @@ class NHL94Player:
                     return
 
     def play_player_or_game_mode(self, continuous, need_reset):
-        """Game loop for player vs model or model vs game modes"""
+        """Game loop for player vs model or model vs game or player vs game modes"""
         state = self.display_env.reset()
         total_rewards = 0
         info = None
 
         while True:
-            # Get actions from AI system
-            p1_actions = self.ai_sys.predict(state, info=info, deterministic=self.args.deterministic)
-
-            if self.args.mode == 'player_vs_model':
-                # Player vs Model mode
-                p2_actions = self.display_env.player_actions
-                # Combine actions properly for 2-player game
-                actions = [p1_actions[0], p2_actions]
+            if self.args.mode == 'player_vs_game':
+                # Player vs Game mode - just use player inputs
+                # Ensure we pass a valid action format
+                actions = self.display_env.player_actions
+                if not isinstance(actions, list) or len(actions) not in [12, 24]:
+                    actions = [0] * 12  # Default no-op action
             else:
-                # Model vs Game mode
-                actions = [p1_actions[0]]
+                # Get actions from AI system for other modes
+                p1_actions = self.ai_sys.predict(state, info=info, deterministic=self.args.deterministic)
+
+                if self.args.mode == 'player_vs_model':
+                    # Player vs Model mode
+                    p2_actions = self.display_env.player_actions
+                    if not isinstance(p2_actions, list) or len(p2_actions) not in [12, 24]:
+                        p2_actions = [0] * 12
+                    # Combine actions properly for 2-player game
+                    actions = [p1_actions[0], p2_actions]
+                else:
+                    # Model vs Game mode
+                    actions = [p1_actions[0]]
 
             self.display_env.action_probabilities = []
 
             for i in range(4):
-                if self.need_display:
+                if self.need_display and self.args.mode != 'player_vs_game':
                     self.display_env.set_ai_sys_info(self.ai_sys)
-                state, reward, done, info = self.display_env.step(actions)
-                total_rewards += reward
+                try:
+                    state, reward, done, info = self.display_env.step(actions)
+                    total_rewards += reward
+                except ValueError as e:
+                    print(f"Invalid action format: {actions}")
+                    actions = [0] * 6  # Fallback to no-op
+                    state, reward, done, info = self.display_env.step(actions)
+                    total_rewards += reward
 
             if done:
                 if continuous:
@@ -163,13 +180,13 @@ def main(argv):
     args = parse_cmdline(argv[1:])
     logger = init_logger(args)
 
-    if args.mode != 'model_vs_model':
+    if args.mode != 'model_vs_model' and args.mode != 'player_vs_game':
         games.wrappers.init(args)
 
     player = NHL94Player(args, logger)
 
     com_print('========= Start of Game Loop ==========')
-    if args.mode == 'player_vs_model':
+    if args.mode in ['player_vs_model', 'player_vs_game']:
         com_print('Press ESC or Q to quit')
 
     player.play(need_reset=False)

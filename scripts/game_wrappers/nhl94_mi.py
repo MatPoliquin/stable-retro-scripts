@@ -232,7 +232,8 @@ def init_model_rel_dist(num_players: int) -> int:
     # Puck features: 2 (x,y) + 2 (rel_x,rel_y) + dist
     # Goalie features: 2 (x,y)
     # Possession flags: 2
-    return 6 + ((num_players-1)*7) + (num_players*7) + 4 + 2 + 2 + 1 + (num_players - 1)
+    # Net features: 6 per net (absolute y, left, right + relative y, left, right) * 1 net = 6
+    return (6 + ((num_players-1)*7) + (num_players*7) + 4 + 2 + 2 + 1 + (num_players - 1)) + 6
 
 def set_model_input_rel_dist(game_state) -> Tuple[float, ...]:
     """Standalone version with relative positions and distances to controlled player.
@@ -311,6 +312,27 @@ def set_model_input_rel_dist(game_state) -> Tuple[float, ...]:
     features.extend([
         t1.nz_player_haspuck,
         t2.nz_goalie_haspuck
+    ])
+
+    # 7. Add net coordinates (both absolute and relative to controlled player)
+    # Team 1 net (our net)
+    # features.extend([
+    #     t1.nz_net.y,                   # Absolute Y position
+    #     t1.nz_net.left,                 # Absolute left post
+    #     t1.nz_net.right,                # Absolute right post
+    #     t1.nz_net.rel_controlled_y,     # Relative Y to controlled player
+    #     t1.nz_net.rel_controlled_left,  # Relative left post
+    #     t1.nz_net.rel_controlled_right  # Relative right post
+    # ])
+
+    # Team 2 net (opponent net)
+    features.extend([
+        t2.nz_net.y,                   # Absolute Y position
+        t2.nz_net.left,                 # Absolute left post
+        t2.nz_net.right,                # Absolute right post
+        t2.nz_net.rel_controlled_y,     # Relative Y to controlled player
+        t2.nz_net.rel_controlled_left,  # Relative left post
+        t2.nz_net.rel_controlled_right  # Relative right post
     ])
 
     return tuple(features)

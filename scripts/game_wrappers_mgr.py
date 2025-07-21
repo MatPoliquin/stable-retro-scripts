@@ -1,5 +1,6 @@
 from game_wrappers.nhl94_obs import NHL94Observation2PEnv
 from game_wrappers.nhl94_display import NHL94GameDisplayEnv
+from game_wrappers.nhl94_display_debug import NHL94DebugDisplay
 from game_wrappers.nhl94_display_pvp import NHL94PvPGameDisplayEnv
 from game_wrappers.nhl94_ai import NHL94AISystem
 
@@ -29,7 +30,7 @@ class GameWrapperManager(object):
         if args.env in ('NHL941on1-Genesis', 'NHL942on2-Genesis', 'NHL94-Genesis'):
             self.obs_env = NHL94Observation2PEnv
             self.pvp_display_env = NHL94PvPGameDisplayEnv
-            self.sp_display_env = NHL94GameDisplayEnv
+            self.sp_display_env = NHL94DebugDisplay
             self.ai_sys = NHL94AISystem
         elif args.env == 'Pong-Atari2600':
             if args.nn == 'EntityAttentionPolicy':

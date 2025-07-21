@@ -174,8 +174,8 @@ def rf_general(state):
             rew += 0.2
 
         # Reward for moving toward puck when we don't have it
-        if not t1.player_haspuck and t1.distToPuck < t1.last_distToPuck:
-            rew += 0.1 * (1 - (t1.distToPuck / 200.0)**0.5)
+        #if not t1.player_haspuck and t1.distToPuck < t1.last_distToPuck:
+        #    rew += 0.1 * (1 - (t1.distToPuck / 200.0)**0.5)
 
         # Penalty for opponent shots
         if t2.stats.shots > t2.last_stats.shots:

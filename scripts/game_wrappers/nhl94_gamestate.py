@@ -10,6 +10,17 @@ from dataclasses import dataclass
 import time
 
 @dataclass
+class Net:
+    depth: int = GameConsts.NET_DEPTH
+    left: int = GameConsts.P1_NET_LEFT_POLL
+    right: int = GameConsts.P1_NET_RIGHT_POLL
+    y: int = 0 #center of net
+
+    rel_controlled_left: int = 0
+    rel_controlled_right: int = 0
+    rel_controlled_y: int = 0 #center of net
+
+@dataclass
 class Player:
     x: int = 0
     y: int = 0
@@ -85,6 +96,23 @@ class Team():
         self.nz_goalie = Player()
         self.nz_player_haspuck = 0.0
         self.nz_goalie_haspuck = 0.0
+
+        self.net = Net()
+        self.nz_net = Net()
+
+        net_left: tuple = (0.0, 0.0)        # Normalized absolute left post
+        nz_net_right: tuple = (0.0, 0.0)       # Normalized absolute right post
+        nz_net_center: tuple = (0.0, 0.0)      # Normalized absolute center
+        nz_net_left_rel: tuple = (0.0, 0.0)    # Relative to controlled player
+        nz_net_right_rel: tuple = (0.0, 0.0)
+        nz_net_center_rel: tuple = (0.0, 0.0)
+
+        nz_net_left: tuple = (0.0, 0.0)        # Normalized absolute left post
+        nz_net_right: tuple = (0.0, 0.0)       # Normalized absolute right post
+        nz_net_center: tuple = (0.0, 0.0)      # Normalized absolute center
+        nz_net_left_rel: tuple = (0.0, 0.0)    # Relative to controlled player
+        nz_net_right_rel: tuple = (0.0, 0.0)
+        nz_net_center_rel: tuple = (0.0, 0.0)
 
     def has_puck(self, pos_x, pos_y):
         return (abs(pos_x - self.stats.fullstar_x) < self.HAS_PUCK_TRESHOLD and abs(pos_y - self.stats.fullstar_y) < self.HAS_PUCK_TRESHOLD)
@@ -263,6 +291,18 @@ class Team():
             self.nz_players[p].dist_to_controlled_opp = self.players[p].dist_to_controlled_opp / GameConsts.MAX_PLAYER_X
             self.nz_players[p].passing_lane_clear = float(self.players[p].passing_lane_clear)  # Convert bool to 0.0/1.0
 
+        # Normalize net positions
+        # Absolute positions
+        self.nz_net.left = self.net.left / GameConsts.MAX_PUCK_X
+        self.nz_net.right = self.net.right / GameConsts.MAX_PUCK_X
+        self.nz_net.y = self.net.y / GameConsts.MAX_PUCK_Y
+        self.nz_net.depth = self.net.depth / GameConsts.MAX_PUCK_Y
+
+        # Relative positions
+        self.nz_net.rel_controlled_left = self.net.rel_controlled_left / GameConsts.MAX_PUCK_X
+        self.nz_net.rel_controlled_right = self.net.rel_controlled_right / GameConsts.MAX_PUCK_X
+        self.nz_net.rel_controlled_y = self.net.rel_controlled_y / GameConsts.MAX_PUCK_Y
+
     def end_frame(self) -> None:
         self.last_stats = deepcopy(self.stats)
 
@@ -363,26 +403,100 @@ class NHL94GameState():
 
         return distance_sq <= radius**2
 
-    def _update_passing_lanes(self):
-        # Test cases
-        assert self._line_intersects_circle((0,0), (10,0), (5,3), 3)  # True (line passes through circle)
-        assert not self._line_intersects_circle((0,0), (10,0), (5,4), 3)  # False (line too far)
-        assert self._line_intersects_circle((0,0), (0,0), (0,0), 1)  # True (zero-length segment at center)
+    def _line_intersects_line(self, line1_start, line1_end, line2_start, line2_end):
+        """Check if two line segments intersect.
 
-        """Compute passing lanes for all players in both teams."""
+        Args:
+            line1_start: Tuple (x, y) of first line's start point
+            line1_end: Tuple (x, y) of first line's end point
+            line2_start: Tuple (x, y) of second line's start point
+            line2_end: Tuple (x, y) of second line's end point
+
+        Returns:
+            bool: True if the line segments intersect
+        """
+        # Implementation of the line segment intersection algorithm
+        def ccw(A, B, C):
+            return (C[1]-A[1])*(B[0]-A[0]) > (B[1]-A[1])*(C[0]-A[0])
+
+        A = line1_start
+        B = line1_end
+        C = line2_start
+        D = line2_end
+
+        # Check if lines intersect
+        return ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D)
+
+    def _update_passing_lanes(self):
+        """Compute passing lanes for all players in both teams, considering:
+        - Opponent players
+        - Opponent goalie
+        - Both nets (as impassable objects)
+        """
         for team in [self.team1, self.team2]:
             opponents = self.team2 if team.controller == 1 else self.team1
             controlled_idx = max(0, team.control - 1) if team.control > 0 else 0
             controlled_player = team.players[controlled_idx] if team.control > 0 else team.goalie
 
+            # Get all potential obstacles
+            obstacles = []
+
+            # 1. Add opponent players
+            obstacles.extend(opponents.players)
+
+            # 2. Add opponent goalie (unless they're the same as controlled player)
+            if not (team.controller != opponents.controller and team.control == 0):
+                obstacles.append(opponents.goalie)
+
+            # 3. Add both nets as rectangular obstacles
+            # Each net is represented as 4 line segments (left, right, top, bottom)
+            net_obstacles = []
+            for net_team in [self.team1, self.team2]:
+                net = net_team.net
+                # Create net boundary points (left post, right post, and depth)
+                net_left_front = (net.left, net.y)
+                net_right_front = (net.right, net.y)
+                net_left_back = (net.left, net.y - net.depth)
+                net_right_back = (net.right, net.y - net.depth)
+
+                # Add the 4 net boundaries as line segments
+                net_obstacles.extend([
+                    (net_left_front, net_right_front),  # Front line
+                    (net_left_front, net_left_back),    # Left side
+                    (net_right_front, net_right_back), # Right side
+                    (net_left_back, net_right_back)     # Back line
+                ])
+
             for i, player in enumerate(team.players):
                 if i != controlled_idx:  # Skip controlled player
-                    player.passing_lane_clear = self._is_passing_lane_clear(
-                        (controlled_player.x, controlled_player.y),
-                        (player.x, player.y),
-                        opponents.players
-                    )
-        
+                    # First check if path is blocked by players/goalie
+                    path_clear = True
+
+                    # Check against moving obstacles (players/goalie)
+                    for obstacle in obstacles:
+                        if self._line_intersects_circle(
+                            (controlled_player.x, controlled_player.y),
+                            (player.x, player.y),
+                            (obstacle.x, obstacle.y),
+                            radius=10  # Player collision radius
+                        ):
+                            path_clear = False
+                            break
+
+                    # If still clear, check against net boundaries
+                    if path_clear:
+                         for net_segment in net_obstacles:
+                             if self._line_intersects_line(
+                                 (controlled_player.x, controlled_player.y),
+                                 (player.x, player.y),
+                                 net_segment[0],  # Segment start
+                                 net_segment[1]   # Segment end
+                             ):
+                                 path_clear = False
+                                 break
+
+                    player.passing_lane_clear = path_clear
+
     def _update_opponent_controlled_distances(self):
         """Update distances to the opponent's controlled player for all players."""
         for team in [self.team1, self.team2]:
@@ -399,6 +513,29 @@ class NHL94GameState():
                     (player.x, player.y),
                     (opp_controlled_player.x, opp_controlled_player.y)
                 )
+
+    def update_nets(self):
+        # Update team 1 net (bottom of screen)
+        self.team1.net.y = GameConsts.P1_NET_Y
+        self.team1.net.left = GameConsts.P1_NET_LEFT_POLL
+        self.team1.net.right = GameConsts.P1_NET_RIGHT_POLL
+
+        # Update team 2 net (top of screen)
+        self.team2.net.y = GameConsts.P2_NET_Y
+        self.team2.net.left = GameConsts.P2_NET_LEFT_POLL
+        self.team2.net.right = GameConsts.P2_NET_RIGHT_POLL
+
+        # Calculate relative net positions for both teams
+        for team in [self.team1, self.team2]:
+            # Get controlled player position
+            controlled_x = team.goalie.x if team.control == 0 else team.players[team.control-1].x
+            controlled_y = team.goalie.y if team.control == 0 else team.players[team.control-1].y
+
+            # Calculate relative net positions
+            team.net.rel_controlled_left = team.net.left - controlled_x
+            team.net.rel_controlled_right = team.net.right - controlled_x
+            team.net.rel_controlled_y = team.net.y - controlled_y
+
 
 
     def BeginFrame(self, info, action):
@@ -427,6 +564,8 @@ class NHL94GameState():
         #Teams
         self.team1.begin_frame(info, self.puck.x, self.puck.y, self.puck.vx, self.puck.vy)
         self.team2.begin_frame(info, self.puck.x, self.puck.y, self.puck.vx, self.puck.vy)
+
+        self.update_nets()
 
         # Compute passing lanes AFTER both teams are updated
         self._update_passing_lanes()

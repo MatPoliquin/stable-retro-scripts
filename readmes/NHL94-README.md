@@ -30,6 +30,12 @@ python3 play.py --mode=player_vs_model --env=NHL941on1-Genesis --state=PenguinsV
 python3 train.py --env=NHL941on1-Genesis --state=PenguinsVsSenators.FrontOfNet --num_env=12 --num_timesteps=100_000_000 --nn=MlpPolicy --play --num_players=1 --rf="ScoreGoal_1P" --hyperparams=../hyperparams/nhl94.json
 ```
 
+### Play against the game
+Useful for debugging purposes, check /scripts/game_wrappers/nhl94_display_debug.py
+```bash
+python3 play.py --mode=player_vs_game --env=NHL94-Genesis --num_env=1 --nn=MlpPolicy --num_players=1 --rf="General" --hyperparams=../hyperparams/nhl94.json
+```
+
 ## Devlog
 
 NHL94 Discord (with a subgroup dedicated for AI):
