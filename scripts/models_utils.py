@@ -123,7 +123,8 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
                 vf_coef=hyperparams.get('vf_coef', 0.5),
                 ent_coef=hyperparams.get('ent_coef', 0.01),
                 max_grad_norm=hyperparams.get('max_grad_norm', 0.5),
-                clip_range_vf=hyperparams.get('clip_range_vf', None)
+                clip_range_vf=hyperparams.get('clip_range_vf', None),
+                gamma=hyperparams.get('gamma', 0.99)
             )
         else:
             model = PPO.load(os.path.expanduser(player_model), env=env)
