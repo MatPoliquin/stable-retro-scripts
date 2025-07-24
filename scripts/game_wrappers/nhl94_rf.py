@@ -6,7 +6,8 @@ import random
 import numpy as np
 from typing import Tuple, Callable
 from game_wrappers.nhl94_const import GameConsts
-from game_wrappers.nhl94_mi import init_model, init_model_rel, init_model_rel_dist, init_model_1p, init_model_2p, set_model_input, set_model_input_1p, set_model_input_2p, set_model_input_rel, set_model_input_rel_dist
+from game_wrappers.nhl94_mi import init_model, init_model_rel, init_model_rel_dist, init_model_rel_dist_buttons, init_model_1p, init_model_2p, \
+      set_model_input, set_model_input_1p, set_model_input_2p, set_model_input_rel, set_model_input_rel_dist, set_model_input_rel_dist_buttons
 
 # =====================================================================
 # Common functions
@@ -194,18 +195,18 @@ def isdone_scoregoal_cc(state):
     t1 = state.team1
     t2 = state.team2
 
+    # Success
+    #if t1.stats.score > t1.last_stats.score:
+    #    return True
+
+    # Mild failures (just end episode)
     if t2.player_haspuck or t2.goalie_haspuck:
-        return True
-
-    if t1.stats.shots > t1.last_stats.shots:
-        return True
-
-    if t1.stats.score > t1.last_stats.score:
         return True
 
     if state.puck.y < 100:
         return True
 
+    # Timeout
     if state.time < 100:
         return True
 
@@ -214,38 +215,52 @@ def isdone_scoregoal_cc(state):
 def rf_scoregoal_cc(state):
     t1 = state.team1
     t2 = state.team2
-
     rew = 0.0
 
+
+
+    # Failure conditions
     if t2.player_haspuck or t2.goalie_haspuck:
-        return -1.0
+        return -0.5  # Less punitive
 
     if state.puck.y < 100:
-        return -1.0
+        return -0.5
 
-    # Punish for shots and scores because the AI might try to do that to avoid negative rewards when losing the puch to opponent
-    if t1.stats.shots > t1.last_stats.shots:
-        return -1.0
+    # Get controlled player
+    controlled_player = t1.players[t1.control-1] if t1.control > 0 else t1.goalie
 
-    if t1.stats.score > t1.last_stats.score:
-        return -1.0
+    # Check crease position
+    in_crease = (
+        controlled_player.y < GameConsts.CREASE_UPPER_BOUND and
+        controlled_player.y > GameConsts.CREASE_LOWER_BOUND
+    )
 
+    # Reward for entering crease area
+    if in_crease:
+        rew += 0.3
+
+        # Extra reward for proper positioning (lateral movement)
+        if abs(controlled_player.x) < GameConsts.CREASE_MAX_X:
+            rew += 0.2
+
+        # Reward for velocity toward net
+        if controlled_player.vy > 0:  # Moving up toward opponent net
+            rew += 0.1 * min(controlled_player.vy, 1.0)  # Cap velocity reward
+
+    # Reward for shooting when in good position
+    if state.action[5] == 1 and in_crease:  # C button pressed (shoot)
+        if abs(controlled_player.x - t2.goalie.x) > GameConsts.CREASE_MIN_GOALIE_PUCK_DIST_X:
+            rew += 1.0  # Big reward for shooting from good position
+        else:
+            rew += 0.2  # Small reward for attempting shot
+
+    # Reward for passing (helps set up cross-crease plays)
     if t1.stats.passing > t1.last_stats.passing:
-        rew = 0.5
+        rew += 0.5
 
-    # reward scoring opportunities
-    t = t1.control - 1
-    assert t == 0 if state.numPlayers == 1 else True
-
-    if t1.player_haspuck and t1.players[t].y < GameConsts.CREASE_UPPER_BOUND and t1.players[t].y  > GameConsts.CREASE_LOWER_BOUND:
-        rew = 0.2
-        if t1.players[t].vx >= GameConsts.CREASE_MIN_VEL or t1.players[t].vx <= -GameConsts.CREASE_MIN_VEL:
-            rew = 0.4
-            if state.puck.x > -GameConsts.CREASE_MAX_X and state.puck.x < GameConsts.CREASE_MAX_X:
-                if abs(state.puck.x - t2.goalie.x) > GameConsts.CREASE_MIN_GOALIE_PUCK_DIST_X:
-                    rew = 1.0
-                else:
-                    rew = 0.7
+    # Success condition
+    if t1.stats.score > 0:
+        return 1.0  # Big reward for scoring
 
     return rew
 
@@ -593,7 +608,7 @@ def rf_passing(state):
 # =====================================================================
 _reward_function_map = {
     "GetPuck": (init_getpuck, rf_getpuck, isdone_getpuck, init_model, set_model_input, input_overide),
-    "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_rel_dist, set_model_input_rel_dist, input_overide),
+    "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, init_model, set_model_input, input_overide_empty),
     "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model, set_model_input, input_overide_empty),
     "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model, set_model_input, input_overide),
