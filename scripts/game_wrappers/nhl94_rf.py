@@ -141,50 +141,11 @@ def rf_general(state):
     t2 = state.team2
     rew = 0.0
 
-    # Big rewards for scoring/conceding
+    # Scoring rewards (team 1 scores or concedes)
     if t1.stats.score > t1.last_stats.score:
-        rew += 1.0
+        return 1.0  # Big reward for scoring
     if t2.stats.score > t2.last_stats.score:
-        rew -= 1.0
-
-    # Determine if we should focus on offense or defense
-    offensive_mode = (t1.player_haspuck or
-                     (not t2.player_haspuck and state.puck.y > -50))
-
-    if offensive_mode:
-        # Offensive rewards
-        if t1.stats.shots > t1.last_stats.shots:
-            rew += 0.2
-        if t1.stats.passing > t1.last_stats.passing:
-            rew += 0.1
-
-        # Reward for moving puck toward opponent goal
-        if t1.player_haspuck:
-            if state.puck.vy < 0:
-                rew += 0.01 * state.puck.vy
-
-        # Cross-crease opportunity reward
-        if (t1.player_haspuck and
-            t1.players[t1.control-1].y < GameConsts.CREASE_UPPER_BOUND and
-            t1.players[t1.control-1].y > GameConsts.CREASE_LOWER_BOUND and
-            abs(state.puck.x - t2.goalie.x) > GameConsts.CREASE_MIN_GOALIE_PUCK_DIST_X):
-            rew += 0.3
-    else:
-        # Defensive rewards
-        if t1.stats.bodychecks > t1.last_stats.bodychecks:
-            rew += 0.2
-
-        # Reward for moving toward puck when we don't have it
-        #if not t1.player_haspuck and t1.distToPuck < t1.last_distToPuck:
-        #    rew += 0.1 * (1 - (t1.distToPuck / 200.0)**0.5)
-
-        # Penalty for opponent shots
-        if t2.stats.shots > t2.last_stats.shots:
-            rew -= 0.1
-
-        # Reward for clearing puck from our zone
-        #if state.puck.y < state.last_puck_y and state.puck.y < -50:
-        #    rew += 0.05
+        return -1.0  # Penalty for conceding
 
     return rew
 
@@ -614,7 +575,7 @@ _reward_function_map = {
     "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model, set_model_input, input_overide),
     "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model, set_model_input, input_overide_empty),
     "Passing": (init_attackzone, rf_passing, isdone_passing, init_model_rel_dist, set_model_input_rel_dist, input_overide_no_shoot),
-    "General": (init_general, rf_general, isdone_general, init_model_rel_dist, set_model_input_rel_dist, input_overide_empty),
+    "General": (init_general, rf_general, isdone_general, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
 }
 
 def register_functions(name: str) -> Tuple[Callable, Callable, Callable]:

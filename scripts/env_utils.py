@@ -10,7 +10,8 @@ import cv2
 from env_wrappers import StochasticFrameSkip, WarpFrameDict
 
 def isMLP(name):
-    return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy' or name == 'AttentionMLPPolicy' or name == 'EntityAttentionPolicy'
+    return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy' \
+          or name == 'AttentionMLPPolicy' or name == 'EntityAttentionPolicy' or name == 'HockeyMultiHeadPolicy'
 
 
 def make_retro(*, game, state=None, num_players, max_episode_steps=4500, action_type='FILTERED', **kwargs):
