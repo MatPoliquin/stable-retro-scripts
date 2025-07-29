@@ -7,7 +7,8 @@ import numpy as np
 from typing import Tuple, Callable
 from game_wrappers.nhl94_const import GameConsts
 from game_wrappers.nhl94_mi import init_model, init_model_rel, init_model_rel_dist, init_model_rel_dist_buttons, init_model_1p, init_model_2p, \
-      set_model_input, set_model_input_1p, set_model_input_2p, set_model_input_rel, set_model_input_rel_dist, set_model_input_rel_dist_buttons
+      set_model_input, set_model_input_1p, set_model_input_2p, set_model_input_rel, set_model_input_rel_dist, set_model_input_rel_dist_buttons, \
+      init_model_invariant, set_model_input_invariant
 
 # =====================================================================
 # Common functions
@@ -565,6 +566,35 @@ def rf_passing(state):
     return rew
 
 # =====================================================================
+# Self Play
+# =====================================================================
+def isdone_selfplay(state):
+    t1 = state.team1
+    t2 = state.team2
+
+    if t1.stats.score > t1.last_stats.score:
+        return True
+
+    if state.time < 100:
+        return True
+
+    return False
+
+def init_selfplay(env, env_name):
+    """Same random (or attack-zone) init as normal."""
+    init_general(env, env_name)      # or init_attackzone(...)
+
+def rf_selfplay(state):
+    """
+    Zero-sum reward wrapper around any existing reward.
+    The wrapper decides which side is 'active' and flips the sign.
+    """
+    # base reward computed from Team-1 perspective
+    base = rf_general(state)         # or rf_scoregoal_cc, etc.
+    # wrapper will negate if training Team-2
+    return base
+
+# =====================================================================
 # Register Functions
 # =====================================================================
 _reward_function_map = {
@@ -576,6 +606,7 @@ _reward_function_map = {
     "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model, set_model_input, input_overide_empty),
     "Passing": (init_attackzone, rf_passing, isdone_passing, init_model_rel_dist, set_model_input_rel_dist, input_overide_no_shoot),
     "General": (init_general, rf_general, isdone_general, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
+    "SelfPlay": (init_selfplay, rf_selfplay, isdone_selfplay, init_model_invariant, set_model_input_invariant, input_overide_empty),
 }
 
 def register_functions(name: str) -> Tuple[Callable, Callable, Callable]:

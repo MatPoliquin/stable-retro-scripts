@@ -379,3 +379,89 @@ def set_model_input_rel_dist_buttons(game_state) -> Tuple[float, ...]:
 
     # Combine all features
     return tuple(features + button_features + [normalized_slapshot])
+
+def init_model_invariant(num_players: int) -> int:
+    """
+    Same length as set_model_input_rel_dist.
+    7*(n+1)  Team-1  (n skaters + goalie)
+    7*(n+1)  Team-2  (n skaters + goalie)
+    4        puck
+    2        opponent-goalie
+    2        possession flags
+    6        both nets
+    (n-1)    passing lanes (Team-1 teammates)
+    2*(n+1)  one-hot control flags
+    7 = buttons
+    Total = 14*num_players + 14 + 7
+    """
+    return 14 * num_players + 14 + 7
+
+
+def set_model_input_invariant(game_state) -> Tuple[float, ...]:
+    """
+    View-point invariant observation.
+    Fixed order, one-hot controlled-player flags.
+    """
+    t1, t2 = game_state.team1, game_state.team2
+    n = game_state.numPlayers
+    puck = game_state.nz_puck
+    vec = []
+
+    # ============ 1. Team-1 skaters (0 … n-1) ============
+    for p in t1.nz_players:
+        vec.extend([
+            p.x, p.y, p.vx, p.vy, p.ori_x, p.ori_y, p.dist_to_puck
+        ])
+
+    # ============ 2. Team-1 goalie ============
+    g1 = t1.nz_goalie
+    vec.extend([g1.x, g1.y, g1.vx, g1.vy, g1.ori_x, g1.ori_y, g1.dist_to_puck])
+
+    # ============ 3. Team-2 skaters (0 … n-1) ============
+    for p in t2.nz_players:
+        vec.extend([
+            p.x, p.y, p.vx, p.vy, p.ori_x, p.ori_y, p.dist_to_puck
+        ])
+
+    # ============ 4. Team-2 goalie ============
+    g2 = t2.nz_goalie
+    vec.extend([g2.x, g2.y, g2.vx, g2.vy, g2.ori_x, g2.ori_y, g2.dist_to_puck])
+
+    # ============ 5. Puck ============
+    vec.extend([puck.x, puck.y, puck.vx, puck.vy])
+
+    # ============ 6. Opponent-goalie (only x, y like rel_dist) ============
+    vec.extend([t2.nz_goalie.x, t2.nz_goalie.y])
+
+    # ============ 7. Possession flags ============
+    vec.extend([t1.nz_player_haspuck, t2.nz_goalie_haspuck])
+
+    # ============ 8. Both nets (6 scalars) ============
+    vec.extend([
+        t1.nz_net.y, t1.nz_net.left, t1.nz_net.right,
+        t2.nz_net.y, t2.nz_net.left, t2.nz_net.right
+    ])
+
+    # ============ 9. Passing lanes (Team-1 teammates only, n-1 slots) ============
+    c1 = max(0, t1.control - 1) if t1.control > 0 else n   # goalie = n
+    lanes = [float(p.passing_lane_clear)
+             for i, p in enumerate(t1.nz_players)
+             if i != c1]
+    vec.extend(lanes)  # length = n-1
+
+    # ============ 10. One-hot control flags (2×(n+1) slots) ============
+    hot1 = [0.0] * (n + 1)
+    hot1[c1] = 1.0
+    hot2 = [0.0] * (n + 1)
+    c2 = max(0, t2.control - 1) if t2.control > 0 else n
+    hot2[c2] = 1.0
+    vec.extend(hot1 + hot2)
+
+    # buttons
+    button_state = [float(b) for b in game_state.action]            # 6 buttons
+    slap_timer   = min(game_state.slapshot_frames_held / 60.0, 1.0) # 0…1
+    vec.extend(button_state + [slap_timer])
+
+    # ---------- verify length ----------
+    assert len(vec) == init_model_invariant(n)
+    return tuple(vec)
