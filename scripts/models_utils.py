@@ -30,18 +30,22 @@ def load_hyperparameters(json_file):
 
 def print_model_summary(args, env, player_model, model):
 
-    print(env.observation_space)
+    obs_space = getattr(model, "observation_space", None) or env.observation_space
+    print(obs_space)
 
     if args.alg == 'es':
         return
 
-    obs_shape = env.observation_space.shape
-
-    if args.nn in ('MlpPolicy', 'EntityAttentionPolicy', 'CustomMlpPolicy'): #'AttentionMLPPolicy',
+    # Handle policies
+    if args.nn in ('MlpPolicy', 'EntityAttentionPolicy', 'CustomMlpPolicy'):
+        obs_shape = obs_space.shape
         pytorch_obs_shape = (1, obs_shape[0])
-    elif args.nn in('CnnPolicy','ImpalaCnnPolicy'):
-        pytorch_obs_shape = (obs_shape[2], obs_shape[0], obs_shape[1])
-    else: #other types are not supported for now
+    elif args.nn in ('CnnPolicy', 'ImpalaCnnPolicy'):
+        # SB3 model.observation_space is already channels-first and includes frame stack
+        obs_shape = obs_space.shape  # (C, H, W)
+        pytorch_obs_shape = (obs_shape[0], obs_shape[1], obs_shape[2])
+    else:
+        # Other types are not supported for summary for now
         return
 
     summary(model.policy, pytorch_obs_shape)

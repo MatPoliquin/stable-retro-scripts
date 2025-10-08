@@ -104,7 +104,7 @@ class ModelTrainer:
             p1_actions = self.p1_model.predict(state, deterministic=args.deterministic)
 
             state, reward, done, info = self.env.step(p1_actions[0])
-            time.sleep(0.01)
+            time.sleep(0.05)
             #print(reward)
 
             if done[0]:
