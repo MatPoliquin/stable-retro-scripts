@@ -16,7 +16,8 @@ import pygame.freetype  # type: ignore
 from stable_baselines3 import PPO  # type: ignore
 
 from common import init_logger
-from env_utils import init_env
+from env_utils import init_env, get_button_names
+from models_utils import get_num_parameters, get_model_probabilities
 import game_wrappers_mgr as games
 import train
 
@@ -180,6 +181,29 @@ def get_env_frame(env) -> np.ndarray:
     return frame
 
 
+def prepare_action_info(probabilities, actions, button_count: int) -> tuple[np.ndarray, np.ndarray]:
+    probs = np.asarray(probabilities, dtype=float).flatten()
+    acts = np.asarray(actions, dtype=float).flatten()
+
+    if probs.size < button_count:
+        if probs.size == 0:
+            probs = np.zeros(button_count, dtype=float)
+        else:
+            probs = np.pad(probs, (0, button_count - probs.size), constant_values=0.0)
+    elif probs.size > button_count:
+        probs = probs[:button_count]
+
+    if acts.size < button_count:
+        if acts.size == 0:
+            acts = np.zeros(button_count, dtype=float)
+        else:
+            acts = np.pad(acts, (0, button_count - acts.size), constant_values=0.0)
+    elif acts.size > button_count:
+        acts = acts[:button_count]
+
+    return probs, acts
+
+
 def init_play_env(train_args: argparse.Namespace) -> Tuple[np.ndarray, np.ndarray, any]:
     play_args = copy.deepcopy(train_args)
     play_args.num_env = 1
@@ -201,8 +225,9 @@ def load_trained_model(model_path: str, env) -> PPO:
     return model
 
 
-def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str,
-                    model2: PPO, env2, obs2: np.ndarray, label2: str,
+def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str, params1: int,
+                    model2: PPO, env2, obs2: np.ndarray, label2: str, params2: int,
+                    button_names: list[str],
                     initial_frame1: np.ndarray, initial_frame2: np.ndarray,
                     video_path: str, duration_seconds: float, fps: int,
                     window_width: int, window_height: int) -> None:
@@ -233,7 +258,22 @@ def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str,
 
     font_vs = pygame.freetype.SysFont("Arial", 64)
     font_label = pygame.freetype.SysFont("Arial", 36)
+    font_detail = pygame.freetype.SysFont("Arial", 28)
     font_timer = pygame.freetype.SysFont("Arial", 24)
+
+    params_text1 = f"Parameters: {params1:,}"
+    params_text2 = f"Parameters: {params2:,}"
+
+    def draw_button_info(x_pos: int, start_y: int, names, probs, actions) -> int:
+        y_pos = start_y
+        for name, prob, action in zip(names, probs, actions):
+            is_pressed = action >= 0.5
+            status = "ON " if is_pressed else "off"
+            color = (255, 200, 120) if is_pressed else (190, 190, 190)
+            text = f"{name:<8} {prob:>5.2f} {status}"
+            font_detail.render_to(screen, (x_pos, y_pos), text, color)
+            y_pos += 24
+        return y_pos
 
     os.makedirs(os.path.dirname(video_path) or ".", exist_ok=True)
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
@@ -247,6 +287,9 @@ def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str,
     frame1 = initial_frame1
     frame2 = initial_frame2
 
+    total_reward1 = 0.0
+    total_reward2 = 0.0
+
     for frame_idx in range(total_frames):
         quit_requested = False
         for event in pygame.event.get():
@@ -257,17 +300,36 @@ def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str,
         if quit_requested:
             break
 
+        try:
+            prob1_vals = np.asarray(get_model_probabilities(model1, obs1), dtype=float).flatten()
+        except (RuntimeError, AttributeError, ValueError, TypeError):
+            prob1_vals = np.array([])
         actions1, _ = model1.predict(obs1, deterministic=True)
-        obs1, _, done1, _ = env1.step(actions1)
-        if np.any(done1):
+        actions1_flat = np.asarray(actions1, dtype=float).flatten()
+        obs1, reward1_arr, done1, _ = env1.step(actions1)
+        reward1_value = float(np.array(reward1_arr).reshape(-1)[0])
+        total_reward1 += reward1_value
+        done1_flag = bool(np.any(done1))
+        if done1_flag:
             obs1 = env1.reset()
         frame1 = get_env_frame(env1)
 
+        try:
+            prob2_vals = np.asarray(get_model_probabilities(model2, obs2), dtype=float).flatten()
+        except (RuntimeError, AttributeError, ValueError, TypeError):
+            prob2_vals = np.array([])
         actions2, _ = model2.predict(obs2, deterministic=True)
-        obs2, _, done2, _ = env2.step(actions2)
-        if np.any(done2):
+        actions2_flat = np.asarray(actions2, dtype=float).flatten()
+        obs2, reward2_arr, done2, _ = env2.step(actions2)
+        reward2_value = float(np.array(reward2_arr).reshape(-1)[0])
+        total_reward2 += reward2_value
+        done2_flag = bool(np.any(done2))
+        if done2_flag:
             obs2 = env2.reset()
         frame2 = get_env_frame(env2)
+
+        display_probs1, display_actions1 = prepare_action_info(prob1_vals, actions1_flat, len(button_names))
+        display_probs2, display_actions2 = prepare_action_info(prob2_vals, actions2_flat, len(button_names))
 
         screen.fill((15, 15, 15))
 
@@ -287,6 +349,18 @@ def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str,
         font_label.render_to(screen, (left_x, label_y), label1, (200, 200, 200))
         font_label.render_to(screen, (right_x, label_y), label2, (200, 200, 200))
 
+        params_y = label_y + 35
+        font_detail.render_to(screen, (left_x, params_y), params_text1, (180, 220, 255))
+        font_detail.render_to(screen, (right_x, params_y), params_text2, (180, 220, 255))
+
+        reward_y = params_y + 30
+        font_detail.render_to(screen, (left_x, reward_y), f"Total Reward: {total_reward1:.2f}", (220, 220, 120))
+        font_detail.render_to(screen, (right_x, reward_y), f"Total Reward: {total_reward2:.2f}", (220, 220, 120))
+
+        buttons_start_y = reward_y + 30
+        draw_button_info(left_x, buttons_start_y, button_names, display_probs1, display_actions1)
+        draw_button_info(right_x, buttons_start_y, button_names, display_probs2, display_actions2)
+
         timer_text = f"{frame_idx / fps:.1f}s / {duration_seconds:.1f}s"
         font_timer.render_to(screen, (window_width - margin - 200, window_height - footer_height // 2),
                              timer_text, (180, 180, 180))
@@ -302,6 +376,11 @@ def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str,
         frame_pixels = np.transpose(frame_pixels, (1, 0, 2))
         writer.write(cv2.cvtColor(frame_pixels, cv2.COLOR_RGB2BGR))
         clock.tick(fps)
+
+        if done1_flag:
+            total_reward1 = 0.0
+        if done2_flag:
+            total_reward2 = 0.0
 
     writer.release()
     pygame.quit()
@@ -334,16 +413,36 @@ def main() -> None:
     obs1, initial_frame1, env1 = init_play_env(trained_args1)
     obs2, initial_frame2, env2 = init_play_env(trained_args2)
 
+    button_names = list(get_button_names(trained_args1))
+
     model1 = load_trained_model(model_path1, env1)
     model2 = load_trained_model(model_path2, env2)
 
+    params1 = get_num_parameters(model1)
+    params2 = get_num_parameters(model2)
+
     print(f"--- Recording video to {args.video_output} ---")
     try:
-        play_and_record(model1, env1, obs1, label1,
-                        model2, env2, obs2, label2,
-                        initial_frame1, initial_frame2,
-                            args.video_output, args.video_duration, args.fps,
-                            args.window_width, args.window_height)
+        play_and_record(
+            model1,
+            env1,
+            obs1,
+            label1,
+            params1,
+            model2,
+            env2,
+            obs2,
+            label2,
+            params2,
+            button_names,
+            initial_frame1,
+            initial_frame2,
+            args.video_output,
+            args.video_duration,
+            args.fps,
+            args.window_width,
+            args.window_height,
+        )
     finally:
         env1.close()
         env2.close()
