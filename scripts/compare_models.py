@@ -3,8 +3,10 @@
 
 import argparse
 import copy
+import io
 import os
-from typing import Tuple
+from contextlib import redirect_stdout
+from typing import List, Tuple
 
 # Hide the pygame prompt before importing pygame
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
@@ -18,6 +20,7 @@ from stable_baselines3 import PPO  # type: ignore
 from common import init_logger
 from env_utils import init_env, get_button_names
 from models_utils import get_num_parameters, get_model_probabilities
+from torchsummary import summary
 import game_wrappers_mgr as games
 import train
 
@@ -75,6 +78,8 @@ def parse_args() -> argparse.Namespace:
                         help="Custom label to display under model 1 (default: policy name)")
     parser.add_argument("--model2-label", type=str, default=None,
                         help="Custom label to display under model 2 (default: policy name)")
+    parser.add_argument("--summary-duration", type=float, default=20.0,
+                        help="Duration in seconds of the pre-roll model summary segment (default: 20)")
 
     return parser.parse_args()
 
@@ -204,6 +209,31 @@ def prepare_action_info(probabilities, actions, button_count: int) -> tuple[np.n
     return probs, acts
 
 
+def generate_model_summary(model: PPO, env, policy_name: str) -> str:
+    obs_space = getattr(model, "observation_space", None) or env.observation_space
+
+    try:
+        if policy_name in ("MlpPolicy", "EntityAttentionPolicy", "CustomMlpPolicy", "MlpDropoutPolicy", "CombinedPolicy", "AttentionMLPPolicy", "HockeyMultiHeadPolicy"):
+            if hasattr(obs_space, "shape") and obs_space.shape:
+                input_shape = (1, obs_space.shape[0])
+            else:
+                return f"Model summary unavailable for policy {policy_name}: unsupported observation space"
+        elif policy_name in ("CnnPolicy", "ImpalaCnnPolicy", "CustomCnnPolicy", "CnnTransformerPolicy", "ViTPolicy", "DartPolicy"):
+            if hasattr(obs_space, "shape") and len(obs_space.shape) >= 3:
+                input_shape = (obs_space.shape[-3], obs_space.shape[-2], obs_space.shape[-1])
+            else:
+                return f"Model summary unavailable for policy {policy_name}: unsupported observation space"
+        else:
+            return f"Model summary unavailable for policy {policy_name}"
+
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            summary(model.policy, input_shape)
+        return buffer.getvalue()
+    except Exception as exc:  # pylint: disable=broad-except
+        return f"Model summary unavailable: {exc}"
+
+
 def init_play_env(train_args: argparse.Namespace) -> Tuple[np.ndarray, np.ndarray, any]:
     play_args = copy.deepcopy(train_args)
     play_args.num_env = 1
@@ -227,7 +257,8 @@ def load_trained_model(model_path: str, env) -> PPO:
 
 def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str, params1: int,
                     model2: PPO, env2, obs2: np.ndarray, label2: str, params2: int,
-                    button_names: list[str],
+                    button_names: List[str],
+                    summary_text1: str, summary_text2: str, summary_duration: float,
                     initial_frame1: np.ndarray, initial_frame2: np.ndarray,
                     video_path: str, duration_seconds: float, fps: int,
                     window_width: int, window_height: int) -> None:
@@ -260,6 +291,7 @@ def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str, params1: i
     font_label = pygame.freetype.SysFont("Arial", 36)
     font_detail = pygame.freetype.SysFont("Arial", 28)
     font_timer = pygame.freetype.SysFont("Arial", 24)
+    font_summary = pygame.freetype.SysFont("Courier New", 14)
 
     params_text1 = f"Parameters: {params1:,}"
     params_text2 = f"Parameters: {params2:,}"
@@ -283,6 +315,64 @@ def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str, params1: i
 
     total_frames = int(duration_seconds * fps)
     clock = pygame.time.Clock()
+
+    summary_frames = max(0, int(summary_duration * fps))
+    summary_line_height = font_summary.get_sized_height() + 2
+    max_summary_lines = max(1, (window_height - 2 * margin - footer_height - 80) // summary_line_height)
+
+    def prepare_summary_lines(text: str) -> List[str]:
+        raw_lines = [line.rstrip() for line in text.strip().splitlines()]
+        if not raw_lines:
+            raw_lines = ["Summary unavailable"]
+        if len(raw_lines) > max_summary_lines:
+            truncated = raw_lines[:max_summary_lines - 1]
+            truncated.append("... (truncated) ...")
+            return truncated
+        return raw_lines
+
+    summary_lines1 = prepare_summary_lines(summary_text1)
+    summary_lines2 = prepare_summary_lines(summary_text2)
+
+    if summary_frames > 0:
+        for frame_idx in range(summary_frames):
+            quit_requested = False
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    quit_requested = True
+                    break
+
+            if quit_requested:
+                writer.release()
+                pygame.quit()
+                return
+
+            screen.fill((15, 15, 15))
+
+            heading_offset = margin
+            font_label.render_to(screen, (left_x, heading_offset), f"{label1} Summary", (200, 200, 200))
+            font_label.render_to(screen, (right_x, heading_offset), f"{label2} Summary", (200, 200, 200))
+
+            text_y_left = heading_offset + 40
+            for line in summary_lines1:
+                font_summary.render_to(screen, (left_x, text_y_left), line, (210, 210, 210))
+                text_y_left += summary_line_height
+
+            text_y_right = heading_offset + 40
+            for line in summary_lines2:
+                font_summary.render_to(screen, (right_x, text_y_right), line, (210, 210, 210))
+                text_y_right += summary_line_height
+
+            remaining_time = max(summary_duration - frame_idx / fps, 0.0)
+            timer_text = f"Gameplay starts in {remaining_time:0.1f}s"
+            font_timer.render_to(screen, (window_width - margin - 280, window_height - footer_height // 2),
+                                 timer_text, (180, 180, 180))
+
+            pygame.display.flip()
+
+            frame_pixels = pygame.surfarray.array3d(screen)
+            frame_pixels = np.transpose(frame_pixels, (1, 0, 2))
+            writer.write(cv2.cvtColor(frame_pixels, cv2.COLOR_RGB2BGR))
+            clock.tick(fps)
 
     frame1 = initial_frame1
     frame2 = initial_frame2
@@ -418,6 +508,9 @@ def main() -> None:
     model1 = load_trained_model(model_path1, env1)
     model2 = load_trained_model(model_path2, env2)
 
+    summary_text1 = generate_model_summary(model1, env1, trained_args1.nn)
+    summary_text2 = generate_model_summary(model2, env2, trained_args2.nn)
+
     params1 = get_num_parameters(model1)
     params2 = get_num_parameters(model2)
 
@@ -435,6 +528,9 @@ def main() -> None:
             label2,
             params2,
             button_names,
+            summary_text1,
+            summary_text2,
+            args.summary_duration,
             initial_frame1,
             initial_frame2,
             args.video_output,
