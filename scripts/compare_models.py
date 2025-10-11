@@ -277,6 +277,43 @@ def load_reward_series(log_dir: str, tag: str = "rollout/ep_rew_mean") -> List[T
         return []
 
 
+def extract_final_reward(reward_series: List[Tuple[float, float]]) -> float:
+    for _, value in reversed(reward_series):
+        if value is None:
+            continue
+        if isinstance(value, (int, float)) and not math.isnan(float(value)):
+            return float(value)
+    return 0.0
+
+
+def total_surface_height(surfaces: List["pygame.Surface"], line_gap: int) -> int:
+    if not surfaces:
+        return 0
+    total = 0
+    for idx, surface in enumerate(surfaces):
+        total += surface.get_height()
+        if idx < len(surfaces) - 1:
+            total += line_gap
+    return total
+
+
+def draw_centered_stack(target: "pygame.Surface", rect: "pygame.Rect",
+                        surfaces: List["pygame.Surface"], line_gap: int, padding: int) -> None:
+    if not surfaces:
+        return
+    content_height = total_surface_height(surfaces, line_gap)
+    available = rect.height - content_height
+    start_y = rect.top + max(padding, available / 2)
+    current_y = start_y
+    for idx, surface in enumerate(surfaces):
+        surface_rect = surface.get_rect()
+        surface_rect.midtop = (rect.centerx, int(round(current_y)))
+        target.blit(surface, surface_rect)
+        current_y += surface.get_height()
+        if idx < len(surfaces) - 1:
+            current_y += line_gap
+
+
 def create_reward_curve_surface(
     window_size: Tuple[int, int],
     rewards_a: List[Tuple[float, float]],
@@ -465,7 +502,9 @@ def load_trained_model(model_path: str, env) -> PPO:
 
 
 def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str, params1: int,
+                    algorithm1: str, training_reward1: float,
                     model2: PPO, env2, obs2: np.ndarray, label2: str, params2: int,
+                    algorithm2: str, training_reward2: float,
                     button_names: List[str],
                     reward_series1: List[Tuple[float, float]],
                     reward_series2: List[Tuple[float, float]],
@@ -500,7 +539,6 @@ def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str, params1: i
     screen = pygame.display.set_mode((window_width, window_height))
     pygame.display.set_caption("Model Comparison")
 
-    font_vs = pygame.freetype.SysFont("Arial", 64)
     font_label = pygame.freetype.SysFont("Arial", 36)
     font_detail = pygame.freetype.SysFont("Arial", 28)
     font_timer = pygame.freetype.SysFont("Arial", 24)
@@ -509,6 +547,10 @@ def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str, params1: i
 
     params_text1 = f"Parameters: {params1:,}"
     params_text2 = f"Parameters: {params2:,}"
+    algo_text1 = f"Algorithm: {str(algorithm1).upper()}"
+    algo_text2 = f"Algorithm: {str(algorithm2).upper()}"
+    reward_text1 = f"Final Reward: {training_reward1:.2f}"
+    reward_text2 = f"Final Reward: {training_reward2:.2f}"
 
     def draw_button_info(x_pos: int, start_y: int, names, probs, actions) -> int:
         buttons = list(zip(range(len(names)), names, probs, actions))
@@ -787,78 +829,51 @@ def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str, params1: i
         next_left_y = draw_button_info(left_x, buttons_start_y, button_names, display_probs1, display_actions1)
         next_right_y = draw_button_info(right_x, buttons_start_y, button_names, display_probs2, display_actions2)
 
-        info_box_top = max(next_left_y, next_right_y) + 12
-        info_box_padding = 10
-        line_gap_large = 6
-        line_gap_small = 4
+        info_area_top = max(next_left_y, next_right_y) + 12
+        info_area_bottom = window_height - footer_height - margin
+        box_padding = 12
+        box_gap = 14
+        line_gap = 6
 
         label_surface_left, _ = font_label.render(label1, fgcolor=(200, 200, 200))
         label_surface_right, _ = font_label.render(label2, fgcolor=(200, 200, 200))
         params_surface_left, _ = font_detail.render(params_text1, fgcolor=(180, 220, 255))
         params_surface_right, _ = font_detail.render(params_text2, fgcolor=(180, 220, 255))
-        reward_surface_left, _ = font_detail.render(f"Total Reward: {total_reward1:.2f}", fgcolor=(220, 220, 120))
-        reward_surface_right, _ = font_detail.render(f"Total Reward: {total_reward2:.2f}", fgcolor=(220, 220, 120))
+        algo_surface_left, _ = font_detail.render(algo_text1, fgcolor=(200, 200, 200))
+        algo_surface_right, _ = font_detail.render(algo_text2, fgcolor=(200, 200, 200))
+        reward_surface_left, _ = font_detail.render(reward_text1, fgcolor=(220, 220, 120))
+        reward_surface_right, _ = font_detail.render(reward_text2, fgcolor=(220, 220, 120))
 
-        content_height_left = (
-            label_surface_left.get_height()
-            + line_gap_large
-            + params_surface_left.get_height()
-            + line_gap_small
-            + reward_surface_left.get_height()
-        )
-        content_height_right = (
-            label_surface_right.get_height()
-            + line_gap_large
-            + params_surface_right.get_height()
-            + line_gap_small
-            + reward_surface_right.get_height()
-        )
-        content_height = max(content_height_left, content_height_right)
-        info_box_height = info_box_padding * 2 + content_height
+        heights_to_match = [
+            total_surface_height([label_surface_left, params_surface_left], line_gap),
+            total_surface_height([label_surface_right, params_surface_right], line_gap),
+            total_surface_height([algo_surface_left, reward_surface_left], line_gap),
+            total_surface_height([algo_surface_right, reward_surface_right], line_gap),
+        ]
+        max_content_height = max(heights_to_match) if heights_to_match else 0
+        box_height = int(box_padding * 2 + max_content_height)
 
-        info_rect_left = pygame.Rect(left_x, info_box_top, target_width, int(info_box_height))
-        info_rect_right = pygame.Rect(right_x, info_box_top, target_width, int(info_box_height))
+        available_height = info_area_bottom - info_area_top - box_height
+        info_top = info_area_top + max(0, available_height / 2)
+
+        box_width = max(60, (target_width - box_gap) // 2)
+        secondary_width = target_width - box_gap - box_width
+
+        model_rect_left = pygame.Rect(left_x, int(info_top), box_width, box_height)
+        algo_rect_left = pygame.Rect(left_x + box_width + box_gap, int(info_top), secondary_width, box_height)
+        model_rect_right = pygame.Rect(right_x, int(info_top), box_width, box_height)
+        algo_rect_right = pygame.Rect(right_x + box_width + box_gap, int(info_top), secondary_width, box_height)
 
         info_bg_color = (25, 25, 25)
         info_border_color = (100, 100, 100)
-        pygame.draw.rect(screen, info_bg_color, info_rect_left, border_radius=8)
-        pygame.draw.rect(screen, info_bg_color, info_rect_right, border_radius=8)
-        pygame.draw.rect(screen, info_border_color, info_rect_left, width=2, border_radius=8)
-        pygame.draw.rect(screen, info_border_color, info_rect_right, width=2, border_radius=8)
+        for rect in (model_rect_left, algo_rect_left, model_rect_right, algo_rect_right):
+            pygame.draw.rect(screen, info_bg_color, rect, border_radius=8)
+            pygame.draw.rect(screen, info_border_color, rect, width=2, border_radius=8)
 
-        text_y_left = info_rect_left.top + info_box_padding
-        label_rect_left = label_surface_left.get_rect()
-        label_rect_left.midtop = (info_rect_left.centerx, text_y_left)
-        screen.blit(label_surface_left, label_rect_left)
-        text_y_left += label_surface_left.get_height() + line_gap_large
-
-        params_rect_left = params_surface_left.get_rect()
-        params_rect_left.midtop = (info_rect_left.centerx, text_y_left)
-        screen.blit(params_surface_left, params_rect_left)
-        text_y_left += params_surface_left.get_height() + line_gap_small
-
-        reward_rect_left = reward_surface_left.get_rect()
-        reward_rect_left.midtop = (info_rect_left.centerx, text_y_left)
-        screen.blit(reward_surface_left, reward_rect_left)
-
-        text_y_right = info_rect_right.top + info_box_padding
-        label_rect_right = label_surface_right.get_rect()
-        label_rect_right.midtop = (info_rect_right.centerx, text_y_right)
-        screen.blit(label_surface_right, label_rect_right)
-        text_y_right += label_surface_right.get_height() + line_gap_large
-
-        params_rect_right = params_surface_right.get_rect()
-        params_rect_right.midtop = (info_rect_right.centerx, text_y_right)
-        screen.blit(params_surface_right, params_rect_right)
-        text_y_right += params_surface_right.get_height() + line_gap_small
-
-        reward_rect_right = reward_surface_right.get_rect()
-        reward_rect_right.midtop = (info_rect_right.centerx, text_y_right)
-        screen.blit(reward_surface_right, reward_rect_right)
-
-        vs_surface, vs_rect = font_vs.render("VS", fgcolor=(255, 255, 255))
-        vs_rect.center = (window_width // 2, info_rect_left.centery)
-        screen.blit(vs_surface, vs_rect)
+        draw_centered_stack(screen, model_rect_left, [label_surface_left, params_surface_left], line_gap, box_padding)
+        draw_centered_stack(screen, algo_rect_left, [algo_surface_left, reward_surface_left], line_gap, box_padding)
+        draw_centered_stack(screen, model_rect_right, [label_surface_right, params_surface_right], line_gap, box_padding)
+        draw_centered_stack(screen, algo_rect_right, [algo_surface_right, reward_surface_right], line_gap, box_padding)
 
         wall_elapsed = time.time() - gameplay_start_time
         frame_elapsed = frame_idx / fps
@@ -933,6 +948,10 @@ def main() -> None:
 
     params1 = get_num_parameters(model1)
     params2 = get_num_parameters(model2)
+    algo_display1 = getattr(trained_args1, "alg", args.algorithm)
+    algo_display2 = getattr(trained_args2, "alg", args.algorithm)
+    final_training_reward1 = extract_final_reward(reward_series1)
+    final_training_reward2 = extract_final_reward(reward_series2)
 
     print(f"--- Recording video to {args.video_output} ---")
     try:
@@ -942,11 +961,15 @@ def main() -> None:
             obs1,
             label1,
             params1,
+            algo_display1,
+            final_training_reward1,
             model2,
             env2,
             obs2,
             label2,
             params2,
+            algo_display2,
+            final_training_reward2,
             button_names,
             reward_series1,
             reward_series2,
