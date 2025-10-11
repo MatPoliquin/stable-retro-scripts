@@ -273,6 +273,8 @@ def create_reward_curve_surface(
     window_size: Tuple[int, int],
     rewards_a: List[Tuple[float, float]],
     rewards_b: List[Tuple[float, float]],
+    label_a: str,
+    label_b: str,
 ) -> Optional["pygame.Surface"]:
     if not rewards_a and not rewards_b:
         return None
@@ -288,15 +290,8 @@ def create_reward_curve_surface(
     title = title_font.render("Training Reward Curve", True, (255, 255, 255))
     surface.blit(title, title.get_rect(center=(plot_width // 2, 60)))
 
-    subtitle_lines = [
-        "Mean episode reward per training step",
-        "",
-    ]
-    for idx, line in enumerate(subtitle_lines):
-        if not line:
-            continue
-        text_surface = subtitle_font.render(line, True, (180, 180, 180))
-        surface.blit(text_surface, text_surface.get_rect(center=(plot_width // 2, 120 + idx * 32)))
+    subtitle = subtitle_font.render("Mean episode reward per training step", True, (180, 180, 180))
+    surface.blit(subtitle, subtitle.get_rect(center=(plot_width // 2, 120)))
 
     margin = 120
     graph_rect = pygame.Rect(
@@ -308,6 +303,14 @@ def create_reward_curve_surface(
     pygame.draw.rect(surface, (60, 60, 60), graph_rect, width=2)
 
     plotted_any = False
+
+    all_rewards = [pt[1] for pt in rewards_a] + [pt[1] for pt in rewards_b]
+    all_steps = [pt[0] for pt in rewards_a] + [pt[0] for pt in rewards_b]
+
+    reward_min = min(all_rewards) if all_rewards else 0.0
+    reward_max = max(all_rewards) if all_rewards else 1.0
+    step_min = min(all_steps) if all_steps else 0.0
+    step_max = max(all_steps) if all_steps else 1.0
 
     def draw_series(points: List[Tuple[float, float]], color: Tuple[int, int, int]) -> None:
         nonlocal plotted_any
@@ -359,9 +362,69 @@ def create_reward_curve_surface(
 
     x_offset = 0
     if rewards_a:
-        x_offset = draw_legend((255, 99, 71), "Model A", x_offset)
+        x_offset = draw_legend((255, 99, 71), label_a, x_offset)
     if rewards_b:
-        draw_legend((30, 144, 255), "Model B", x_offset)
+        draw_legend((30, 144, 255), label_b, x_offset)
+
+    axis_font = pygame.font.SysFont(DEFAULT_FONT, 28)
+    axis_label_font = pygame.font.SysFont(DEFAULT_FONT, 32)
+
+    has_step_range = bool(all_steps) and step_max > step_min
+    has_reward_range = bool(all_rewards) and reward_max > reward_min
+
+    # X-axis ticks
+    if has_step_range:
+        num_ticks = 5
+        step_interval = (step_max - step_min) / (num_ticks - 1)
+        for idx in range(num_ticks):
+            step_value = step_min + idx * step_interval
+            x = graph_rect.left + (step_value - step_min) / (step_max - step_min) * graph_rect.width
+            pygame.draw.line(surface, (90, 90, 90), (x, graph_rect.bottom), (x, graph_rect.bottom + 10), 2)
+            tick_text = axis_font.render(f"{int(step_value):,}", True, (200, 200, 200))
+            text_rect = tick_text.get_rect()
+            text_rect.center = (x, graph_rect.bottom + 30)
+            surface.blit(tick_text, text_rect)
+    elif all_steps:
+        x = graph_rect.centerx
+        pygame.draw.line(surface, (90, 90, 90), (x, graph_rect.bottom), (x, graph_rect.bottom + 10), 2)
+        tick_text = axis_font.render(f"{int(step_min):,}", True, (200, 200, 200))
+        text_rect = tick_text.get_rect()
+        text_rect.center = (x, graph_rect.bottom + 30)
+        surface.blit(tick_text, text_rect)
+
+    # Y-axis ticks
+    if has_reward_range:
+        num_ticks = 5
+        reward_interval = (reward_max - reward_min) / (num_ticks - 1)
+        for idx in range(num_ticks):
+            reward_value = reward_min + idx * reward_interval
+            y = graph_rect.bottom - (reward_value - reward_min) / (reward_max - reward_min) * graph_rect.height
+            pygame.draw.line(surface, (90, 90, 90), (graph_rect.left - 10, y), (graph_rect.left, y), 2)
+            tick_text = axis_font.render(f"{reward_value:.1f}", True, (200, 200, 200))
+            text_rect = tick_text.get_rect()
+            text_rect.right = graph_rect.left - 15
+            text_rect.centery = y
+            surface.blit(tick_text, text_rect)
+    elif all_rewards:
+        y = graph_rect.centery
+        pygame.draw.line(surface, (90, 90, 90), (graph_rect.left - 10, y), (graph_rect.left, y), 2)
+        tick_text = axis_font.render(f"{reward_min:.1f}", True, (200, 200, 200))
+        text_rect = tick_text.get_rect()
+        text_rect.right = graph_rect.left - 15
+        text_rect.centery = y
+        surface.blit(tick_text, text_rect)
+
+    # Axis labels
+    x_axis_label = axis_label_font.render("Timesteps", True, (220, 220, 220))
+    x_rect = x_axis_label.get_rect()
+    x_rect.center = (graph_rect.centerx, graph_rect.bottom + 60)
+    surface.blit(x_axis_label, x_rect)
+
+    y_axis_label = axis_label_font.render("Reward", True, (220, 220, 220))
+    y_axis_label = pygame.transform.rotate(y_axis_label, 90)
+    y_rect = y_axis_label.get_rect()
+    y_rect.center = (graph_rect.left - 70, graph_rect.centery)
+    surface.blit(y_axis_label, y_rect)
 
     if not plotted_any:
         info_font = pygame.font.SysFont(DEFAULT_FONT, 32)
@@ -482,7 +545,7 @@ def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str, params1: i
     hyperparams_lines2 = prepare_summary_lines(hyperparams_text2)
 
     reward_curve_surface = create_reward_curve_surface(
-        (window_width, window_height), reward_series1, reward_series2
+        (window_width, window_height), reward_series1, reward_series2, label1, label2
     )
     reward_curve_frames = max(0, int(reward_curve_duration * fps))
 
