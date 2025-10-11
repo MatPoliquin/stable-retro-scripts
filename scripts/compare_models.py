@@ -38,6 +38,14 @@ DEFAULT_WINDOW_HEIGHT = 1080
 DEFAULT_MARGIN = 20
 DEFAULT_FOOTER_HEIGHT = 120
 DEFAULT_FONT = "Arial"
+BUTTON_LABEL_OVERRIDES = {
+    "UP": "↑",
+    "DOWN": "↓",
+    "LEFT": "←",
+    "RIGHT": "→",
+    "START": "S",
+    "MODE": "M",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -497,20 +505,51 @@ def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str, params1: i
     font_detail = pygame.freetype.SysFont("Arial", 28)
     font_timer = pygame.freetype.SysFont("Arial", 24)
     font_mono = pygame.freetype.SysFont("Courier New", 14)
+    font_prob = pygame.freetype.SysFont("Courier New", 20)
 
     params_text1 = f"Parameters: {params1:,}"
     params_text2 = f"Parameters: {params2:,}"
 
     def draw_button_info(x_pos: int, start_y: int, names, probs, actions) -> int:
-        y_pos = start_y
-        for name, prob, action in zip(names, probs, actions):
+        buttons = list(zip(range(len(names)), names, probs, actions))
+        if not buttons:
+            return start_y
+
+        cell_width = 76
+        cell_height = 40
+        available_width = window_width - 2 * margin
+        buttons_per_row = max(1, min(len(buttons), max(1, available_width // cell_width)))
+
+        for idx, name, prob, action in buttons:
+            label_raw = name if isinstance(name, str) and name else f"BTN{idx}"
+            display_label = BUTTON_LABEL_OVERRIDES.get(str(label_raw).upper(), str(label_raw))
             is_pressed = action >= 0.5
-            status = "ON " if is_pressed else "off"
-            color = (255, 200, 120) if is_pressed else (190, 190, 190)
-            text = f"{name:<8} {prob:>5.2f} {status}"
-            font_detail.render_to(screen, (x_pos, y_pos), text, color)
-            y_pos += 24
-        return y_pos
+            col = idx % buttons_per_row
+            row = idx // buttons_per_row
+            base_x = x_pos + col * cell_width
+            base_y = start_y + row * cell_height
+
+            rect = pygame.Rect(base_x + 3, base_y + 3, cell_width - 9, cell_height - 9)
+            bg_color = (60, 60, 60)
+            border_color = (255, 200, 120) if is_pressed else (110, 110, 110)
+            pygame.draw.rect(screen, bg_color, rect)
+            pygame.draw.rect(screen, border_color, rect, width=3 if is_pressed else 1)
+
+            label_color = (255, 220, 140) if is_pressed else (210, 210, 210)
+            label_surface, _ = font_detail.render(display_label, fgcolor=label_color)
+            label_surface.set_alpha(170 if is_pressed else 110)
+            label_rect = label_surface.get_rect()
+            label_rect.midtop = (rect.centerx, rect.top + 2)
+            screen.blit(label_surface, label_rect)
+
+            prob_text = f"{prob:>5.2f}"
+            prob_surface, _ = font_prob.render(prob_text, fgcolor=(230, 230, 230))
+            prob_rect = prob_surface.get_rect()
+            prob_rect.center = rect.center
+            screen.blit(prob_surface, prob_rect)
+
+        rows_used = (len(buttons) + buttons_per_row - 1) // buttons_per_row
+        return start_y + rows_used * cell_height
 
     os.makedirs(os.path.dirname(video_path) or ".", exist_ok=True)
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
@@ -738,24 +777,88 @@ def play_and_record(model1: PPO, env1, obs1: np.ndarray, label1: str, params1: i
         screen.blit(surf1, (left_x, margin))
         screen.blit(surf2, (right_x, margin))
 
-        vs_pos = (window_width // 2 - 40, margin + target_height // 2 - 40)
-        font_vs.render_to(screen, vs_pos, "VS", (255, 255, 255))
+        frame_color = (90, 90, 90)
+        frame_rect_left = pygame.Rect(left_x - 4, margin - 4, target_width + 8, target_height + 8)
+        frame_rect_right = pygame.Rect(right_x - 4, margin - 4, target_width + 8, target_height + 8)
+        pygame.draw.rect(screen, frame_color, frame_rect_left, width=2, border_radius=6)
+        pygame.draw.rect(screen, frame_color, frame_rect_right, width=2, border_radius=6)
 
-        label_y = margin + target_height + 20
-        font_label.render_to(screen, (left_x, label_y), label1, (200, 200, 200))
-        font_label.render_to(screen, (right_x, label_y), label2, (200, 200, 200))
+        buttons_start_y = margin + target_height + 16
+        next_left_y = draw_button_info(left_x, buttons_start_y, button_names, display_probs1, display_actions1)
+        next_right_y = draw_button_info(right_x, buttons_start_y, button_names, display_probs2, display_actions2)
 
-        params_y = label_y + 35
-        font_detail.render_to(screen, (left_x, params_y), params_text1, (180, 220, 255))
-        font_detail.render_to(screen, (right_x, params_y), params_text2, (180, 220, 255))
+        info_box_top = max(next_left_y, next_right_y) + 12
+        info_box_padding = 10
+        line_gap_large = 6
+        line_gap_small = 4
 
-        reward_y = params_y + 30
-        font_detail.render_to(screen, (left_x, reward_y), f"Total Reward: {total_reward1:.2f}", (220, 220, 120))
-        font_detail.render_to(screen, (right_x, reward_y), f"Total Reward: {total_reward2:.2f}", (220, 220, 120))
+        label_surface_left, _ = font_label.render(label1, fgcolor=(200, 200, 200))
+        label_surface_right, _ = font_label.render(label2, fgcolor=(200, 200, 200))
+        params_surface_left, _ = font_detail.render(params_text1, fgcolor=(180, 220, 255))
+        params_surface_right, _ = font_detail.render(params_text2, fgcolor=(180, 220, 255))
+        reward_surface_left, _ = font_detail.render(f"Total Reward: {total_reward1:.2f}", fgcolor=(220, 220, 120))
+        reward_surface_right, _ = font_detail.render(f"Total Reward: {total_reward2:.2f}", fgcolor=(220, 220, 120))
 
-        buttons_start_y = reward_y + 30
-        draw_button_info(left_x, buttons_start_y, button_names, display_probs1, display_actions1)
-        draw_button_info(right_x, buttons_start_y, button_names, display_probs2, display_actions2)
+        content_height_left = (
+            label_surface_left.get_height()
+            + line_gap_large
+            + params_surface_left.get_height()
+            + line_gap_small
+            + reward_surface_left.get_height()
+        )
+        content_height_right = (
+            label_surface_right.get_height()
+            + line_gap_large
+            + params_surface_right.get_height()
+            + line_gap_small
+            + reward_surface_right.get_height()
+        )
+        content_height = max(content_height_left, content_height_right)
+        info_box_height = info_box_padding * 2 + content_height
+
+        info_rect_left = pygame.Rect(left_x, info_box_top, target_width, int(info_box_height))
+        info_rect_right = pygame.Rect(right_x, info_box_top, target_width, int(info_box_height))
+
+        info_bg_color = (25, 25, 25)
+        info_border_color = (100, 100, 100)
+        pygame.draw.rect(screen, info_bg_color, info_rect_left, border_radius=8)
+        pygame.draw.rect(screen, info_bg_color, info_rect_right, border_radius=8)
+        pygame.draw.rect(screen, info_border_color, info_rect_left, width=2, border_radius=8)
+        pygame.draw.rect(screen, info_border_color, info_rect_right, width=2, border_radius=8)
+
+        text_y_left = info_rect_left.top + info_box_padding
+        label_rect_left = label_surface_left.get_rect()
+        label_rect_left.midtop = (info_rect_left.centerx, text_y_left)
+        screen.blit(label_surface_left, label_rect_left)
+        text_y_left += label_surface_left.get_height() + line_gap_large
+
+        params_rect_left = params_surface_left.get_rect()
+        params_rect_left.midtop = (info_rect_left.centerx, text_y_left)
+        screen.blit(params_surface_left, params_rect_left)
+        text_y_left += params_surface_left.get_height() + line_gap_small
+
+        reward_rect_left = reward_surface_left.get_rect()
+        reward_rect_left.midtop = (info_rect_left.centerx, text_y_left)
+        screen.blit(reward_surface_left, reward_rect_left)
+
+        text_y_right = info_rect_right.top + info_box_padding
+        label_rect_right = label_surface_right.get_rect()
+        label_rect_right.midtop = (info_rect_right.centerx, text_y_right)
+        screen.blit(label_surface_right, label_rect_right)
+        text_y_right += label_surface_right.get_height() + line_gap_large
+
+        params_rect_right = params_surface_right.get_rect()
+        params_rect_right.midtop = (info_rect_right.centerx, text_y_right)
+        screen.blit(params_surface_right, params_rect_right)
+        text_y_right += params_surface_right.get_height() + line_gap_small
+
+        reward_rect_right = reward_surface_right.get_rect()
+        reward_rect_right.midtop = (info_rect_right.centerx, text_y_right)
+        screen.blit(reward_surface_right, reward_rect_right)
+
+        vs_surface, vs_rect = font_vs.render("VS", fgcolor=(255, 255, 255))
+        vs_rect.center = (window_width // 2, info_rect_left.centery)
+        screen.blit(vs_surface, vs_rect)
 
         wall_elapsed = time.time() - gameplay_start_time
         frame_elapsed = frame_idx / fps
