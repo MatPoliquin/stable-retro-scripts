@@ -763,7 +763,7 @@ _reward_function_map = {
     "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "KeepPuck": (init_attackzone, rf_keeppuck, isdone_keeppuck, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
-    "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model, set_model_input, input_overide_empty),
+    "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "Passing": (init_attackzone, rf_passing, isdone_passing, init_model_rel_dist, set_model_input_rel_dist, input_overide_no_shoot),
     "General": (init_general, rf_general, isdone_general, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "SelfPlay": (init_selfplay, rf_selfplay, isdone_selfplay, init_model_invariant, set_model_input_invariant, input_overide_empty),

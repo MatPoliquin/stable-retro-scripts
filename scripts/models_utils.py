@@ -5,7 +5,7 @@ import json
 import torch as th
 from torchsummary import summary
 from models import CustomMlpPolicy, CustomPolicy, ViTPolicy, DartPolicy, AttentionMLPPolicy,\
-      EntityAttentionPolicy, CustomCNN, CustomImpalaFeatureExtractor, CNNTransformer, HockeyMultiHeadPolicy
+    EntityAttentionPolicy, CustomCNN, CustomImpalaFeatureExtractor, CNNTransformer, HockeyMultiHeadPolicy
 from es import EvolutionStrategies
 
 def get_num_parameters(model):
@@ -37,9 +37,9 @@ def print_model_summary(args, env, player_model, model):
         return
 
     # Handle policies
-    if args.nn in ('MlpPolicy', 'EntityAttentionPolicy', 'CustomMlpPolicy'):
+    if args.nn in ('MlpPolicy', 'AttentionMLPPolicy', 'EntityAttentionPolicy', 'CustomMlpPolicy'):
         obs_shape = obs_space.shape
-        pytorch_obs_shape = (1, obs_shape[0])
+        pytorch_obs_shape = (obs_shape[0],)
     elif args.nn in ('CnnPolicy', 'ImpalaCnnPolicy'):
         # SB3 model.observation_space is already channels-first and includes frame stack
         obs_shape = obs_space.shape  # (C, H, W)
@@ -100,7 +100,17 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
         )
     elif args.nn == 'AttentionMLPPolicy':
         nn_type = AttentionMLPPolicy
-        policy_kwargs = {}
+        attention_kwargs = hyperparams.get('attention_mlp', {}) if hyperparams else {}
+        if not isinstance(attention_kwargs, dict):
+            raise TypeError("hyperparams['attention_mlp'] must be a dict when provided")
+        features_extractor_kwargs = dict(attention_kwargs)
+        features_extractor_kwargs.setdefault('features_dim', hyperparams.get('features_dim', 128))
+
+        policy_kwargs = dict(
+            activation_fn=th.nn.ReLU,
+            net_arch=hyperparams.get('net_arch', dict(pi=[size, size], vf=[size, size])),
+            features_extractor_kwargs=features_extractor_kwargs
+        )
     elif args.nn == 'EntityAttentionPolicy':
         nn_type = EntityAttentionPolicy
         policy_kwargs = {}

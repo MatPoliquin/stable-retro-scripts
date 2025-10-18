@@ -248,9 +248,10 @@ class AttentionMLP(BaseFeaturesExtractor):
     Input: Structured data (e.g., player positions, velocities).
     Output: Feature vector for RL policy/value heads.
     """
-    def __init__(self, observation_space, features_dim=64):
+    def __init__(self, observation_space, features_dim=64, hidden_dim=128):
         super().__init__(observation_space, features_dim)
         self.num_features = observation_space.shape[0]
+        self.hidden_dim = hidden_dim
 
         # Self-attention layer
         self.query = nn.Linear(self.num_features, self.num_features)
@@ -258,13 +259,15 @@ class AttentionMLP(BaseFeaturesExtractor):
 
         # MLP layers
         self.mlp = nn.Sequential(
-            nn.Linear(self.num_features, 128),
+            nn.Linear(self.num_features, self.hidden_dim),
             nn.ReLU(),
-            nn.Linear(128, features_dim),
+            nn.Linear(self.hidden_dim, features_dim),
             nn.ReLU()
         )
 
     def forward(self, x):
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
         # Self-attention
         q = self.query(x)  # [batch_size, num_features]
         k = self.key(x)    # [batch_size, num_features]
@@ -286,11 +289,17 @@ class AttentionMLP(BaseFeaturesExtractor):
 
 class AttentionMLPPolicy(ActorCriticPolicy):
     def __init__(self, *args, **kwargs):
+        features_extractor_kwargs = kwargs.pop("features_extractor_kwargs", {})
+        if not isinstance(features_extractor_kwargs, dict):
+            raise TypeError("features_extractor_kwargs must be a dict when provided.")
+        features_extractor_kwargs = dict(features_extractor_kwargs)
+        features_extractor_kwargs.setdefault("features_dim", 128)
+
         super().__init__(
             *args,
             **kwargs,
             features_extractor_class=AttentionMLP,
-            features_extractor_kwargs={"features_dim": 128},
+            features_extractor_kwargs=features_extractor_kwargs,
         )
 # ==========================================================================================
 class DartFeatureExtractor(BaseFeaturesExtractor):
