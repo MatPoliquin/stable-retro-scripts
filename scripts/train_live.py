@@ -33,6 +33,7 @@ from common import com_print, create_output_dir, get_model_file_name, init_logge
 from env_utils import get_button_names, init_env
 from models_utils import get_model_probabilities, init_model
 import game_wrappers_mgr as games
+from game_wrappers.nhl94_gamestate import NHL94GameState
 
 
 SIM_STEPS_PER_SECOND = 60
@@ -202,6 +203,7 @@ class LiveTrainingDisplay(threading.Thread):
         self.button_names: List[str] = []
         self.button_probs: Optional[np.ndarray] = None
         self.button_actions: Optional[np.ndarray] = None
+        self.game_state = NHL94GameState(args.num_players)
 
     def stop(self) -> None:
         self.running = False
@@ -560,7 +562,9 @@ class LiveTrainingDisplay(threading.Thread):
                 self.button_probs = probs
                 self.button_actions = acts
                 try:
-                    self.obs, _reward, done, _info = self.env.step(action)
+                    self.obs, _reward, done, info = self.env.step(action)
+                    self.game_state.BeginFrame(info[0], [0] * 6)
+                    self.game_state.EndFrame()
                     if np.any(done):
                         self.obs = self.env.reset()
                 except Exception as exc:  # pylint: disable=broad-except
@@ -583,7 +587,7 @@ class LiveTrainingDisplay(threading.Thread):
             button_layout = self._compute_button_layout(game_width)
             buttons_height = button_layout.total_height
             game_height = max(1, current_height - self.info_height - 3 * self.margin - buttons_height)
-            graph_height = max(1, game_height)
+            graph_height = max(1, game_height * 0.5)
 
             game_rect = pygame.Rect(self.margin, self.info_height + self.margin, game_width, game_height)
             graph_rect = pygame.Rect(
@@ -624,6 +628,7 @@ class LiveTrainingDisplay(threading.Thread):
             self._draw_button_row(self.screen, buttons_rect, button_layout)
 
             self._draw_reward_graph(self.screen, graph_rect)
+            self._draw_game_stats(self.screen, graph_rect)
 
             pygame.display.flip()
             self.clock.tick(self.fps)
@@ -700,6 +705,37 @@ class LiveTrainingDisplay(threading.Thread):
             )
 
             x += current_width + spacing
+
+    def _draw_game_stats(self, surface: pygame.Surface, graph_rect: pygame.Rect) -> None:
+        if self.body_font is None or self.subheader_font is None:
+            return
+
+        stats_rect = pygame.Rect(
+            graph_rect.x,
+            graph_rect.bottom + self.margin,
+            graph_rect.width,
+            120,
+        )
+        surface.fill(self.PANEL_BG_COLOR, stats_rect)
+        pygame.draw.rect(surface, self.PANEL_BORDER_COLOR, stats_rect, width=2, border_radius=10)
+
+        t1 = self.game_state.team1.stats
+        t2 = self.game_state.team2.stats
+
+        self.subheader_font.render_to(surface, (stats_rect.x + 14, stats_rect.y + 10), "Team 1", self.TITLE_COLOR)
+        self.subheader_font.render_to(surface, (stats_rect.x + stats_rect.width // 2 + 14, stats_rect.y + 10), "Team 2", self.TITLE_COLOR)
+
+        rows = [
+            ("Score", t1.score, t2.score),
+            ("Shots", t1.shots, t2.shots),
+            ("Passes", t1.passing, t2.passing),
+            ("One Timers", t1.onetimer, t2.onetimer),
+        ]
+
+        for idx, (label, v1, v2) in enumerate(rows):
+            line_y = stats_rect.y + 40 + idx * 20
+            self.body_font.render_to(surface, (stats_rect.x + 14, line_y), f"{label}: {v1}", self.TEXT_COLOR)
+            self.body_font.render_to(surface, (stats_rect.x + stats_rect.width // 2 + 14, line_y), f"{label}: {v2}", self.TEXT_COLOR)
 
 
 class LiveTrainer:
