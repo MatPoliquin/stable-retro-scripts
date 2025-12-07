@@ -27,17 +27,17 @@ class GameWrapperManager(object):
         self.ai_sys = AISys
 
         # overide with game specific wrappers
-        if args.env in ('NHL941on1-Genesis', 'NHL942on2-Genesis', 'NHL94-Genesis'):
+        if args.env in ('NHL941on1-Genesis-v0', 'NHL942on2-Genesis-v0', 'NHL94-Genesis-v0'):
             self.obs_env = NHL94Observation2PEnv
             self.pvp_display_env = NHL94PvPGameDisplayEnv
             self.sp_display_env = NHL94DebugDisplay
             self.ai_sys = NHL94AISystem
-        elif args.env == 'Pong-Atari2600':
+        elif args.env == 'Pong-Atari2600-v0':
             if args.nn == 'EntityAttentionPolicy':
                 self.obs_env = PongTemporalObservationEnv
             else:
                 self.obs_env = PongObservationEnv
-        elif args.env == 'MortalKombatII-Genesis':
+        elif args.env == 'MortalKombatII-Genesis-v0':
             self.obs_env = FighterObservationEnv
 
 wrappers = GameWrapperManager()

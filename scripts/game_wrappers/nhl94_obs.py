@@ -26,11 +26,11 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.init_function, self.reward_function, self.done_function, self.init_model, self.set_model_input, self.input_overide = register_functions(self.rf_name)
 
         self.num_players_per_team = 0
-        if args.env == 'NHL941on1-Genesis':
+        if args.env == 'NHL941on1-Genesis-v0':
             self.num_players_per_team = 1
-        elif args.env == 'NHL942on2-Genesis':
+        elif args.env == 'NHL942on2-Genesis-v0':
             self.num_players_per_team = 2
-        elif args.env == 'NHL94-Genesis':
+        elif args.env == 'NHL94-Genesis-v0':
             self.num_players_per_team = 5
 
         self.NUM_PARAMS = self.init_model(self.num_players_per_team)

@@ -53,7 +53,7 @@ def input_overide_empty(ac):
     return
 
 def init_attackzone(env, env_name):
-    if env_name == 'NHL941on1-Genesis':
+    if env_name == 'NHL941on1-Genesis-v0':
         x, y = RandomPosAttackZone()
         env.set_value("p1_x", x)
         env.set_value("p1_y", y)
@@ -61,7 +61,7 @@ def init_attackzone(env, env_name):
         env.set_value("p2_x", x)
         env.set_value("p2_y", y)
 
-    elif env_name == 'NHL942on2-Genesis':
+    elif env_name == 'NHL942on2-Genesis-v0':
         x, y = RandomPosAttackZone()
         env.set_value("p1_x", x)
         env.set_value("p1_y", y)
@@ -74,7 +74,7 @@ def init_attackzone(env, env_name):
         x, y = RandomPosAttackZone()
         env.set_value("p1_2_x", x)
         env.set_value("p1_2_y", y)
-    elif env_name == 'NHL94-Genesis':
+    elif env_name == 'NHL94-Genesis-v0':
         # Team 1 players
         for i in range(5):
             x, y = RandomPosAttackZone()
@@ -104,14 +104,14 @@ def init_attackzone(env, env_name):
 # General - One model for both offense and defense
 # =====================================================================
 def init_general(env, env_name):
-    if env_name == 'NHL941on1-Genesis':
+    if env_name == 'NHL941on1-Genesis-v0':
         x, y = RandomPos()
         env.set_value("p1_x", x)
         env.set_value("p1_y", y)
         x, y = RandomPos()
         env.set_value("p2_x", x)
         env.set_value("p2_y", y)
-    elif env_name == 'NHL942on2-Genesis':
+    elif env_name == 'NHL942on2-Genesis-v0':
         x, y = RandomPos()
         env.set_value("p1_x", x)
         env.set_value("p1_y", y)
@@ -509,7 +509,7 @@ def rf_getpuck(state):
 # DefenseZone
 # =====================================================================
 def init_defensezone(env, env_name):
-    if env_name == 'NHL941on1-Genesis':
+    if env_name == 'NHL941on1-Genesis-v0':
         x, y = RandomPosDefenseZone()
         env.set_value("p1_x", x)
         env.set_value("p1_y", y)
@@ -517,7 +517,7 @@ def init_defensezone(env, env_name):
         env.set_value("p2_x", x)
         env.set_value("p2_y", y)
 
-    elif env_name == 'NHL942on2-Genesis':
+    elif env_name == 'NHL942on2-Genesis-v0':
         x, y = RandomPosDefenseZone()
         env.set_value("p1_x", x)
         env.set_value("p1_y", y)
@@ -530,7 +530,7 @@ def init_defensezone(env, env_name):
         x, y = RandomPosDefenseZone()
         env.set_value("p1_2_x", x)
         env.set_value("p1_2_y", y)
-    elif env_name == 'NHL94-Genesis':
+    elif env_name == 'NHL94-Genesis-v0':
         # Team 1 players
         for i in range(5):
             x, y = RandomPosDefenseZone()

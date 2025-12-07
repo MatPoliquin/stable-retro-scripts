@@ -25,7 +25,7 @@ class NHL94AISystem():
         self.pass_button_pressed = False
         self.shooting = False
 
-        if args.env == 'NHL941on1-Genesis':
+        if args.env == 'NHL941on1-Genesis-v0':
             self.game_state = NHL94GameState(1)
         else:
             self.game_state = NHL94GameState(2)

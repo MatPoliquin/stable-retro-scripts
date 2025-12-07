@@ -71,7 +71,7 @@ class NHL94GameDisplayEnv():
         self.player_actions = [0] * 12
         self.frameRewardList = deque([0.0] * self.MAX_REWARDS, maxlen=self.MAX_REWARDS)
 
-        self.game_state = NHL94GameState(1 if args.env == 'NHL941on1-Genesis' else 2)
+        self.game_state = NHL94GameState(1 if args.env == 'NHL941on1-Genesis-v0' else 2)
 
         self.model_in_use = 0
         self.model_params = [None, None, None]

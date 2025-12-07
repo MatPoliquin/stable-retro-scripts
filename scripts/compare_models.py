@@ -51,8 +51,8 @@ BUTTON_LABEL_OVERRIDES = {
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train two models and record a side-by-side comparison video.")
 
-    parser.add_argument("--env", type=str, default="NHL941on1-Genesis",
-                        help="Retro environment identifier (default: NHL941on1-Genesis)")
+    parser.add_argument("--env", type=str, default="NHL941on1-Genesis-v0",
+                        help="Retro environment identifier (default: NHL941on1-Genesis-v0)")
     parser.add_argument("--state", type=str, default=None,
                         help="Specific environment state to load (default: None)")
     parser.add_argument("--action-type", type=str, default="FILTERED",

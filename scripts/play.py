@@ -23,7 +23,7 @@ def parse_cmdline(argv):
                        help='Game mode: player_vs_model, model_vs_model, model_vs_game, or player_vs_game')
 
     # Common arguments
-    parser.add_argument('--env', type=str, default='NHL941on1-Genesis')
+    parser.add_argument('--env', type=str, default='NHL941on1-Genesis-v0')
     parser.add_argument('--state', type=str, default=None)
     parser.add_argument('--num_players', type=int, default=2)
     parser.add_argument('--num_env', type=int, default=1)
