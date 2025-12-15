@@ -48,7 +48,7 @@ class TestSB3(unittest.TestCase):
     def test_single_player(self):
         with open(os.devnull, 'w') as f:
             original_stdout = sys.stdout
-            import retro
+            import stable_retro as retro
             from stable_baselines3 import PPO
             from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack
             from stable_baselines3.common.monitor import Monitor
@@ -90,7 +90,7 @@ class TestSB3(unittest.TestCase):
 
     def test_two_players(self):
         with open(os.devnull, 'w') as f:
-            import retro
+            import stable_retro as retro
             import numpy as np
             from stable_baselines3 import PPO
             from stable_baselines3.common.vec_env import DummyVecEnv, VecFrameStack

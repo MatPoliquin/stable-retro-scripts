@@ -4,7 +4,7 @@ from stable_baselines3.common.atari_wrappers import WarpFrame, ClipRewardEnv
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecFrameStack
 from stable_baselines3.common.monitor import Monitor
 import gymnasium as gym
-import retro
+import stable_retro as retro
 import game_wrappers_mgr as games
 import cv2
 

@@ -4,7 +4,7 @@ from stable_baselines3.common.atari_wrappers import WarpFrame, ClipRewardEnv
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecFrameStack
 from stable_baselines3.common.monitor import Monitor
 import gymnasium as gym
-import retro
+import stable_retro as retro
 import game_wrappers_mgr as games
 import cv2
 from env_wrappers import StochasticFrameSkip, WarpFrameDict
@@ -15,7 +15,7 @@ def isMLP(name):
 
 
 def make_retro(*, game, state=None, num_players, max_episode_steps=4500, action_type='FILTERED', **kwargs):
-    import retro  # pylint: disable=import-outside-toplevel,reimported
+    import stable_retro as retro  # pylint: disable=import-outside-toplevel,reimported
     if state is None:
         state = retro.State.DEFAULT
 
