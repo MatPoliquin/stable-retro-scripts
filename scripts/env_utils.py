@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from stable_baselines3.common.atari_wrappers import WarpFrame, ClipRewardEnv
-from stable_baselines3.common.vec_env import SubprocVecEnv, VecFrameStack
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecFrameStack
 from stable_baselines3.common.monitor import Monitor
 import gymnasium as gym
 import stable_retro as retro
@@ -38,8 +38,13 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
 
     seed = 0
     start_index = 0
-    start_method=None
+    start_method = os.environ.get('RETRO_VECENV_START_METHOD')
     allow_early_resets=True
+
+    # N64 cores/plugins are commonly unsafe under Linux's default multiprocessing start method (fork).
+    # Prefer spawn unless the user explicitly overrides via RETRO_VECENV_START_METHOD.
+    if start_method is None and hasattr(args, 'env') and args.env and 'N64' in args.env:
+        start_method = 'spawn'
 
     def make_env(rank):
         def _thunk():
@@ -70,7 +75,10 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
             return env
         return _thunk
 
-    env = SubprocVecEnv([make_env(i + start_index) for i in range(num_env)], start_method=start_method)
+    if num_env == 1:
+        env = DummyVecEnv([make_env(start_index)])
+    else:
+        env = SubprocVecEnv([make_env(i + start_index) for i in range(num_env)], start_method=start_method)
 
     env.seed(seed)
 
