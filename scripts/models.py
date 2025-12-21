@@ -13,6 +13,15 @@ import timm
 import json
 import numpy as np
 
+# Avoid noisy NNPACK init warnings on some CPUs (common on some AMD systems)
+# and force PyTorch to use other backends.
+try:
+    import torch.backends.nnpack as nnpack
+
+    nnpack.set_flags(False)
+except Exception:
+    pass
+
 
 class HockeyFeatureExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space, features_dim=512):

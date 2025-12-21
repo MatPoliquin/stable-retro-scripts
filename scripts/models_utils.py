@@ -1,8 +1,18 @@
 import os
-from stable_baselines3 import PPO, A2C
 import gymnasium as gym
 import json
 import torch as th
+
+# Avoid noisy NNPACK init warnings on some CPUs (common on some AMD systems)
+# and force PyTorch to use other backends.
+try:
+    import torch.backends.nnpack as nnpack
+
+    nnpack.set_flags(False)
+except Exception:
+    pass
+
+from stable_baselines3 import PPO, A2C
 from torchsummary import summary
 from models import CustomMlpPolicy, CustomPolicy, ViTPolicy, DartPolicy, AttentionMLPPolicy,\
     EntityAttentionPolicy, CustomCNN, CustomImpalaFeatureExtractor, CNNTransformer, HockeyMultiHeadPolicy
