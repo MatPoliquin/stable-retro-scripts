@@ -9,6 +9,15 @@ import game_wrappers_mgr as games
 import cv2
 
 
+class RewardClipper(gym.RewardWrapper):
+    def __init__(self, env, low: float = -1.0, high: float = 1.0):
+        super().__init__(env)
+        self.low = float(low)
+        self.high = float(high)
+
+    def reward(self, reward):
+        return float(np.clip(float(reward), self.low, self.high))
+
 class WarpFrameDict(gym.ObservationWrapper):
     def __init__(self, env, width=84, height=84, grayscale=True):
         super().__init__(env)

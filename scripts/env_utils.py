@@ -1,13 +1,14 @@
 import os
 import numpy as np
-from stable_baselines3.common.atari_wrappers import WarpFrame, ClipRewardEnv
+from stable_baselines3.common.atari_wrappers import WarpFrame
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecFrameStack
 from stable_baselines3.common.monitor import Monitor
 import gymnasium as gym
 import stable_retro as retro
 import game_wrappers_mgr as games
 import cv2
-from env_wrappers import StochasticFrameSkip, WarpFrameDict
+from env_wrappers import StochasticFrameSkip, WarpFrameDict, RewardClipper
+
 
 def isMLP(name):
     return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy' \
@@ -70,15 +71,12 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
             elif args.nn == 'CombinedPolicy':
                 env = WarpFrameDict(env)
 
-            env = ClipRewardEnv(env)
+            env = RewardClipper(env, low=-1.0, high=1.0)
 
             return env
         return _thunk
 
-    if num_env == 1:
-        env = DummyVecEnv([make_env(start_index)])
-    else:
-        env = SubprocVecEnv([make_env(i + start_index) for i in range(num_env)], start_method=start_method)
+    env = SubprocVecEnv([make_env(i + start_index) for i in range(num_env)], start_method=start_method)
 
     env.seed(seed)
 
