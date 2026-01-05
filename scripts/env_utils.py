@@ -15,7 +15,16 @@ def isMLP(name):
           or name == 'AttentionMLPPolicy' or name == 'EntityAttentionPolicy' or name == 'HockeyMultiHeadPolicy'
 
 
-def make_retro(*, game, state=None, num_players, max_episode_steps=4500, action_type='FILTERED', **kwargs):
+def make_retro(
+    *,
+    game,
+    state=None,
+    num_players,
+    max_episode_steps=4500,
+    action_type='FILTERED',
+    inttype=retro.data.Integrations.ALL,
+    **kwargs,
+):
     import stable_retro as retro  # pylint: disable=import-outside-toplevel,reimported
     if state is None:
         state = retro.State.DEFAULT
@@ -28,7 +37,15 @@ def make_retro(*, game, state=None, num_players, max_episode_steps=4500, action_
     }
     action_enum = action_map.get(action_type.upper(), retro.Actions.FILTERED)
 
-    env = retro.make(game, state, **kwargs, players=num_players, render_mode="rgb_array", use_restricted_actions=action_enum)
+    env = retro.make(
+        game,
+        state,
+        **kwargs,
+        players=num_players,
+        render_mode="rgb_array",
+        use_restricted_actions=action_enum,
+        inttype=inttype,
+    )
     #env = NHL94Discretizer(env)
     #if max_episode_steps is not None:
     #    env = TimeLimit(env, max_episode_steps=max_episode_steps)
@@ -95,7 +112,13 @@ def get_button_names(args):
     }
     action_enum = action_map.get(args.action_type.upper(), retro.Actions.FILTERED)
 
-    env = retro.make(game=args.env, state=args.state, use_restricted_actions=action_enum, players=args.num_players)
+    env = retro.make(
+        game=args.env,
+        state=args.state,
+        use_restricted_actions=action_enum,
+        players=args.num_players,
+        inttype=retro.data.Integrations.ALL,
+    )
     print(env.buttons)
     return env.buttons
 
