@@ -264,17 +264,66 @@ def parse_llm_response(text: str) -> LlmResult:
     return LlmResult(thinking=thinking, buttons=buttons, raw_text=raw)
 
 
+def _env_prompt_to_text(obj: Any) -> str:
+    if not isinstance(obj, dict):
+        return ""
+
+    parts: List[str] = []
+
+    system = obj.get("system")
+    if isinstance(system, str) and system.strip():
+        parts.append(system.strip())
+
+    controls = obj.get("controls")
+    if isinstance(controls, dict):
+        note = controls.get("note")
+        if isinstance(note, str) and note.strip():
+            parts.append(f"Controls: {note.strip()}")
+
+    goal = obj.get("goal")
+    if isinstance(goal, str) and goal.strip():
+        parts.append(f"Goal: {goal.strip()}")
+
+    hints = obj.get("hints")
+    if isinstance(hints, list):
+        cleaned = [str(h).strip() for h in hints if str(h).strip()]
+        if cleaned:
+            parts.append("Hints:\n- " + "\n- ".join(cleaned))
+
+    return "\n\n".join(parts).strip()
+
+
+def _load_env_prompt_text(game: str, inttype: Any) -> str:
+    """Best-effort load of prompt.json from the game's data folder."""
+    try:
+        path = retro.data.get_file_path(game, "prompt.json", inttype)
+        if not path:
+            return ""
+        with open(path, "r", encoding="utf-8") as f:
+            obj = json.load(f)
+        return _env_prompt_to_text(obj)
+    except Exception:
+        return ""
+
+
 def build_prompt(
     game: str,
     buttons: Sequence[str],
     selected_vars: Dict[str, Any],
+    *,
+    decision_interval: int,
+    extra_instructions: str = "",
 ) -> str:
     allowed = ", ".join(buttons)
     vars_json = json.dumps(selected_vars, ensure_ascii=False)
 
+    extra = (extra_instructions or "").strip()
+    extra_block = f"\n\nExtra instructions (from prompt.json):\n{extra}\n" if extra else ""
+
     return (
         "You are playing a retro RPG.\n"
         "Goal: make sensible progress (explore, navigate menus, talk, fight when needed).\n"
+        f"IMPORTANT: The buttons you choose will be HELD for the next {max(1, int(decision_interval))} game steps.\n"
         "Return STRICT JSON only, with keys:\n"
         "  thinking: short text\n"
         "  buttons: array of button names to press this frame\n"
@@ -286,6 +335,7 @@ def build_prompt(
         + "\n"
         + "Known variables (from data.json): "
         + vars_json
+        + extra_block
         + "\n"
         + "Now choose buttons."
     )
@@ -314,6 +364,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         default="stable",
         choices=["stable", "experimental", "contrib", "all"],
         help="stable-retro integration set",
+    )
+
+    parser.add_argument(
+        "--env-prompt",
+        dest="env_prompt",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Load prompt.json from the game's data folder (use --no-env-prompt to disable)",
     )
 
     parser.add_argument(
@@ -347,28 +405,33 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     requested_vars = [v.strip() for v in args.vars.split(",") if v.strip()]
 
+    inttype_used = integration_map[args.integration]
+
     try:
         env = retro.make(
             args.game,
             state=args.state,
             scenario=args.scenario,
-            inttype=integration_map[args.integration],
+            inttype=inttype_used,
             obs_type=retro.Observations.IMAGE,
             render_mode="rgb_array",
         )
     except FileNotFoundError:
         # Convenience: many RPG datasets live under "experimental".
         if args.integration == "stable":
+            inttype_used = retro.data.Integrations.EXPERIMENTAL
             env = retro.make(
                 args.game,
                 state=args.state,
                 scenario=args.scenario,
-                inttype=retro.data.Integrations.EXPERIMENTAL,
+                inttype=inttype_used,
                 obs_type=retro.Observations.IMAGE,
                 render_mode="rgb_array",
             )
         else:
             raise
+
+    env_prompt_text = _load_env_prompt_text(args.game, inttype_used) if args.env_prompt else ""
 
     buttons = [str(b).upper() for b in getattr(env, "buttons", [])]
     if not buttons:
@@ -445,7 +508,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     max_vars=max(0, args.max_vars),
                 )
 
-                prompt = build_prompt(args.game, buttons, last_prompt_vars)
+                prompt = build_prompt(
+                    args.game,
+                    buttons,
+                    last_prompt_vars,
+                    decision_interval=args.decision_interval,
+                    extra_instructions=env_prompt_text,
+                )
 
                 try:
                     text = llm.chat_vision(prompt, image_b64)
