@@ -27,6 +27,7 @@ from models_utils import get_num_parameters, get_model_probabilities
 from torchsummary import summary
 import game_wrappers_mgr as games
 import train
+from utils import load_hyperparams
 
 
 DEFAULT_OUTPUT_DIR = os.path.expanduser("~/OUTPUT/compare_models")
@@ -489,8 +490,22 @@ def init_play_env(train_args: argparse.Namespace) -> Tuple[np.ndarray, np.ndarra
     play_args.info_verbose = False
 
     games.wrappers.init(play_args)
-    env = init_env(None, 1, play_args.state, play_args.num_players, play_args,
-                   use_sticky_action=False, use_display=False, use_frame_skip=False)
+    hyperparams = load_hyperparams(
+        getattr(play_args, "hyperparams", None),
+        required=True,
+        base_dir=os.path.dirname(__file__),
+    )
+    env = init_env(
+        None,
+        1,
+        play_args.state,
+        play_args.num_players,
+        play_args,
+        hyperparams,
+        use_sticky_action=False,
+        use_display=False,
+        use_frame_skip=False,
+    )
     obs = env.reset()
     frame = get_env_frame(env)
     return obs, frame, env

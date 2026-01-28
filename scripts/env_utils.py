@@ -8,6 +8,7 @@ import stable_retro as retro
 import game_wrappers_mgr as games
 import cv2
 from env_wrappers import StochasticFrameSkip, WarpFrameDict, RewardClipper
+from utils import resolve_clip_reward
 
 
 def isMLP(name):
@@ -51,8 +52,21 @@ def make_retro(
     #    env = TimeLimit(env, max_episode_steps=max_episode_steps)
     return env
 
-def init_env(output_path, num_env, state, num_players, args, use_sticky_action=True, use_display=False, use_frame_skip=True):
+def init_env(
+    output_path,
+    num_env,
+    state,
+    num_players,
+    args,
+    hyperparams,
+    use_sticky_action=True,
+    use_display=False,
+    use_frame_skip=True,
+):
     wrapper_kwargs = {}
+
+    clip_reward = resolve_clip_reward(args, hyperparams)
+    args.clip_reward = clip_reward
 
     seed = 0
     start_index = 0
@@ -88,7 +102,8 @@ def init_env(output_path, num_env, state, num_players, args, use_sticky_action=T
             elif args.nn == 'CombinedPolicy':
                 env = WarpFrameDict(env)
 
-            env = RewardClipper(env, low=-1.0, high=1.0)
+            if clip_reward:
+                env = RewardClipper(env, low=-1.0, high=1.0)
 
             return env
         return _thunk
@@ -122,10 +137,20 @@ def get_button_names(args):
     print(env.buttons)
     return env.buttons
 
-def init_play_env(args, num_players, is_pvp_display=False, need_display=True, use_frame_skip=True):
+def init_play_env(args, num_players, hyperparams, is_pvp_display=False, need_display=True, use_frame_skip=True):
     button_names = get_button_names(args)
 
-    env = init_env(None, 1, args.state, num_players, args, use_sticky_action=False, use_display=False, use_frame_skip=use_frame_skip)
+    env = init_env(
+        None,
+        1,
+        args.state,
+        num_players,
+        args,
+        hyperparams,
+        use_sticky_action=False,
+        use_display=False,
+        use_frame_skip=use_frame_skip,
+    )
 
     if not need_display:
         return env

@@ -32,6 +32,7 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from common import com_print, create_output_dir, get_model_file_name, init_logger
 from env_utils import get_button_names, init_env
 from models_utils import get_model_probabilities, init_model
+from utils import load_hyperparams
 import game_wrappers_mgr as games
 from game_wrappers.nhl94_gamestate import NHL94GameState
 
@@ -523,6 +524,7 @@ class LiveTrainingDisplay(threading.Thread):
                 self.args.state,
                 self.args.num_players,
                 self.args,
+                self.args.hyperparams_dict,
                 use_sticky_action=False,
                 use_frame_skip=False,
             )
@@ -756,6 +758,7 @@ class LiveTrainer:
             args.state,
             args.num_players,
             args,
+            args.hyperparams_dict,
         )
 
         self.model = init_model(
@@ -765,6 +768,7 @@ class LiveTrainer:
             args,
             self.env,
             logger,
+            args.hyperparams_dict,
         )
 
     def build_callback(self, shared_state: LiveTrainingState) -> BaseCallback:
@@ -774,6 +778,7 @@ class LiveTrainer:
             self.args.state,
             self.args.num_players,
             self.args,
+            self.args.hyperparams_dict,
             use_sticky_action=False,
         )
         return LiveTrainingCallback(
@@ -862,6 +867,12 @@ def parse_cmdline(argv: Sequence[str]) -> argparse.Namespace:
 
 def main(argv: Sequence[str]) -> None:
     args = parse_cmdline(argv[1:])
+
+    args.hyperparams_dict = load_hyperparams(
+        args.hyperparams,
+        required=True,
+        base_dir=os.path.dirname(__file__),
+    )
 
     logger = init_logger(args)
     com_print("=========== Live Params ===========")

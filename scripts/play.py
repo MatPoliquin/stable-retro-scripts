@@ -8,11 +8,13 @@ Play modes:
 
 import sys
 import argparse
+import os
 import numpy as np
 from common import com_print, init_logger
 from env_utils import init_env, init_play_env
 from models_utils import init_model, get_model_probabilities, get_num_parameters
 import game_wrappers_mgr as games
+from utils import load_hyperparams
 
 def parse_cmdline(argv):
     parser = argparse.ArgumentParser(description='Play with your model in different modes')
@@ -75,12 +77,12 @@ class NHL94Player:
 
     def init_model_vs_model(self):
         """Initialize for model vs model mode"""
-        self.play_env = init_play_env(self.args, 2, True)
-        self.p1_env = init_env(None, 1, None, 1, self.args, use_sticky_action=False)
-        self.p2_env = init_env(None, 1, None, 1, self.args, use_sticky_action=False)
+        self.play_env = init_play_env(self.args, 2, self.args.hyperparams_dict, True)
+        self.p1_env = init_env(None, 1, None, 1, self.args, self.args.hyperparams_dict, use_sticky_action=False)
+        self.p2_env = init_env(None, 1, None, 1, self.args, self.args.hyperparams_dict, use_sticky_action=False)
 
-        self.p1_model = init_model(None, self.args.load_p1_model, self.args.p1_alg, self.args, self.p1_env, self.logger)
-        self.p2_model = init_model(None, self.args.load_p2_model, self.args.p2_alg, self.args, self.p2_env, self.logger)
+        self.p1_model = init_model(None, self.args.load_p1_model, self.args.p1_alg, self.args, self.p1_env, self.logger, self.args.hyperparams_dict)
+        self.p2_model = init_model(None, self.args.load_p2_model, self.args.p2_alg, self.args, self.p2_env, self.logger, self.args.hyperparams_dict)
 
         self.play_env.model1_params = get_num_parameters(self.p1_model)
         self.play_env.model2_params = get_num_parameters(self.p2_model)
@@ -88,8 +90,8 @@ class NHL94Player:
     def init_player_or_game_mode(self):
         """Initialize for player vs model or model vs game modes"""
         num_players = 1 if self.args.mode in ['model_vs_game', 'player_vs_game'] else 2
-        self.p1_env = init_env(None, 1, self.args.state, 1, self.args, True)
-        self.display_env = init_play_env(self.args, num_players, False, self.need_display, False)
+        self.p1_env = init_env(None, 1, self.args.state, 1, self.args, self.args.hyperparams_dict, True)
+        self.display_env = init_play_env(self.args, num_players, self.args.hyperparams_dict, False, self.need_display, False)
 
         if self.args.mode != 'player_vs_game':
             self.ai_sys = games.wrappers.ai_sys(self.args, self.p1_env, self.logger)
@@ -178,6 +180,11 @@ class NHL94Player:
 
 def main(argv):
     args = parse_cmdline(argv[1:])
+    args.hyperparams_dict = load_hyperparams(
+        args.hyperparams,
+        required=True,
+        base_dir=os.path.dirname(__file__),
+    )
     logger = init_logger(args)
 
     if args.mode != 'model_vs_model' and args.mode != 'player_vs_game':

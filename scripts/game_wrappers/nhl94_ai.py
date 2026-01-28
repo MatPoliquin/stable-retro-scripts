@@ -41,7 +41,15 @@ class NHL94AISystem():
         self.num_models = 0
         for p in model_paths:
             if (p != ''):
-                self.models[i] = init_model(None, p, self.args.alg, self.args, self.env, self.logger)
+                self.models[i] = init_model(
+                    None,
+                    p,
+                    self.args.alg,
+                    self.args,
+                    self.env,
+                    self.logger,
+                    getattr(self.args, "hyperparams_dict", None),
+                )
                 self.model_params[i] = get_num_parameters(self.models[i])
                 self.num_models += 1
                 self.model_in_use = i

@@ -1,6 +1,5 @@
 import os
 import gymnasium as gym
-import json
 import torch as th
 
 # Avoid noisy NNPACK init warnings on some CPUs (common on some AMD systems)
@@ -30,14 +29,6 @@ def get_model_probabilities(model, state):
     probs_np = probs.detach().cpu().numpy()
     return probs_np
 
-def load_hyperparameters(json_file):
-    with open(json_file, 'r') as f:
-        hyperparams = json.load(f)
-
-    print(hyperparams)
-
-    return hyperparams
-
 def print_model_summary(args, env, player_model, model):
 
     obs_space = getattr(model, "observation_space", None) or env.observation_space
@@ -60,19 +51,13 @@ def print_model_summary(args, env, player_model, model):
 
     summary(model.policy, pytorch_obs_shape)
 
-def init_model(output_path, player_model, player_alg, args, env, logger):
+def init_model(output_path, player_model, player_alg, args, env, logger, hyperparams):
     policy_kwargs = None
     nn_type = args.nn
     size = args.nnsize
 
-    # Load hyperparameters from JSON
-    if args.hyperparams:
-        if os.path.isfile(args.hyperparams):
-            hyperparams = load_hyperparameters(args.hyperparams)
-        else:
-            raise FileNotFoundError(f"Hyperparameters file not found: {args.hyperparams}")
-    else:
-        hyperparams = {}
+    if hyperparams is None:
+        raise ValueError("hyperparams must be provided; load them via utils.load_hyperparams")
 
     if args.nn == 'MlpPolicy':
         nn_type = 'MlpPolicy'
@@ -154,7 +139,10 @@ def init_model(output_path, player_model, player_alg, args, env, logger):
                 ent_coef=hyperparams.get('ent_coef', 0.01),
                 max_grad_norm=hyperparams.get('max_grad_norm', 0.5),
                 clip_range_vf=hyperparams.get('clip_range_vf', None),
-                gamma=hyperparams.get('gamma', 0.99)
+                gamma=hyperparams.get('gamma', 0.99),
+                gae_lambda=hyperparams.get('gae_lambda', 0.95),
+                normalize_advantage=hyperparams.get('normalize_advantage', True),
+                target_kl=hyperparams.get('target_kl', None)
             )
         else:
             model = PPO.load(os.path.expanduser(player_model), env=env)

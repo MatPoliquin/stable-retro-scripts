@@ -8,6 +8,7 @@ import argparse
 from common import get_model_file_name, com_print, init_logger, create_output_dir
 from models_utils import init_model
 from env_utils import init_env
+from utils import load_hyperparams
 
 
 def parse_cmdline(argv):
@@ -56,9 +57,9 @@ class ModelTrainer:
         model_savefile_name = get_model_file_name(args)
         self.model_savepath = os.path.join(self.output_fullpath, model_savefile_name)
 
-        self.env = init_env(self.output_fullpath, args.num_env, args.state, args.num_players, args)
+        self.env = init_env(self.output_fullpath, args.num_env, args.state, args.num_players, args, args.hyperparams_dict)
 
-        self.p1_model = init_model(self.output_fullpath, args.load_p1_model, args.alg, args, self.env, logger)
+        self.p1_model = init_model(self.output_fullpath, args.load_p1_model, args.alg, args, self.env, logger, args.hyperparams_dict)
 
         #if self.args.alg_verbose:
         com_print('OUTPUT PATH:   %s' % self.output_fullpath)
@@ -122,6 +123,12 @@ def main(argv):
     logger = init_logger(args)
     com_print("=========== Params ===========")
     com_print(args)
+
+    args.hyperparams_dict = load_hyperparams(
+        args.hyperparams,
+        required=True,
+        base_dir=os.path.dirname(__file__),
+    )
 
     trainer = ModelTrainer(args, logger)
 

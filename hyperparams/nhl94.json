@@ -13,5 +13,6 @@
     "pi": [256, 256],
     "vf": [256, 256]
   },
-  "features_dim": 128
+  "features_dim": 128,
+  "clip_reward": true
 }

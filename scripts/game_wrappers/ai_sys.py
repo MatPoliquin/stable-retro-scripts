@@ -20,7 +20,15 @@ class AISys():
 
     def SetModels(self, model_paths):
         if model_paths[0] != None:
-            self.model = init_model(None, model_paths[0], self.args.alg, self.args, self.env, self.logger)
+            self.model = init_model(
+                None,
+                model_paths[0],
+                self.args.alg,
+                self.args,
+                self.env,
+                self.logger,
+                getattr(self.args, "hyperparams_dict", None),
+            )
             self.model_num_params = get_num_parameters(self.model)
 
     def predict(self, state, info, deterministic):
