@@ -35,10 +35,9 @@ Requires:
 
 ```
 sudo apt update
-sudo apt-get install python3 python3-pip git zlib1g-dev libopenmpi-dev ffmpeg cmake
+sudo apt-get install python3 python3-pip python3.12-venv git zlib1g-dev libopenmpi-dev ffmpeg cmake libgl1-mesa-dev
 
-sudo pip3 install -U virtualenv
-virtualenv --system-site-packages -p python3 ~/vretro
+python3 -m venv ~/vretro --system-site-packages
 source ~/vretro/bin/activate
 
 git clone https://github.com/Farama-Foundation/stable-retro.git
