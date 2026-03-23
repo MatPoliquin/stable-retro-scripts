@@ -51,3 +51,28 @@ def resolve_clip_reward(args, hyperparams: Optional[Dict[str, Any]]) -> bool:
         return bool(hyperparams.get("clip_reward"))
 
     return True
+
+
+def resolve_sticky_action_settings(
+    requested_enabled: bool,
+    hyperparams: Optional[Dict[str, Any]],
+    *,
+    default_prob: float = 0.25,
+) -> tuple[bool, float]:
+    if not requested_enabled:
+        return False, -1.0
+
+    enabled = True
+    probability = default_prob
+
+    if hyperparams and "sticky_actions" in hyperparams:
+        enabled = bool(hyperparams.get("sticky_actions"))
+
+    if hyperparams and "sticky_action_prob" in hyperparams:
+        probability = float(hyperparams.get("sticky_action_prob"))
+
+    if not enabled:
+        return False, -1.0
+
+    probability = max(0.0, min(1.0, probability))
+    return True, probability

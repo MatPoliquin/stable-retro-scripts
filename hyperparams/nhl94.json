@@ -14,5 +14,7 @@
     "vf": [256, 256]
   },
   "features_dim": 128,
+  "sticky_actions": false,
+  "sticky_action_prob": 0.25,
   "clip_reward": true
 }

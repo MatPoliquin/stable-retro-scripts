@@ -33,6 +33,8 @@ def parse_cmdline(argv):
     parser.add_argument('--deterministic', default=True, action='store_true')
     parser.add_argument('--hyperparams', type=str, default='../hyperparams/default.json')
     parser.add_argument('--selfplay', default=False, action='store_true')
+    parser.add_argument('--seq_len', type=int, default=16,
+                       help='Frame history length for temporal policies such as HybridMambaPolicy or GRUMlpPolicy')
 
     parser.add_argument('--action_type', type=str, default='FILTERED',
                        choices=['FILTERED', 'DISCRETE', 'MULTI_DISCRETE'],

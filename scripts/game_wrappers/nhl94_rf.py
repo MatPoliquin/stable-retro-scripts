@@ -209,8 +209,8 @@ def isdone_scoregoal_cc(state):
     t2 = state.team2
 
     # Success
-    #if t1.stats.score > t1.last_stats.score:
-    #    return True
+    if t1.stats.score > t1.last_stats.score:
+        return True
 
     # Mild failures (just end episode)
     if t2.player_haspuck or t2.goalie_haspuck:
@@ -290,8 +290,8 @@ def isdone_scoregoal_ot(state):
     t1 = state.team1
     t2 = state.team2
 
-    #if t1.stats.score > t1.last_stats.score:
-    #    return True
+    if t1.stats.score > t1.last_stats.score:
+        return True
 
     if t2.goalie_haspuck:
         return True
@@ -381,7 +381,7 @@ def rf_scoregoal(state):
 
     #if t1.stats.score > t1.last_stats.score:
     if t1.stats.onetimer > t1.last_stats.onetimer:
-        rew = 0.1
+        rew = 0.5
 
     if t1.stats.score > t1.last_stats.score:
         rew = 1.0

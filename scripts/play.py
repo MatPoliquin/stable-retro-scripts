@@ -38,6 +38,8 @@ def parse_cmdline(argv):
     parser.add_argument('--hyperparams', type=str, default='../hyperparams/default.json')
     parser.add_argument('--video', default=False, action='store_true')
     parser.add_argument('--video_path', type=str, default='../retro_game.avi')
+    parser.add_argument('--seq_len', type=int, default=16,
+                       help='Frame history length for temporal policies such as HybridMambaPolicy or GRUMlpPolicy')
 
     # Model-related arguments
     parser.add_argument('--alg', type=str, default='ppo2', help='Algorithm for single model')

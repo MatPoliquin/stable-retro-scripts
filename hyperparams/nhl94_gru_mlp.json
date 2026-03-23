@@ -1,0 +1,26 @@
+{
+  "learning_rate": 0.0003,
+  "batch_size": 64,
+  "n_steps": 2048,
+  "n_epochs": 10,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip_range": 0.2,
+  "vf_coef": 0.5,
+  "ent_coef": 0.01,
+  "max_grad_norm": 0.5,
+  "clip_range_vf": null,
+  "features_dim": 256,
+  "net_arch": {
+    "pi": [128, 128],
+    "vf": [128, 128]
+  },
+  "gru_mlp": {
+    "features_dim": 256,
+    "hidden_dim": 128,
+    "gru_layers": 2
+  },
+  "sticky_actions": false,
+  "sticky_action_prob": 0.25,
+  "clip_reward": true
+}

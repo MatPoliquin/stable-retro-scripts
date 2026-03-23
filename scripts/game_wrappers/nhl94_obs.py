@@ -5,6 +5,7 @@ NHL94 Observation wrapper
 import datetime
 import random
 import copy
+from collections import deque
 from datetime import datetime
 import numpy as np
 import gymnasium as gym
@@ -36,6 +37,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.NUM_PARAMS = self.init_model(self.num_players_per_team)
 
         self.game_state = NHL94GameState(self.num_players_per_team)
+        self.uses_sequence_obs = self.nn in ('HybridMambaPolicy', 'GRUMlpPolicy')
+        self.frame_stack_size = max(1, int(getattr(args, 'seq_len', 16)))
+        self.frame_buffer = deque(maxlen=self.frame_stack_size) if self.uses_sequence_obs else None
 
         low = np.array([-1] * self.NUM_PARAMS, dtype=np.float32)
         high = np.array([1] * self.NUM_PARAMS, dtype=np.float32)
@@ -45,6 +49,13 @@ class NHL94Observation2PEnv(gym.Wrapper):
                 'image': spaces.Box(low=0, high=255, shape=(224, 256, 3), dtype=np.uint8),
                 'scalar': spaces.Box(low, high, dtype=np.float32)
             })
+        elif self.uses_sequence_obs:
+            self.observation_space = spaces.Box(
+                low=-1.0,
+                high=1.0,
+                shape=(self.frame_stack_size, self.NUM_PARAMS),
+                dtype=np.float32,
+            )
         else:
             self.observation_space = spaces.Box(low, high, dtype=np.float32)
 
@@ -68,25 +79,40 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.slapshot_frames_held = 0      # 0 means not in slapshot mode
         self.SLAPSHOT_HOLD_FRAMES = 60     # Number of frames to hold C for slapshot
 
+    def _get_scalar_state_array(self):
+        return np.asarray(self.state, dtype=np.float32)
+
+    def _reset_frame_buffer(self):
+        if not self.uses_sequence_obs:
+            return
+
+        self.frame_buffer.clear()
+        current_state = self._get_scalar_state_array()
+        for _ in range(self.frame_stack_size):
+            self.frame_buffer.append(current_state.copy())
+
+    def _get_obs(self, image_obs=None):
+        if self.nn == 'CombinedPolicy':
+            return {
+                'image': image_obs,
+                'scalar': self.state
+            }
+        if self.uses_sequence_obs:
+            return np.array(self.frame_buffer, dtype=np.float32, copy=True)
+        return self.state
+
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
 
         self.state = tuple([0] * self.NUM_PARAMS)
+        self._reset_frame_buffer()
 
         self.game_state = NHL94GameState(self.num_players_per_team)
         self.ram_inited = False
         self.b_button_pressed = False
         self.c_button_pressed = False
 
-        #return self.state, info
-        if self.nn == 'CombinedPolicy':
-             #print(state.shape)
-             return {
-                 'image': state,
-                 'scalar': self.state
-             }, info
-        else:
-            return self.state, info
+        return self._get_obs(state), info
 
     def step(self, ac):
         p2_ac = [0,0,0,0,0,0,0,0,0,0,0,0]
@@ -215,16 +241,10 @@ class NHL94Observation2PEnv(gym.Wrapper):
         # SET MODEL INPUT
         # ============================
         self.state = self.set_model_input(self.game_state)
-        #ob = self.state
+        if self.uses_sequence_obs:
+            self.frame_buffer.append(self._get_scalar_state_array().copy())
 
-        #return ob, rew, terminated, truncated, info
-        if self.nn == 'CombinedPolicy':
-            return {
-                 'image': ob,
-                 'scalar': self.state
-            }, rew, terminated, truncated, info
-        else:
-            return self.state, rew, terminated, truncated, info
+        return self._get_obs(ob), rew, terminated, truncated, info
 
     def seed(self, s):
         self.rng.seed(s)

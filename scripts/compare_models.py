@@ -67,6 +67,10 @@ def parse_args() -> argparse.Namespace:
                         help="Policy class name for model 1 (default: CnnPolicy)")
     parser.add_argument("--model2-policy", type=str, default="MlpPolicy",
                         help="Policy class name for model 2 (default: MlpPolicy)")
+    parser.add_argument("--model1-seq-len", type=int, default=16,
+                        help="Sequence length for model 1 when using temporal policies")
+    parser.add_argument("--model2-seq-len", type=int, default=16,
+                        help="Sequence length for model 2 when using temporal policies")
     parser.add_argument("--model1-hyperparams", type=str, default=DEFAULT_HYPERPARAMS,
                         help="Path to hyperparameter JSON for model 1")
     parser.add_argument("--model2-hyperparams", type=str, default=DEFAULT_HYPERPARAMS,
@@ -126,10 +130,11 @@ def normalize_algorithm(name: str) -> str:
 
 
 def build_train_args(base: argparse.Namespace, policy: str, hyperparams_path: str,
-                      run_id: str) -> argparse.Namespace:
+                      run_id: str, seq_len: int) -> argparse.Namespace:
     cli_args = [
         f"--alg={base.algorithm}",
         f"--nn={policy}",
+        f"--seq_len={seq_len}",
         f"--env={base.env}",
         f"--num_timesteps={base.timesteps}",
         f"--num_env={base.train_num_env}",
@@ -232,9 +237,9 @@ def generate_model_summary(model: PPO, env, policy_name: str) -> str:
     obs_space = getattr(model, "observation_space", None) or env.observation_space
 
     try:
-        if policy_name in ("MlpPolicy", "EntityAttentionPolicy", "CustomMlpPolicy", "MlpDropoutPolicy", "CombinedPolicy", "AttentionMLPPolicy", "HockeyMultiHeadPolicy"):
+        if policy_name in ("MlpPolicy", "EntityAttentionPolicy", "CustomMlpPolicy", "MlpDropoutPolicy", "CombinedPolicy", "AttentionMLPPolicy", "HockeyMultiHeadPolicy", "HybridMambaPolicy", "GRUMlpPolicy"):
             if hasattr(obs_space, "shape") and obs_space.shape:
-                input_shape = (1, obs_space.shape[0])
+                input_shape = tuple(obs_space.shape)
             else:
                 return f"Model summary unavailable for policy {policy_name}: unsupported observation space"
         elif policy_name in ("CnnPolicy", "ImpalaCnnPolicy", "CustomCnnPolicy", "CnnTransformerPolicy", "ViTPolicy", "DartPolicy"):
@@ -936,12 +941,24 @@ def main() -> None:
     os.makedirs(args.output_basedir, exist_ok=True)
 
     print("--- Training Model 1 ---")
-    train_args1 = build_train_args(args, args.model1_policy, args.model1_hyperparams, "model1")
+    train_args1 = build_train_args(
+        args,
+        args.model1_policy,
+        args.model1_hyperparams,
+        "model1",
+        args.model1_seq_len,
+    )
     model_path1, trained_args1, log_dir1 = train_model(train_args1)
     label1 = args.model1_label or args.model1_policy
 
     print("--- Training Model 2 ---")
-    train_args2 = build_train_args(args, args.model2_policy, args.model2_hyperparams, "model2")
+    train_args2 = build_train_args(
+        args,
+        args.model2_policy,
+        args.model2_hyperparams,
+        "model2",
+        args.model2_seq_len,
+    )
     model_path2, trained_args2, log_dir2 = train_model(train_args2)
     label2 = args.model2_label or args.model2_policy
 

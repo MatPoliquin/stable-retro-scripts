@@ -13,5 +13,7 @@
     "vf": [512, 512]
   },
   "features_dim": 512,
+  "sticky_actions": true,
+  "sticky_action_prob": 0.25,
   "clip_reward": true
 }

@@ -14,8 +14,18 @@ except Exception:
 from stable_baselines3 import PPO, A2C
 from torchsummary import summary
 from models import CustomMlpPolicy, CustomPolicy, ViTPolicy, DartPolicy, AttentionMLPPolicy,\
-    EntityAttentionPolicy, CustomCNN, CustomImpalaFeatureExtractor, CNNTransformer, HockeyMultiHeadPolicy
+    EntityAttentionPolicy, CustomCNN, CustomImpalaFeatureExtractor, CNNTransformer, HockeyMultiHeadPolicy, HybridMambaPolicy, GRUMlpPolicy
 from es import EvolutionStrategies
+
+
+VECTOR_POLICIES = (
+    'MlpPolicy',
+    'AttentionMLPPolicy',
+    'EntityAttentionPolicy',
+    'CustomMlpPolicy',
+    'HybridMambaPolicy',
+    'GRUMlpPolicy',
+)
 
 def get_num_parameters(model):
     total_params = sum(p.numel() for p in model.policy.parameters() if p.requires_grad)
@@ -38,9 +48,9 @@ def print_model_summary(args, env, player_model, model):
         return
 
     # Handle policies
-    if args.nn in ('MlpPolicy', 'AttentionMLPPolicy', 'EntityAttentionPolicy', 'CustomMlpPolicy'):
+    if args.nn in VECTOR_POLICIES:
         obs_shape = obs_space.shape
-        pytorch_obs_shape = (obs_shape[0],)
+        pytorch_obs_shape = tuple(obs_shape)
     elif args.nn in ('CnnPolicy', 'ImpalaCnnPolicy'):
         # SB3 model.observation_space is already channels-first and includes frame stack
         obs_shape = obs_space.shape  # (C, H, W)
@@ -119,6 +129,32 @@ def init_model(output_path, player_model, player_alg, args, env, logger, hyperpa
         nn_type = HockeyMultiHeadPolicy
         policy_kwargs = dict(
             features_extractor_kwargs=dict()
+        )
+    elif args.nn == 'HybridMambaPolicy':
+        nn_type = HybridMambaPolicy
+        hybrid_kwargs = hyperparams.get('hybrid_mamba', {}) if hyperparams else {}
+        if not isinstance(hybrid_kwargs, dict):
+            raise TypeError("hyperparams['hybrid_mamba'] must be a dict when provided")
+        features_extractor_kwargs = dict(hybrid_kwargs)
+        features_extractor_kwargs.setdefault('features_dim', hyperparams.get('features_dim', 256))
+
+        policy_kwargs = dict(
+            activation_fn=th.nn.ReLU,
+            net_arch=hyperparams.get('net_arch', dict(pi=[size, size], vf=[size, size])),
+            features_extractor_kwargs=features_extractor_kwargs,
+        )
+    elif args.nn == 'GRUMlpPolicy':
+        nn_type = GRUMlpPolicy
+        gru_kwargs = hyperparams.get('gru_mlp', {}) if hyperparams else {}
+        if not isinstance(gru_kwargs, dict):
+            raise TypeError("hyperparams['gru_mlp'] must be a dict when provided")
+        features_extractor_kwargs = dict(gru_kwargs)
+        features_extractor_kwargs.setdefault('features_dim', hyperparams.get('features_dim', 256))
+
+        policy_kwargs = dict(
+            activation_fn=th.nn.ReLU,
+            net_arch=hyperparams.get('net_arch', dict(pi=[size, size], vf=[size, size])),
+            features_extractor_kwargs=features_extractor_kwargs,
         )
 
     if player_alg == 'ppo2':

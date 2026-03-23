@@ -8,12 +8,13 @@ import stable_retro as retro
 import game_wrappers_mgr as games
 import cv2
 from env_wrappers import StochasticFrameSkip, WarpFrameDict, RewardClipper
-from utils import resolve_clip_reward
+from utils import resolve_clip_reward, resolve_sticky_action_settings
 
 
 def isMLP(name):
     return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy' \
-          or name == 'AttentionMLPPolicy' or name == 'EntityAttentionPolicy' or name == 'HockeyMultiHeadPolicy'
+          or name == 'AttentionMLPPolicy' or name == 'EntityAttentionPolicy' or name == 'HockeyMultiHeadPolicy' \
+          or name == 'HybridMambaPolicy' or name == 'GRUMlpPolicy'
 
 
 def make_retro(
@@ -67,6 +68,10 @@ def init_env(
 
     clip_reward = resolve_clip_reward(args, hyperparams)
     args.clip_reward = clip_reward
+    sticky_actions_enabled, sticky_action_prob = resolve_sticky_action_settings(
+        use_sticky_action,
+        hyperparams,
+    )
 
     seed = 0
     start_index = 0
@@ -92,8 +97,8 @@ def init_env(
             env = Monitor(env, output_path and os.path.join(output_path, str(rank)), allow_early_resets=allow_early_resets)
 
             if use_frame_skip:
-                if use_sticky_action:
-                    env = StochasticFrameSkip(env, n=4, stickprob=0.25)
+                if sticky_actions_enabled:
+                    env = StochasticFrameSkip(env, n=4, stickprob=sticky_action_prob)
                 else:
                     env = StochasticFrameSkip(env, n=4, stickprob=-1)
 

@@ -14,5 +14,7 @@
   },
   "features_dim": 128,
   "dropout_prob": 0.3,
+  "sticky_actions": true,
+  "sticky_action_prob": 0.25,
   "clip_reward": true
 }
