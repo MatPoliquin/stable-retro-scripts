@@ -1,0 +1,70 @@
+{
+  "name": "NHL94 Offensive Curriculum",
+  "description": "Example curriculum showing how to chain NHL94 live-training phases with shared arguments.",
+  "common": {
+    "alg": "ppo2",
+    "nn": "MlpPolicy",
+    "seq_len": 16,
+    "env": "NHL94-Genesis-v0",
+    "num_players": 1,
+    "num_env": 16,
+    "output_basedir": "~/OUTPUT",
+    "hyperparams": "../hyperparams/nhl94.json",
+    "action_type": "FILTERED",
+    "live_eval_freq": 10000,
+    "live_eval_episodes": 5,
+    "live_window_width": 1280,
+    "live_window_height": 720,
+    "live_graph_width": 420,
+    "live_fps": 60,
+    "live_sleep_per_step": 0.0,
+    "deterministic": true,
+    "play": false,
+    "selfplay": false
+  },
+  "phases": [
+    {
+      "name": "Keep Puck",
+      "description": "Teach possession and movement in the attack zone.",
+      "state": "PenguinsVsSenators.AttackZone",
+      "rf": "KeepPuck",
+      "num_timesteps": 20000000
+    },
+    {
+      "name": "Passing",
+      "description": "Build passing mechanics before shot-finishing drills.",
+      "state": "PenguinsVsSenators.AttackZone",
+      "rf": "Passing",
+      "num_timesteps": 20000000
+    },
+    {
+      "name": "One Timers",
+      "description": "Train fast pass-to-shot timing in offensive scenarios.",
+      "state": "PenguinsVsSenators.AttackZone",
+      "rf": "ScoreGoalOT",
+      "num_timesteps": 20000000
+    },
+    {
+      "name": "Cross Crease",
+      "description": "Train lateral puck movement and crease-side finishing.",
+      "state": "PenguinsVsSenators.AttackZone",
+      "rf": "ScoreGoalCC",
+      "num_timesteps": 20000000
+    },
+    {
+      "name": "Defense Zone",
+      "description": "Recover the puck in the defensive zone and transition it cleanly toward attack.",
+      "state": "PenguinsVsSenators.DefenseZone",
+      "rf": "DefenseZone",
+      "num_timesteps": 20000000
+    },
+    {
+      "name": "Start State Test",
+      "description": "Evaluate the chained model from the normal game start state without additional training.",
+      "phase_type": "eval",
+      "state": "PenguinsVsSenators.start",
+      "rf": "DefenseZone",
+      "eval_episodes": 10
+    }
+  ]
+}

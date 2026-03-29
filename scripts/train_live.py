@@ -57,6 +57,21 @@ class LiveTrainingState:
         self.lock = threading.Lock()
 
 
+@dataclass
+class LiveTrainingResult:
+    final_model_path: str
+    best_model_path: str
+    output_dir: str
+
+
+@dataclass
+class LiveEvaluationResult:
+    model_path: str
+    mean_reward: float
+    std_reward: float
+    episodes: int
+
+
 def ensure_zip_path(path: str) -> str:
     """Append the SB3 .zip suffix if the path doesn't already include it."""
 
@@ -816,7 +831,7 @@ class LiveTrainer:
             self.env.close()
 
 
-def parse_cmdline(argv: Sequence[str]) -> argparse.Namespace:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Train a model while streaming live visuals.")
 
     parser.add_argument("--alg", type=str, default="ppo2")
@@ -867,20 +882,31 @@ def parse_cmdline(argv: Sequence[str]) -> argparse.Namespace:
         help="Extra seconds to wait after each display step (default 0 for ~60 FPS playback).",
     )
 
+    return parser
+
+
+def parse_cmdline(argv: Sequence[str]) -> argparse.Namespace:
+    parser = build_parser()
     args = parser.parse_args(argv)
     return args
 
 
-def main(argv: Sequence[str]) -> None:
-    args = parse_cmdline(argv[1:])
+def prepare_args(args: argparse.Namespace, *, hyperparams_base_dir: Optional[str] = None) -> argparse.Namespace:
+    if getattr(args, "hyperparams_dict", None) is None:
+        args.hyperparams_dict = load_hyperparams(
+            args.hyperparams,
+            required=True,
+            base_dir=hyperparams_base_dir or os.path.dirname(__file__),
+        )
+    return args
 
-    args.hyperparams_dict = load_hyperparams(
-        args.hyperparams,
-        required=True,
-        base_dir=os.path.dirname(__file__),
-    )
 
-    logger = init_logger(args)
+def run_training_session(args: argparse.Namespace, logger=None) -> LiveTrainingResult:
+    prepare_args(args)
+
+    if logger is None:
+        logger = init_logger(args)
+
     com_print("=========== Live Params ===========")
     com_print(args)
 
@@ -913,6 +939,68 @@ def main(argv: Sequence[str]) -> None:
 
     if args.play:
         com_print("Play-after-train is not yet available in live mode.")
+
+    return LiveTrainingResult(
+        final_model_path=ensure_zip_path(trainer.model_savepath),
+        best_model_path=ensure_zip_path(trainer.best_model_savepath),
+        output_dir=trainer.output_fullpath,
+    )
+
+
+def run_evaluation_session(
+    args: argparse.Namespace,
+    model_path: str,
+    *,
+    eval_episodes: int = 5,
+    logger=None,
+) -> LiveEvaluationResult:
+    prepare_args(args)
+
+    if logger is None:
+        logger = init_logger(args)
+
+    eval_env = init_env(
+        None,
+        1,
+        args.state,
+        args.num_players,
+        args,
+        args.hyperparams_dict,
+        use_sticky_action=False,
+    )
+
+    model = init_model(
+        None,
+        model_path,
+        args.alg,
+        args,
+        eval_env,
+        logger,
+        args.hyperparams_dict,
+    )
+
+    try:
+        mean_reward, std_reward = evaluate_policy(
+            model,
+            eval_env,
+            n_eval_episodes=max(1, eval_episodes),
+            deterministic=bool(getattr(args, "deterministic", True)),
+        )
+    finally:
+        eval_env.close()
+
+    return LiveEvaluationResult(
+        model_path=ensure_zip_path(model_path),
+        mean_reward=float(mean_reward),
+        std_reward=float(std_reward),
+        episodes=max(1, eval_episodes),
+    )
+
+
+def main(argv: Sequence[str]) -> None:
+    args = parse_cmdline(argv[1:])
+    prepare_args(args, hyperparams_base_dir=os.path.dirname(__file__))
+    run_training_session(args)
 
 
 if __name__ == "__main__":

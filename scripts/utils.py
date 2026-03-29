@@ -43,6 +43,61 @@ def load_hyperparams(path: Optional[str], *, required: bool = True, base_dir: Op
     return hyperparams
 
 
+def load_json_dict(path: Optional[str], *, required: bool = True, base_dir: Optional[str] = None, label: str = "JSON") -> Dict[str, Any]:
+    if not path:
+        if required:
+            raise ValueError(f"{label} path is required but was not provided.")
+        return {}
+
+    resolved = resolve_config_path(path, base_dir=base_dir)
+    if resolved is None:
+        if required:
+            raise ValueError(f"{label} path is required but was not provided.")
+        return {}
+
+    if not os.path.isfile(resolved):
+        raise FileNotFoundError(f"{label} file not found: {resolved}")
+
+    with open(resolved, "r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+
+    if not isinstance(payload, dict):
+        raise TypeError(f"{label} file must contain a JSON object: {resolved}")
+
+    return payload
+
+
+def load_curriculum(path: str, *, base_dir: Optional[str] = None) -> Dict[str, Any]:
+    resolved = resolve_config_path(path, base_dir=base_dir)
+    if resolved is None:
+        raise ValueError("Curriculum path is required but was not provided.")
+
+    curriculum = load_json_dict(resolved, label="Curriculum")
+
+    phases = curriculum.get("phases")
+    if not isinstance(phases, list) or not phases:
+        raise ValueError(f"Curriculum must define a non-empty 'phases' list: {resolved}")
+
+    common = curriculum.get("common", {})
+    if common is None:
+        common = {}
+    if not isinstance(common, dict):
+        raise TypeError(f"Curriculum 'common' must be a JSON object: {resolved}")
+
+    normalized_phases = []
+    for index, phase in enumerate(phases, start=1):
+        if not isinstance(phase, dict):
+            raise TypeError(f"Curriculum phase #{index} must be a JSON object: {resolved}")
+        normalized_phases.append(phase)
+
+    curriculum["common"] = common
+    curriculum["phases"] = normalized_phases
+    curriculum["_resolved_path"] = resolved
+    curriculum["_base_dir"] = os.path.dirname(resolved)
+
+    return curriculum
+
+
 def resolve_clip_reward(args, hyperparams: Optional[Dict[str, Any]]) -> bool:
     if hasattr(args, "clip_reward") and getattr(args, "clip_reward") is not None:
         return bool(getattr(args, "clip_reward"))

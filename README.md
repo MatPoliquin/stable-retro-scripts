@@ -63,6 +63,11 @@ Note: Airstriker is a public domain rom and is already included in stable-retro
 python3 train.py --env=Airstriker-Genesis --nn=CnnPolicy --num_env=8 --num_timesteps=1_000_000 --play --hyperparams=../hyperparams/default.json
 ```
 
+### Run a curriculum
+```bash
+python3 scripts/train_curriculum.py --curriculum curriculum/nhl94.json
+```
+
 ## Game specific Examples
 
 *   For NHL94 specific page click [here](./readmes/NHL94-README.md)
