@@ -278,21 +278,18 @@ class AttentionMLP(BaseFeaturesExtractor):
     def forward(self, x):
         if x.dim() == 1:
             x = x.unsqueeze(0)
-        # Self-attention
+        # Self-attention: compute element-wise attention weights across all features
         q = self.query(x)  # [batch_size, num_features]
         k = self.key(x)    # [batch_size, num_features]
 
-        # Compute attention scores
-        # q.unsqueeze(1): [batch_size, 1, num_features]
-        # k.unsqueeze(2): [batch_size, num_features, 1]
-        # bmm result: [batch_size, 1, 1]
-        attention_scores = torch.bmm(q.unsqueeze(1), k.unsqueeze(2)) / (self.num_features ** 0.5)
+        # Element-wise product gives a per-feature attention score, then
+        # softmax normalises across the feature dimension so that the weights
+        # sum to 1 and every feature dimension gets its own importance score.
+        attention_scores = (q * k) / (self.num_features ** 0.5)  # [batch_size, num_features]
+        weights = torch.softmax(attention_scores, dim=-1)         # [batch_size, num_features]
 
-        # Apply softmax - need to specify dimension
-        weights = torch.softmax(attention_scores, dim=-1)  # Apply along last dimension
-
-        # Apply attention weights
-        attended_x = weights.squeeze(-1) * x  # [batch_size, num_features]
+        # Scale input features by their attention weights
+        attended_x = weights * x  # [batch_size, num_features]
 
         # MLP
         return self.mlp(attended_x)
@@ -392,7 +389,6 @@ class HybridMambaMLPExtractor(TemporalHybridExtractorBase):
         d_state=64,
         d_conv=4,
         expand=2,
-        gru_layers=2,
     ):
         self.d_state = d_state
         self.d_conv = d_conv
@@ -575,12 +571,12 @@ class DartPolicy(ActorCriticPolicy):
             nn.ReLU()
         )
 
-        # Value head should output a single value
+        # Value head should output a single value (no activation after final linear
+        # — value estimates can be negative)
         self.value_net = nn.Sequential(
             nn.Linear(latent_dim_vf, latent_dim_vf),
             nn.ReLU(),
-            nn.Linear(latent_dim_vf, 1),  # Output single value
-            nn.ReLU()
+            nn.Linear(latent_dim_vf, 1),
         )
 
     def forward(self, obs, deterministic=False):
@@ -824,8 +820,9 @@ class CustomMLPExtractor(nn.Module):
         )
 
     def forward(self, features):
-        # Return policy and value features for the base policy's use
-        return self.forward_actor(features), self.forward_critic(features)
+        # Run shared layers once and reuse for both heads
+        shared = self.shared_net(features)
+        return self.policy_net(shared), self.value_net(shared)
 
     def forward_actor(self, features):
         shared = self.shared_net(features)

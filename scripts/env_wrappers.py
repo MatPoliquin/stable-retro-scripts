@@ -69,7 +69,7 @@ class WarpFrameDict(gym.ObservationWrapper):
         else:
             img = cv2.resize(img, (self.width, self.height), interpolation=cv2.INTER_AREA)
             # Convert back to CHW
-            #img = np.transpose(img, (2, 0, 1))
+            img = np.transpose(img, (2, 0, 1))
 
         img = img.astype(np.uint8)
 
