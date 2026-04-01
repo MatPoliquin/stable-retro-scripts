@@ -59,6 +59,46 @@
       "num_timesteps": 20000000
     },
     {
+      "name": "SelfPlay Offense Finetune 1",
+      "description": "Finetune attacking from the attack zone against a frozen defensive opponent (first alternating block).",
+      "state": "PenguinsVsSenators.AttackZone",
+      "rf": "SelfPlayOffenseFinetune",
+      "selfplay": true,
+      "selfplay_snapshot_freq": 50000,
+      "selfplay_pool_size": 5,
+      "num_timesteps": 10000000
+    },
+    {
+      "name": "SelfPlay Defense Finetune 1",
+      "description": "Finetune defending from the defensive zone against a frozen offensive opponent (first alternating block).",
+      "state": "PenguinsVsSenators.DefenseZone",
+      "rf": "SelfPlayDefenseFinetune",
+      "selfplay": true,
+      "selfplay_snapshot_freq": 50000,
+      "selfplay_pool_size": 5,
+      "num_timesteps": 10000000
+    },
+    {
+      "name": "SelfPlay Offense Finetune 2",
+      "description": "Second alternating offense finetune block with an updated opponent pool.",
+      "state": "PenguinsVsSenators.AttackZone",
+      "rf": "SelfPlayOffenseFinetune",
+      "selfplay": true,
+      "selfplay_snapshot_freq": 50000,
+      "selfplay_pool_size": 5,
+      "num_timesteps": 10000000
+    },
+    {
+      "name": "SelfPlay Defense Finetune 2",
+      "description": "Second alternating defense finetune block with an updated opponent pool.",
+      "state": "PenguinsVsSenators.DefenseZone",
+      "rf": "SelfPlayDefenseFinetune",
+      "selfplay": true,
+      "selfplay_snapshot_freq": 50000,
+      "selfplay_pool_size": 5,
+      "num_timesteps": 10000000
+    },
+    {
       "name": "Start State Test",
       "description": "Evaluate the chained model from the normal game start state without additional training.",
       "phase_type": "eval",
