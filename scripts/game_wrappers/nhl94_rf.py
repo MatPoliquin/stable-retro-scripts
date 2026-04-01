@@ -772,7 +772,7 @@ def rf_passing(state):
     return rew
 
 # =====================================================================
-# Self Play
+# Self Play (legacy stub – kept for backward compatibility)
 # =====================================================================
 def isdone_selfplay(state):
     t1 = state.team1
@@ -801,6 +801,136 @@ def rf_selfplay(state):
     return base
 
 # =====================================================================
+# Self Play – Offense Finetune
+# Team 1 (learner) attacks; team 2 (frozen opponent) defends.
+# Zero-sum terminal rewards from team-1 perspective.
+# =====================================================================
+
+# Consecutive frames team-2 must control the puck to count as a defensive clear
+SELFPLAY_CONTROL_FRAMES = 30
+
+
+def init_selfplay_offense(env, env_name):
+    """Initialize attack-zone start positions for the offense finetune drill."""
+    init_attackzone(env, env_name)
+
+
+def isdone_selfplay_offense(state):
+    t1 = state.team1
+    t2 = state.team2
+
+    # Success: team 1 scores
+    if t1.stats.score > t1.last_stats.score:
+        return True
+
+    # Failure: puck leaves the attack zone
+    if state.puck.y < GameConsts.ATACKZONE_POS_Y:
+        return True
+
+    # Failure: team 2 holds controlled possession for N consecutive frames
+    ctx = getattr(state, "_sp_offense_ctx", None)
+    if ctx is not None and ctx.get("t2_control_frames", 0) >= SELFPLAY_CONTROL_FRAMES:
+        return True
+
+    # Timeout
+    if state.time < 100:
+        return True
+
+    return False
+
+
+def rf_selfplay_offense(state):
+    t1 = state.team1
+    t2 = state.team2
+
+    ctx = getattr(state, "_sp_offense_ctx", None)
+    if ctx is None:
+        ctx = {"t2_control_frames": 0}
+        setattr(state, "_sp_offense_ctx", ctx)
+
+    # Track consecutive frames of team-2 controlled possession
+    if t2.player_haspuck or t2.goalie_haspuck:
+        ctx["t2_control_frames"] = ctx.get("t2_control_frames", 0) + 1
+    else:
+        ctx["t2_control_frames"] = 0
+
+    # Terminal outcomes only
+    if t1.stats.score > t1.last_stats.score:
+        return 1.0
+
+    if state.puck.y < GameConsts.ATACKZONE_POS_Y:
+        return -1.0
+
+    if ctx.get("t2_control_frames", 0) >= SELFPLAY_CONTROL_FRAMES:
+        return -1.0
+
+    return 0.0
+
+
+# =====================================================================
+# Self Play – Defense Finetune
+# Team 1 (learner) defends; team 2 (frozen opponent) attacks.
+# Zero-sum terminal rewards from team-1 perspective.
+# =====================================================================
+
+def init_selfplay_defense(env, env_name):
+    """Initialize defense-zone start positions for the defense finetune drill."""
+    init_defensezone(env, env_name)
+
+
+def isdone_selfplay_defense(state):
+    t1 = state.team1
+    t2 = state.team2
+
+    # Failure: team 2 scores
+    if t2.stats.score > t2.last_stats.score:
+        return True
+
+    # Success: puck cleared past defense zone into neutral/attack territory
+    if state.puck.y >= GameConsts.ATACKZONE_POS_Y:
+        return True
+
+    # Success: team 1 holds controlled possession for N consecutive frames
+    ctx = getattr(state, "_sp_defense_ctx", None)
+    if ctx is not None and ctx.get("t1_control_frames", 0) >= SELFPLAY_CONTROL_FRAMES:
+        return True
+
+    # Timeout
+    if state.time < 100:
+        return True
+
+    return False
+
+
+def rf_selfplay_defense(state):
+    t1 = state.team1
+    t2 = state.team2
+
+    ctx = getattr(state, "_sp_defense_ctx", None)
+    if ctx is None:
+        ctx = {"t1_control_frames": 0}
+        setattr(state, "_sp_defense_ctx", ctx)
+
+    # Track consecutive frames of team-1 controlled possession
+    if t1.player_haspuck or t1.goalie_haspuck:
+        ctx["t1_control_frames"] = ctx.get("t1_control_frames", 0) + 1
+    else:
+        ctx["t1_control_frames"] = 0
+
+    # Terminal outcomes only
+    if t2.stats.score > t2.last_stats.score:
+        return -1.0
+
+    if state.puck.y >= GameConsts.ATACKZONE_POS_Y:
+        return 1.0
+
+    if ctx.get("t1_control_frames", 0) >= SELFPLAY_CONTROL_FRAMES:
+        return 1.0
+
+    return 0.0
+
+
+# =====================================================================
 # Register Functions
 # =====================================================================
 _reward_function_map = {
@@ -813,6 +943,8 @@ _reward_function_map = {
     "Passing": (init_attackzone, rf_passing, isdone_passing, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_no_shoot),
     "General": (init_general, rf_general, isdone_general, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "SelfPlay": (init_selfplay, rf_selfplay, isdone_selfplay, init_model_invariant, set_model_input_invariant, input_overide_empty),
+    "SelfPlayOffenseFinetune": (init_selfplay_offense, rf_selfplay_offense, isdone_selfplay_offense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
+    "SelfPlayDefenseFinetune": (init_selfplay_defense, rf_selfplay_defense, isdone_selfplay_defense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
 }
 
 def register_functions(name: str) -> Tuple[Callable, Callable, Callable]:

@@ -59,6 +59,28 @@
       "num_timesteps": 20000000
     },
     {
+      "name": "Self-Play Offense Finetune",
+      "description": "Team 1 (learner) attacks from the attack zone against a frozen defensive opponent seeded from the previous curriculum checkpoint.",
+      "state": "PenguinsVsSenators.AttackZone",
+      "rf": "SelfPlayOffenseFinetune",
+      "selfplay": true,
+      "num_players": 2,
+      "opponent_snapshot_freq": 50000,
+      "opponent_pool_size": 5,
+      "num_timesteps": 10000000
+    },
+    {
+      "name": "Self-Play Defense Finetune",
+      "description": "Team 1 (learner) defends in the defensive zone against a frozen offensive opponent seeded from the previous finetune checkpoint.",
+      "state": "PenguinsVsSenators.DefenseZone",
+      "rf": "SelfPlayDefenseFinetune",
+      "selfplay": true,
+      "num_players": 2,
+      "opponent_snapshot_freq": 50000,
+      "opponent_pool_size": 5,
+      "num_timesteps": 10000000
+    },
+    {
       "name": "Start State Test",
       "description": "Evaluate the chained model from the normal game start state without additional training.",
       "phase_type": "eval",

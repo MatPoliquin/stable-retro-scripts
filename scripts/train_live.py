@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import random
 import sys
 import threading
 from collections import deque
@@ -26,7 +27,7 @@ import numpy as np
 import pygame
 import pygame.freetype
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 from stable_baselines3.common.evaluation import evaluate_policy
 
 from common import com_print, create_output_dir, get_model_file_name, init_logger
@@ -151,6 +152,100 @@ class LiveTrainingCallback(BaseCallback):
                 f"[Live eval] steps={self.num_timesteps:,} "
                 f"reward={mean_reward:.3f} best={self.shared_state.best_mean_reward:.3f}"
             )
+
+        return True
+
+
+class OpponentSnapshotCallback(BaseCallback):
+    """Periodically snapshots the learner and rotates frozen opponents in all worker envs.
+
+    Maintains a bounded checkpoint pool and samples opponents with a 40/40/20 mixture:
+    40% latest snapshot, 40% random historical, 20% best-known checkpoint.
+    """
+
+    def __init__(
+        self,
+        snapshot_dir: str,
+        snapshot_freq: int,
+        pool_size: int,
+        best_model_path: str,
+        verbose: int = 0,
+    ) -> None:
+        super().__init__(verbose=verbose)
+        self.snapshot_dir = snapshot_dir
+        self.snapshot_freq = max(1, snapshot_freq)
+        self.pool_size = max(1, pool_size)
+        self.best_model_path = best_model_path
+        self._last_snapshot_step = 0
+        self._checkpoint_pool: List[str] = []
+        self._snapshot_counter = 0
+        os.makedirs(snapshot_dir, exist_ok=True)
+
+    def _save_snapshot(self) -> str:
+        """Save current model as a snapshot and return the .zip path."""
+        self._snapshot_counter += 1
+        base = os.path.join(self.snapshot_dir, f"opponent_snapshot_{self._snapshot_counter}")
+        self.model.save(base)
+        return ensure_zip_path(base)
+
+    def _add_to_pool(self, zip_path: str) -> None:
+        """Add a snapshot to the pool, evicting the oldest entry if needed."""
+        self._checkpoint_pool.append(zip_path)
+        if len(self._checkpoint_pool) > self.pool_size:
+            self._checkpoint_pool.pop(0)
+
+    def _sample_opponent(self) -> Optional[str]:
+        """Sample an opponent checkpoint using a 40/40/20 weighted mixture.
+
+        * 40 % – latest snapshot
+        * 40 % – random historical snapshot
+        * 20 % – best-known checkpoint (falls back to random if unavailable)
+        """
+        if not self._checkpoint_pool:
+            return None
+
+        best_zip = ensure_zip_path(self.best_model_path)
+        best_exists = os.path.exists(best_zip)
+
+        roll = random.random()
+        if roll < 0.4:
+            return self._checkpoint_pool[-1]
+        elif roll < 0.8 or not best_exists:
+            return random.choice(self._checkpoint_pool)
+        else:
+            return best_zip
+
+    def _update_env_opponents(self, zip_path: str) -> None:
+        """Push a new opponent checkpoint to all worker environments."""
+        if not (zip_path and os.path.exists(zip_path)):
+            return
+        try:
+            self.training_env.env_method("set_opponent_model", zip_path)
+        except Exception as exc:  # pylint: disable=broad-except
+            com_print(f"[OpponentSnapshotCallback] Failed to update opponents: {exc}")
+
+    def _on_rollout_end(self) -> bool:
+        if self.num_timesteps - self._last_snapshot_step < self.snapshot_freq:
+            return True
+
+        self._last_snapshot_step = self.num_timesteps
+
+        snapshot_path = self._save_snapshot()
+        if os.path.exists(snapshot_path):
+            self._add_to_pool(snapshot_path)
+            if self.verbose:
+                com_print(
+                    f"[OpponentSnapshotCallback] Saved snapshot at step "
+                    f"{self.num_timesteps}: {snapshot_path}"
+                )
+
+        opponent_path = self._sample_opponent()
+        if opponent_path:
+            self._update_env_opponents(opponent_path)
+            if self.verbose:
+                com_print(
+                    f"[OpponentSnapshotCallback] Rotated opponent to: {opponent_path}"
+                )
 
         return True
 
@@ -776,6 +871,16 @@ class LiveTrainer:
             args.hyperparams_dict,
         )
 
+        # Seed the frozen opponent in all worker envs when self-play is enabled
+        load_opponent = getattr(args, "load_opponent_model", "")
+        if load_opponent and getattr(args, "selfplay", False):
+            opponent_path = ensure_zip_path(load_opponent)
+            if os.path.exists(opponent_path):
+                com_print(f"[SelfPlay] Seeding initial opponent model: {opponent_path}")
+                self.env.env_method("set_opponent_model", opponent_path)
+            else:
+                com_print(f"[SelfPlay] Warning: opponent model not found at {opponent_path}")
+
         self.model = init_model(
             self.output_fullpath,
             args.load_p1_model,
@@ -796,13 +901,26 @@ class LiveTrainer:
             self.args.hyperparams_dict,
             use_sticky_action=False,
         )
-        return LiveTrainingCallback(
+        live_cb = LiveTrainingCallback(
             shared_state=shared_state,
             eval_env=eval_env,
             eval_freq=self.args.live_eval_freq,
             eval_episodes=self.args.live_eval_episodes,
             verbose=1 if self.args.alg_verbose else 0,
         )
+
+        if getattr(self.args, "selfplay", False):
+            snapshot_dir = os.path.join(self.output_fullpath, "opponent_snapshots")
+            snapshot_cb = OpponentSnapshotCallback(
+                snapshot_dir=snapshot_dir,
+                snapshot_freq=getattr(self.args, "opponent_snapshot_freq", 50_000),
+                pool_size=getattr(self.args, "opponent_pool_size", 5),
+                best_model_path=self.best_model_savepath,
+                verbose=1 if self.args.alg_verbose else 0,
+            )
+            return CallbackList([live_cb, snapshot_cb])
+
+        return live_cb
 
     def train(self, callback: BaseCallback) -> None:
         if self.args.alg == "es":
@@ -880,6 +998,26 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=0.0,
         help="Extra seconds to wait after each display step (default 0 for ~60 FPS playback).",
+    )
+
+    # Self-play arguments
+    parser.add_argument(
+        "--load_opponent_model",
+        type=str,
+        default="",
+        help="Path to an initial frozen-opponent checkpoint for self-play training.",
+    )
+    parser.add_argument(
+        "--opponent_snapshot_freq",
+        type=int,
+        default=50_000,
+        help="Timestep interval between opponent checkpoint snapshots during self-play.",
+    )
+    parser.add_argument(
+        "--opponent_pool_size",
+        type=int,
+        default=5,
+        help="Maximum number of opponent checkpoints to keep in the rotation pool.",
     )
 
     return parser
