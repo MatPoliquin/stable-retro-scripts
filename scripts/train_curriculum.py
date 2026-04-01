@@ -21,7 +21,7 @@ RUNNER_PHASE_METADATA = {
     "phase_type",
     "eval_episodes",
 }
-PATH_KEYS = ("hyperparams", "load_p1_model", "output_basedir")
+PATH_KEYS = ("hyperparams", "load_p1_model", "load_opponent_model", "output_basedir")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -81,6 +81,11 @@ def merge_phase_config(
 
     if previous_model_path:
         merged["load_p1_model"] = previous_model_path
+
+    # For self-play phases, seed the initial frozen opponent from the previous
+    # curriculum checkpoint when no explicit opponent path has been provided.
+    if merged.get("selfplay") and previous_model_path and not merged.get("load_opponent_model"):
+        merged["load_opponent_model"] = previous_model_path
 
     return merged
 
