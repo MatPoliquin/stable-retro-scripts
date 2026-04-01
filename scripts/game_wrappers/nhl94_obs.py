@@ -3,6 +3,7 @@ NHL94 Observation wrapper
 """
 
 import datetime
+import os
 import random
 import copy
 from collections import deque
@@ -73,11 +74,26 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.ai_sys = NHL94AISystem(args, env, None)
 
         self.ram_inited = False
-        self.b_button_pressed = False
-        self.c_button_pressed = False
 
-        self.slapshot_frames_held = 0      # 0 means not in slapshot mode
+        # Per-side action processing state so learner and opponent debounce
+        # counters do not corrupt each other during self-play.
+        self.action_state = {
+            "learner": {"b_pressed": False, "c_pressed": False, "slapshot_frames": 0},
+            "opponent": {"b_pressed": False, "c_pressed": False, "slapshot_frames": 0},
+        }
+
         self.SLAPSHOT_HOLD_FRAMES = 60     # Number of frames to hold C for slapshot
+
+        # Self-play state -------------------------------------------------
+        # Activated via set_selfplay_role() / set_opponent_model().
+        # Team 1 is always the learner in the first implementation.
+        self.selfplay_enabled = False
+        self.selfplay_role = None          # "offense" or "defense"
+        self.opponent_model_path = None
+        self.opponent_model = None
+        # Exposed so external callers (e.g. curriculum) can adjust this.
+        self.control_frames_required = 60
+        self.selfplay_outcome = None       # set to +1 / -1 / 0 at episode end
 
     def _get_scalar_state_array(self):
         return np.asarray(self.state, dtype=np.float32)
@@ -109,117 +125,196 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         self.game_state = NHL94GameState(self.num_players_per_team)
         self.ram_inited = False
-        self.b_button_pressed = False
-        self.c_button_pressed = False
+        self.action_state = {
+            "learner": {"b_pressed": False, "c_pressed": False, "slapshot_frames": 0},
+            "opponent": {"b_pressed": False, "c_pressed": False, "slapshot_frames": 0},
+        }
+        self.selfplay_outcome = None
 
         return self._get_obs(state), info
 
+    def _process_filtered_action(self, ac, side: str):
+        """Process a 12-button FILTERED action for *side* ('learner' or 'opponent').
+
+        Returns the processed action list and a 6-element gamestate_ac vector.
+        The per-side action_state dict is updated in place.
+        """
+        ac = list(ac)
+        st = self.action_state[side]
+
+        # B button debounce
+        if st["b_pressed"] and ac[GameConsts.INPUT_B] == 1:
+            ac[GameConsts.INPUT_B] = 0
+            st["b_pressed"] = False
+        elif not st["b_pressed"] and ac[GameConsts.INPUT_B] == 1:
+            st["b_pressed"] = True
+        else:
+            st["b_pressed"] = False
+
+        # C button / slapshot handling
+        if ac[GameConsts.INPUT_MODE] == 1:
+            if st["slapshot_frames"] == 0:
+                st["slapshot_frames"] = 1
+                ac[GameConsts.INPUT_C] = 1
+            else:
+                st["slapshot_frames"] += 1
+                ac[GameConsts.INPUT_C] = 1
+                if st["slapshot_frames"] >= self.SLAPSHOT_HOLD_FRAMES:
+                    st["slapshot_frames"] = 0
+                    ac[GameConsts.INPUT_C] = 0
+        else:
+            if st["c_pressed"] and ac[GameConsts.INPUT_C] == 1:
+                ac[GameConsts.INPUT_C] = 0
+                st["c_pressed"] = False
+            elif not st["c_pressed"] and ac[GameConsts.INPUT_C] == 1:
+                st["c_pressed"] = True
+            else:
+                st["c_pressed"] = False
+            st["slapshot_frames"] = 0
+
+        gamestate_ac = [
+            ac[GameConsts.INPUT_UP] == 1,
+            ac[GameConsts.INPUT_DOWN] == 1,
+            ac[GameConsts.INPUT_LEFT] == 1,
+            ac[GameConsts.INPUT_RIGHT] == 1,
+            ac[GameConsts.INPUT_B] == 1,
+            ac[GameConsts.INPUT_C] == 1,
+        ]
+        return ac, gamestate_ac
+
+    def _process_multidiscrete_action(self, ac, side: str):
+        """Process a 3-button MULTI_DISCRETE action for *side*.
+
+        Returns the processed action list and a 6-element gamestate_ac vector.
+        The per-side action_state dict is updated in place.
+        """
+        ac = list(ac)
+        st = self.action_state[side]
+
+        # B button debounce (action == 1)
+        if ac[2] == 1:
+            if st["b_pressed"]:
+                ac[2] = 0
+                st["b_pressed"] = False
+            else:
+                st["b_pressed"] = True
+        else:
+            st["b_pressed"] = False
+
+        # C button / slapshot (action == 2)
+        if ac[2] == 2:
+            if st["slapshot_frames"] == 0:
+                st["slapshot_frames"] = 1
+            else:
+                st["slapshot_frames"] += 1
+                if st["slapshot_frames"] >= self.SLAPSHOT_HOLD_FRAMES:
+                    ac[2] = 0
+                    st["slapshot_frames"] = 0
+        else:
+            st["slapshot_frames"] = 0
+
+        gamestate_ac = [
+            ac[0] == 1,
+            ac[0] == 2,
+            ac[1] == 1,
+            ac[1] == 2,
+            ac[2] == 1,
+            ac[2] == 2,
+        ]
+        return ac, gamestate_ac
+
+    # ------------------------------------------------------------------
+    # Self-play interface
+    # ------------------------------------------------------------------
+
+    def set_opponent_model(self, path: str) -> None:
+        """Load (or swap) the frozen opponent policy from *path*.
+
+        Designed to be called via ``SubprocVecEnv.env_method`` so that every
+        worker subprocess loads the model independently.  Passing ``None`` or
+        an empty string disables the opponent and falls back to no-op actions.
+        """
+        if not path:
+            self.opponent_model = None
+            self.opponent_model_path = None
+            return
+
+        zip_path = path if path.endswith(".zip") else f"{path}.zip"
+        if not os.path.exists(zip_path):
+            self.opponent_model = None
+            self.opponent_model_path = None
+            return
+
+        try:
+            from stable_baselines3 import PPO  # imported lazily to avoid hard dep
+            self.opponent_model = PPO.load(zip_path)
+            self.opponent_model_path = zip_path
+        except Exception:  # pylint: disable=broad-except
+            self.opponent_model = None
+            self.opponent_model_path = None
+
+    def set_selfplay_role(self, role) -> None:
+        """Set the self-play drill role for this env.
+
+        *role* must be ``"offense"``, ``"defense"``, or ``None``.
+        Setting a non-None role also enables self-play.
+        """
+        assert role in ("offense", "defense", None), \
+            f"selfplay role must be 'offense', 'defense', or None — got {role!r}"
+        self.selfplay_role = role
+        self.selfplay_enabled = role is not None
+
+    def compute_opponent_action(self, obs):
+        """Return an action array from the frozen opponent model.
+
+        If no opponent model is loaded, a no-op 12-button action is returned.
+        The observation is passed as-is (team-1 perspective for Milestone 1).
+        """
+        if self.opponent_model is None:
+            return [0] * 12
+
+        obs_array = np.array(obs, dtype=np.float32)
+        action, _ = self.opponent_model.predict(obs_array, deterministic=True)
+        return action
+
+    def combine_selfplay_actions(self, learner_action, opponent_action):
+        """Build the two-player action payload consumed by the retro env."""
+        return np.concatenate(
+            [np.array(learner_action), np.array(opponent_action)]
+        )
+
+    # ------------------------------------------------------------------
+
     def step(self, ac):
-        p2_ac = [0,0,0,0,0,0,0,0,0,0,0,0]
-        p1_zero = [0,0,0,0,0,0,0,0,0,0,0,0]
-
-        if self.prev_state != None and self.num_players == 2:
-            self.prev_state.Flip()
-
-
         gamestate_ac = [0] * 6
 
-        # Handle different action space types
+        # Process learner action
         if isinstance(ac, (list, np.ndarray)) and len(ac) == 12:
-            # FILTERED action space (12-button array)
-            # B button handling
-            if self.b_button_pressed and ac[GameConsts.INPUT_B] == 1:
-                ac[GameConsts.INPUT_B] = 0
-                self.b_button_pressed = False
-            elif not self.b_button_pressed and ac[GameConsts.INPUT_B] == 1:
-                self.b_button_pressed = True
-            else:
-                self.b_button_pressed = False
-
-            # C button handling (slapshot)
-            if ac[GameConsts.INPUT_MODE] == 1:
-                if self.slapshot_frames_held == 0:
-                    self.slapshot_frames_held = 1
-                    ac[GameConsts.INPUT_C] = 1
-                else:
-                    self.slapshot_frames_held += 1
-                    ac[GameConsts.INPUT_C] = 1
-                    if self.slapshot_frames_held >= self.SLAPSHOT_HOLD_FRAMES:
-                        self.slapshot_frames_held = 0
-                        ac[GameConsts.INPUT_C] = 0
-            else:
-                if self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
-                    ac[GameConsts.INPUT_C] = 0
-                    self.c_button_pressed = False
-                elif not self.c_button_pressed and ac[GameConsts.INPUT_C] == 1:
-                    self.c_button_pressed = True
-                else:
-                    self.c_button_pressed = False
-                self.slapshot_frames_held = 0
-
-            gamestate_ac[0] = ac[GameConsts.INPUT_UP] == 1
-            gamestate_ac[1] = ac[GameConsts.INPUT_DOWN] == 1
-            gamestate_ac[2] = ac[GameConsts.INPUT_LEFT] == 1
-            gamestate_ac[3] = ac[GameConsts.INPUT_RIGHT] == 1
-            gamestate_ac[4] = ac[GameConsts.INPUT_B] == 1
-            gamestate_ac[5] = ac[GameConsts.INPUT_C] == 1
-
+            ac, gamestate_ac = self._process_filtered_action(ac, "learner")
         elif isinstance(ac, (list, np.ndarray)) and len(ac) == 3:
-            # MULTI_DISCRETE action space (3-button array)
-            # Process MULTI_DISCRETE actions for NHL94 format:
-            # ac = [vertical, horizontal, action] where:
-            #   0 = no input
-            #   1 = first option (e.g., "UP")
-            #   2 = second option (e.g., "DOWN")
-
-            # Make a copy to avoid modifying original
-            processed_ac = list(ac).copy()
-
-            # B button handling (action button 1)
-            if processed_ac[2] == 1:  # B pressed
-                if self.b_button_pressed:
-                    processed_ac[2] = 0  # Release B if already pressed
-                    self.b_button_pressed = False
-                else:
-                    self.b_button_pressed = True
-            else:
-                self.b_button_pressed = False
-
-            # C button handling (action button 2 - slapshot)
-            if processed_ac[2] == 2:  # C pressed
-                if self.slapshot_frames_held == 0:
-                    self.slapshot_frames_held = 1
-                else:
-                    self.slapshot_frames_held += 1
-                    if self.slapshot_frames_held >= self.SLAPSHOT_HOLD_FRAMES:
-                        processed_ac[2] = 0  # Release C after hold duration
-                        self.slapshot_frames_held = 0
-            else:
-                self.slapshot_frames_held = 0
-
-            ac = processed_ac
-
-            gamestate_ac[0] = ac[0] == 1
-            gamestate_ac[1] = ac[0] == 2
-            gamestate_ac[2] = ac[1] == 1
-            gamestate_ac[3] = ac[1] == 2
-            gamestate_ac[4] = ac[2] == 1
-            gamestate_ac[5] = ac[2] == 2
-
+            ac, gamestate_ac = self._process_multidiscrete_action(ac, "learner")
         else:
-            # Handle other cases or raise error
             raise ValueError(f"Unsupported action format: {ac}")
 
-
-
-
         # Reward functions might need to override input
-        #print(ac)
         self.input_overide(ac)
 
-        ac2 = ac
-        if self.num_players == 2:
+        # Build full two-player action for the retro env
+        if self.selfplay_enabled:
+            # Compute and process the frozen opponent's action (team 2)
+            opp_raw = self.compute_opponent_action(np.array(self.state, dtype=np.float32))
+            if isinstance(opp_raw, (list, np.ndarray)) and len(opp_raw) == 12:
+                opp_ac, _ = self._process_filtered_action(opp_raw, "opponent")
+            elif isinstance(opp_raw, (list, np.ndarray)) and len(opp_raw) == 3:
+                opp_ac, _ = self._process_multidiscrete_action(opp_raw, "opponent")
+            else:
+                opp_ac = [0] * 12
+            ac2 = self.combine_selfplay_actions(ac, opp_ac)
+        elif self.num_players == 2:
+            p2_ac = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
             ac2 = np.concatenate([ac, np.array(p2_ac)])
+        else:
+            ac2 = ac
 
         ob, rew, terminated, truncated, info = self.env.step(ac2)
 
@@ -234,6 +329,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
         # Calculate Reward and check if episode is done
         rew = self.reward_function(self.game_state)
         terminated = self.done_function(self.game_state)
+
+        if terminated:
+            self.selfplay_outcome = rew
 
         self.game_state.EndFrame()
 

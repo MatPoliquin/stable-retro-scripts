@@ -13,10 +13,11 @@ from __future__ import annotations
 
 import argparse
 import os
+import random
 import sys
 import threading
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Deque, List, Optional, Sequence, Tuple
 
 # Hide the pygame greeting before importing pygame modules
@@ -153,6 +154,86 @@ class LiveTrainingCallback(BaseCallback):
             )
 
         return True
+
+
+class OpponentSnapshotCallback(BaseCallback):
+    """Periodically snapshots the learner policy and rotates the frozen opponent.
+
+    This implements a minimal checkpoint-pool strategy for self-play:
+      - Every ``snapshot_freq`` timesteps the current learner policy is saved.
+      - The pool is bounded to ``pool_size`` entries (oldest entry is dropped).
+      - After each snapshot the new opponent is sampled from the pool using a
+        weighted distribution::
+
+            40 %  latest snapshot
+            40 %  random historical snapshot
+            20 %  oldest snapshot (a rough proxy for the strongest prior)
+
+    The chosen checkpoint path is broadcast to all vectorised env workers via
+    ``env_method("set_opponent_model", path)``.  Workers that do not expose
+    ``set_opponent_model`` (e.g. non-NHL94 envs) are silently skipped.
+    """
+
+    def __init__(
+        self,
+        training_env,
+        snapshot_dir: str,
+        snapshot_freq: int = 50_000,
+        pool_size: int = 5,
+        verbose: int = 0,
+    ) -> None:
+        super().__init__(verbose=verbose)
+        self.training_env = training_env
+        self.snapshot_dir = snapshot_dir
+        self.snapshot_freq = max(1, snapshot_freq)
+        self.pool_size = max(1, pool_size)
+        self._pool: List[str] = []
+        self._last_snapshot_step = 0
+
+    def _on_step(self) -> bool:
+        if self.num_timesteps - self._last_snapshot_step >= self.snapshot_freq:
+            self._save_snapshot()
+            self._rotate_opponent()
+            self._last_snapshot_step = self.num_timesteps
+        return True
+
+    def _save_snapshot(self) -> None:
+        os.makedirs(self.snapshot_dir, exist_ok=True)
+        path = os.path.join(
+            self.snapshot_dir, f"opponent_snap_{self.num_timesteps}"
+        )
+        self.model.save(path)
+        zip_path = path if path.endswith(".zip") else f"{path}.zip"
+        self._pool.append(zip_path)
+        if len(self._pool) > self.pool_size:
+            self._pool.pop(0)
+        if self.verbose:
+            com_print(
+                f"[OpponentSnapshot] saved snapshot at step {self.num_timesteps:,} "
+                f"→ {zip_path}  (pool size {len(self._pool)})"
+            )
+
+    def _rotate_opponent(self) -> None:
+        if not self._pool:
+            return
+
+        n = len(self._pool)
+        rand = random.random()
+        if n == 1 or rand < 0.4:
+            chosen = self._pool[-1]            # 40 % — latest (or only option)
+        elif n == 2 or rand < 0.8:
+            chosen = random.choice(self._pool[:-1])  # 40 % — random historical
+        else:
+            chosen = self._pool[0]             # 20 % — oldest / strongest
+
+        try:
+            self.training_env.env_method("set_opponent_model", chosen)
+            if self.verbose:
+                com_print(
+                    f"[OpponentSnapshot] rotated opponent → {os.path.basename(chosen)}"
+                )
+        except Exception:  # pylint: disable=broad-except
+            pass  # env does not expose set_opponent_model — ignore gracefully
 
 
 class LiveTrainingDisplay(threading.Thread):
@@ -776,6 +857,15 @@ class LiveTrainer:
             args.hyperparams_dict,
         )
 
+        # Seed the initial frozen opponent when self-play is enabled
+        load_opponent = getattr(args, "load_opponent_model", "") or ""
+        if getattr(args, "selfplay", False) and load_opponent:
+            try:
+                self.env.env_method("set_opponent_model", load_opponent)
+                com_print(f"[SelfPlay] Seeded initial opponent from: {load_opponent}")
+            except Exception:  # pylint: disable=broad-except
+                com_print("[SelfPlay] Warning: could not seed initial opponent model.")
+
         self.model = init_model(
             self.output_fullpath,
             args.load_p1_model,
@@ -787,6 +877,8 @@ class LiveTrainer:
         )
 
     def build_callback(self, shared_state: LiveTrainingState) -> BaseCallback:
+        from stable_baselines3.common.callbacks import CallbackList
+
         eval_env = init_env(
             None,
             1,
@@ -796,13 +888,30 @@ class LiveTrainer:
             self.args.hyperparams_dict,
             use_sticky_action=False,
         )
-        return LiveTrainingCallback(
+        live_cb = LiveTrainingCallback(
             shared_state=shared_state,
             eval_env=eval_env,
             eval_freq=self.args.live_eval_freq,
             eval_episodes=self.args.live_eval_episodes,
             verbose=1 if self.args.alg_verbose else 0,
         )
+
+        callbacks = [live_cb]
+
+        if getattr(self.args, "selfplay", False):
+            snapshot_dir = os.path.join(self.output_fullpath, "opponent_snapshots")
+            snapshot_cb = OpponentSnapshotCallback(
+                training_env=self.env,
+                snapshot_dir=snapshot_dir,
+                snapshot_freq=getattr(self.args, "selfplay_snapshot_freq", 50_000),
+                pool_size=getattr(self.args, "selfplay_pool_size", 5),
+                verbose=1 if self.args.alg_verbose else 0,
+            )
+            callbacks.append(snapshot_cb)
+
+        if len(callbacks) == 1:
+            return callbacks[0]
+        return CallbackList(callbacks)
 
     def train(self, callback: BaseCallback) -> None:
         if self.args.alg == "es":
@@ -853,6 +962,24 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--deterministic", default=True, action="store_true")
     parser.add_argument("--hyperparams", type=str, default="../hyperparams/default.json")
     parser.add_argument("--selfplay", default=False, action="store_true")
+    parser.add_argument(
+        "--load_opponent_model",
+        type=str,
+        default="",
+        help="Path to an initial frozen opponent checkpoint for self-play.",
+    )
+    parser.add_argument(
+        "--selfplay_snapshot_freq",
+        type=int,
+        default=50_000,
+        help="Timesteps between opponent snapshot saves during self-play.",
+    )
+    parser.add_argument(
+        "--selfplay_pool_size",
+        type=int,
+        default=5,
+        help="Maximum number of opponent snapshots to keep in the pool.",
+    )
     parser.add_argument(
         "--seq_len",
         type=int,

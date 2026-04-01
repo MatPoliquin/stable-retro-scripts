@@ -801,6 +801,143 @@ def rf_selfplay(state):
     return base
 
 # =====================================================================
+# SelfPlay Offense Finetune
+# Team 1 (learner) attacks from the attack zone against a frozen
+# defensive opponent on team 2.  Rewards are terminal and zero-sum
+# from team 1's perspective.
+# =====================================================================
+_SELFPLAY_CTRL_FRAMES_REQUIRED = 60  # frames of continuous control = decisive outcome
+
+def init_selfplay_offense(env, env_name):
+    """Initialise an attack-zone drill for offense finetune."""
+    init_attackzone(env, env_name)
+
+def rf_selfplay_offense(state):
+    """
+    Terminal zero-sum reward for offense finetune (team 1 is learner/attacker).
+      +1.0  team 1 scores
+      -1.0  team 2 secures possession for N frames OR clears the puck
+       0.0  timeout (no decisive outcome)
+    Called before isdone_selfplay_offense so it also updates the tracking state.
+    """
+    t1 = state.team1
+    t2 = state.team2
+
+    ctrl_state = getattr(state, "_selfplay_offense_ctrl", None)
+    if ctrl_state is None:
+        ctrl_state = {"t2_ctrl_frames": 0}
+        setattr(state, "_selfplay_offense_ctrl", ctrl_state)
+
+    # Update consecutive-control counter for team 2
+    if t2.player_haspuck or t2.goalie_haspuck:
+        ctrl_state["t2_ctrl_frames"] += 1
+    else:
+        ctrl_state["t2_ctrl_frames"] = 0
+
+    if t1.stats.score > t1.last_stats.score:
+        return 1.0
+
+    if ctrl_state["t2_ctrl_frames"] >= _SELFPLAY_CTRL_FRAMES_REQUIRED:
+        return -1.0
+
+    # Puck cleared out of the attack zone with team 2 in control
+    if state.puck.y < GameConsts.ATACKZONE_POS_Y and (t2.player_haspuck or t2.goalie_haspuck):
+        return -1.0
+
+    if state.time < 100:
+        return 0.0
+
+    return 0.0
+
+def isdone_selfplay_offense(state):
+    """Episode ends when a decisive offensive outcome or timeout occurs."""
+    t1 = state.team1
+    t2 = state.team2
+
+    if t1.stats.score > t1.last_stats.score:
+        return True
+
+    ctrl_state = getattr(state, "_selfplay_offense_ctrl", {"t2_ctrl_frames": 0})
+    if ctrl_state.get("t2_ctrl_frames", 0) >= _SELFPLAY_CTRL_FRAMES_REQUIRED:
+        return True
+
+    if state.puck.y < GameConsts.ATACKZONE_POS_Y and (t2.player_haspuck or t2.goalie_haspuck):
+        return True
+
+    if state.time < 100:
+        return True
+
+    return False
+
+# =====================================================================
+# SelfPlay Defense Finetune
+# Team 1 (learner) defends from the defensive zone against a frozen
+# offensive opponent on team 2.  Rewards are terminal and zero-sum
+# from team 1's perspective.
+# =====================================================================
+
+def init_selfplay_defense(env, env_name):
+    """Initialise a defense-zone drill for defense finetune."""
+    init_defensezone(env, env_name)
+
+def rf_selfplay_defense(state):
+    """
+    Terminal zero-sum reward for defense finetune (team 1 is learner/defender).
+      +1.0  team 1 clears the puck past centre ice OR secures possession for N frames
+      -1.0  team 2 scores
+       0.0  timeout (no decisive outcome)
+    Called before isdone_selfplay_defense so it also updates the tracking state.
+    """
+    t1 = state.team1
+    t2 = state.team2
+
+    ctrl_state = getattr(state, "_selfplay_defense_ctrl", None)
+    if ctrl_state is None:
+        ctrl_state = {"t1_ctrl_frames": 0}
+        setattr(state, "_selfplay_defense_ctrl", ctrl_state)
+
+    # Update consecutive-control counter for team 1
+    if t1.player_haspuck:
+        ctrl_state["t1_ctrl_frames"] += 1
+    else:
+        ctrl_state["t1_ctrl_frames"] = 0
+
+    if t2.stats.score > t2.last_stats.score:
+        return -1.0
+
+    # Puck cleared to centre ice or beyond — defensive success
+    if state.puck.y >= GameConsts.ATACKZONE_POS_Y:
+        return 1.0
+
+    if ctrl_state["t1_ctrl_frames"] >= _SELFPLAY_CTRL_FRAMES_REQUIRED:
+        return 1.0
+
+    if state.time < 100:
+        return 0.0
+
+    return 0.0
+
+def isdone_selfplay_defense(state):
+    """Episode ends when a decisive defensive outcome or timeout occurs."""
+    t1 = state.team1
+    t2 = state.team2
+
+    if t2.stats.score > t2.last_stats.score:
+        return True
+
+    if state.puck.y >= GameConsts.ATACKZONE_POS_Y:
+        return True
+
+    ctrl_state = getattr(state, "_selfplay_defense_ctrl", {"t1_ctrl_frames": 0})
+    if ctrl_state.get("t1_ctrl_frames", 0) >= _SELFPLAY_CTRL_FRAMES_REQUIRED:
+        return True
+
+    if state.time < 100:
+        return True
+
+    return False
+
+# =====================================================================
 # Register Functions
 # =====================================================================
 _reward_function_map = {
@@ -813,6 +950,8 @@ _reward_function_map = {
     "Passing": (init_attackzone, rf_passing, isdone_passing, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_no_shoot),
     "General": (init_general, rf_general, isdone_general, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "SelfPlay": (init_selfplay, rf_selfplay, isdone_selfplay, init_model_invariant, set_model_input_invariant, input_overide_empty),
+    "SelfPlayOffenseFinetune": (init_selfplay_offense, rf_selfplay_offense, isdone_selfplay_offense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
+    "SelfPlayDefenseFinetune": (init_selfplay_defense, rf_selfplay_defense, isdone_selfplay_defense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
 }
 
 def register_functions(name: str) -> Tuple[Callable, Callable, Callable]:
