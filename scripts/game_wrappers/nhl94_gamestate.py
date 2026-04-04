@@ -340,6 +340,7 @@ class NHL94GameState():
         self.team1 = Team(1, numPlayers)
         self.team2 = Team(2, numPlayers)
         self.puck = Player()
+        self.period = 1
         self.time = 0
         self.last_time = 0
         self.numPlayers = numPlayers
@@ -553,6 +554,7 @@ class NHL94GameState():
             self.slapshot_frames_held = 0  # Reset if C not pressed
 
 
+        self.period = info.get("period", 1) or 1
         self.time = info.get("time")
 
         #Puck

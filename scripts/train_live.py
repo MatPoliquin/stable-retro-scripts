@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import random
 import sys
 import threading
 from collections import deque
@@ -26,7 +27,7 @@ import numpy as np
 import pygame
 import pygame.freetype
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 from stable_baselines3.common.evaluation import evaluate_policy
 
 from common import com_print, create_output_dir, get_model_file_name, init_logger
@@ -150,6 +151,103 @@ class LiveTrainingCallback(BaseCallback):
             com_print(
                 f"[Live eval] steps={self.num_timesteps:,} "
                 f"reward={mean_reward:.3f} best={self.shared_state.best_mean_reward:.3f}"
+            )
+
+        return True
+
+
+class SelfPlaySnapshotCallback(BaseCallback):
+    """Periodically snapshots the learner and rotates the frozen self-play opponent."""
+
+    def __init__(
+        self,
+        *,
+        output_dir: str,
+        best_model_path: str,
+        eval_env,
+        initial_opponent_path: str,
+        snapshot_freq: int,
+        max_snapshots: int,
+        verbose: int = 0,
+    ) -> None:
+        super().__init__(verbose=verbose)
+        self.output_dir = output_dir
+        self.best_model_path = ensure_zip_path(best_model_path)
+        self.eval_env = eval_env
+        self.snapshot_freq = max(1, snapshot_freq)
+        self.max_snapshots = max(1, max_snapshots)
+        self._last_snapshot_step = 0
+        self._current_opponent_path = ensure_zip_path(initial_opponent_path) if initial_opponent_path else ""
+        self._latest_snapshot_path = self._current_opponent_path
+        self._historical_paths: List[str] = []
+        if self._current_opponent_path:
+            self._historical_paths.append(self._current_opponent_path)
+
+    def _unwrap_vec_env(self, env):
+        current = env
+        while hasattr(current, "venv"):
+            current = current.venv
+        return current
+
+    def _set_opponent_model(self, env, path: str) -> None:
+        if not path:
+            return
+
+        target_env = self._unwrap_vec_env(env)
+        if hasattr(target_env, "env_method"):
+            target_env.env_method("set_opponent_model", path)
+
+    def _save_snapshot(self) -> str:
+        snapshot_path = os.path.join(self.output_dir, f"selfplay_snapshot_{self.num_timesteps}.zip")
+        self.model.save(snapshot_path)
+        return snapshot_path
+
+    def _record_snapshot(self, snapshot_path: str) -> None:
+        self._latest_snapshot_path = snapshot_path
+        if snapshot_path in self._historical_paths:
+            self._historical_paths.remove(snapshot_path)
+        self._historical_paths.append(snapshot_path)
+
+        while len(self._historical_paths) > self.max_snapshots:
+            removed = self._historical_paths.pop(0)
+            if removed == self._current_opponent_path:
+                self._current_opponent_path = self._historical_paths[0] if self._historical_paths else ""
+
+    def _sample_opponent_path(self) -> str:
+        if not self._historical_paths:
+            return self._current_opponent_path
+
+        latest_candidate = self._latest_snapshot_path or self._historical_paths[-1]
+        best_candidate = self.best_model_path if os.path.exists(self.best_model_path) else latest_candidate
+
+        roll = random.random()
+        if roll < 0.4:
+            return latest_candidate
+        if roll < 0.8:
+            return random.choice(self._historical_paths)
+        return best_candidate
+
+    def _on_step(self) -> bool:
+        return True
+
+    def _on_rollout_end(self) -> bool:
+        if self.num_timesteps - self._last_snapshot_step < self.snapshot_freq:
+            return True
+
+        snapshot_path = self._save_snapshot()
+        self._record_snapshot(snapshot_path)
+        self._last_snapshot_step = self.num_timesteps
+
+        sampled_path = self._sample_opponent_path()
+        if sampled_path:
+            self._current_opponent_path = sampled_path
+            self._set_opponent_model(self.training_env, sampled_path)
+            self._set_opponent_model(self.eval_env, sampled_path)
+
+        if self.verbose:
+            com_print(
+                f"[Self-play] steps={self.num_timesteps:,} snapshot={os.path.basename(snapshot_path)} "
+                f"opponent={os.path.basename(sampled_path) if sampled_path else 'none'}"
             )
 
         return True
@@ -761,6 +859,7 @@ class LiveTrainer:
     def __init__(self, args: argparse.Namespace, logger) -> None:
         self.args = args
         self.logger = logger
+        self.callback_envs = []
 
         self.output_fullpath = create_output_dir(args)
         model_savefile_name = get_model_file_name(args)
@@ -796,13 +895,32 @@ class LiveTrainer:
             self.args.hyperparams_dict,
             use_sticky_action=False,
         )
-        return LiveTrainingCallback(
+        self.callback_envs = [eval_env]
+
+        live_callback = LiveTrainingCallback(
             shared_state=shared_state,
             eval_env=eval_env,
             eval_freq=self.args.live_eval_freq,
             eval_episodes=self.args.live_eval_episodes,
             verbose=1 if self.args.alg_verbose else 0,
         )
+
+        if not getattr(self.args, "selfplay", False):
+            return live_callback
+
+        snapshot_callback = SelfPlaySnapshotCallback(
+            output_dir=self.output_fullpath,
+            best_model_path=self.best_model_savepath,
+            eval_env=eval_env,
+            initial_opponent_path=getattr(self.args, "load_opponent_model", ""),
+            snapshot_freq=max(
+                self.args.live_eval_freq,
+                getattr(self.args, "selfplay_snapshot_freq", 100_000),
+            ),
+            max_snapshots=getattr(self.args, "selfplay_max_snapshots", 8),
+            verbose=1 if self.args.alg_verbose else 0,
+        )
+        return CallbackList([live_callback, snapshot_callback])
 
     def train(self, callback: BaseCallback) -> None:
         if self.args.alg == "es":
@@ -829,6 +947,9 @@ class LiveTrainer:
     def close(self) -> None:
         if self.env is not None:
             self.env.close()
+        for callback_env in self.callback_envs:
+            callback_env.close()
+        self.callback_envs = []
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -844,6 +965,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--num_timesteps", type=int, default=6_000_000)
     parser.add_argument("--output_basedir", type=str, default="~/OUTPUT")
     parser.add_argument("--load_p1_model", type=str, default="")
+    parser.add_argument("--load_opponent_model", type=str, default="")
     parser.add_argument("--display_width", type=int, default=1440)
     parser.add_argument("--display_height", type=int, default=810)
     parser.add_argument("--alg_verbose", default=True, action="store_true")
@@ -853,6 +975,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--deterministic", default=True, action="store_true")
     parser.add_argument("--hyperparams", type=str, default="../hyperparams/default.json")
     parser.add_argument("--selfplay", default=False, action="store_true")
+    parser.add_argument("--selfplay_role", type=str, default="offense", choices=["offense", "defense"])
+    parser.add_argument("--selfplay-snapshot-freq", dest="selfplay_snapshot_freq", type=int, default=100_000)
+    parser.add_argument("--selfplay-max-snapshots", dest="selfplay_max_snapshots", type=int, default=8)
     parser.add_argument(
         "--seq_len",
         type=int,
@@ -898,6 +1023,13 @@ def prepare_args(args: argparse.Namespace, *, hyperparams_base_dir: Optional[str
             required=True,
             base_dir=hyperparams_base_dir or os.path.dirname(__file__),
         )
+
+    if getattr(args, "selfplay", False):
+        if not getattr(args, "rf", ""):
+            args.rf = "SelfPlayOffenseFinetune" if args.selfplay_role == "offense" else "SelfPlayDefenseFinetune"
+        if not getattr(args, "load_opponent_model", ""):
+            args.load_opponent_model = getattr(args, "load_p1_model", "")
+
     return args
 
 
@@ -935,7 +1067,6 @@ def run_training_session(args: argparse.Namespace, logger=None) -> LiveTrainingR
         display.stop()
         display.join(timeout=5.0)
         trainer.close()
-        callback.eval_env.close()
 
     if args.play:
         com_print("Play-after-train is not yet available in live mode.")

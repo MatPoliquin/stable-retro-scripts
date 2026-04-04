@@ -27,6 +27,16 @@ VECTOR_POLICIES = (
     'GRUMlpPolicy',
 )
 
+
+def load_model_for_inference(player_model, player_alg='ppo2'):
+    if not player_model:
+        raise ValueError('player_model must be provided for inference loading')
+
+    if player_alg == 'ppo2':
+        return PPO.load(os.path.expanduser(player_model), device='cpu')
+
+    raise NotImplementedError(f"Inference loading is not implemented for algorithm '{player_alg}'")
+
 def get_num_parameters(model):
     total_params = sum(p.numel() for p in model.policy.parameters() if p.requires_grad)
     return total_params

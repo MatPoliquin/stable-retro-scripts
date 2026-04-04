@@ -21,7 +21,7 @@ RUNNER_PHASE_METADATA = {
     "phase_type",
     "eval_episodes",
 }
-PATH_KEYS = ("hyperparams", "load_p1_model", "output_basedir")
+PATH_KEYS = ("hyperparams", "load_p1_model", "load_opponent_model", "output_basedir")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -134,6 +134,7 @@ def format_phase_summary(config: Dict[str, Any]) -> str:
         "hyperparams",
         "output_basedir",
         "load_p1_model",
+        "load_opponent_model",
     )
     summary = {key: config.get(key) for key in ordered_keys if key in config}
     return json.dumps(summary, indent=2, sort_keys=False)

@@ -5,6 +5,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecFram
 from stable_baselines3.common.monitor import Monitor
 import gymnasium as gym
 import stable_retro as retro
+import stable_retro.data
 import game_wrappers_mgr as games
 import cv2
 from env_wrappers import StochasticFrameSkip, WarpFrameDict, RewardClipper
@@ -15,6 +16,27 @@ def isMLP(name):
     return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy' \
           or name == 'AttentionMLPPolicy' or name == 'EntityAttentionPolicy' or name == 'HockeyMultiHeadPolicy' \
           or name == 'HybridMambaPolicy' or name == 'GRUMlpPolicy'
+
+
+def resolve_retro_state_name(game, state, num_players, inttype):
+    if num_players <= 1:
+        return state
+
+    if state in (None, retro.State.DEFAULT, retro.State.NONE):
+        return state
+
+    if not isinstance(state, str):
+        return state
+
+    base_state = state[:-6] if state.endswith('.state') else state
+    if base_state.endswith('.2P'):
+        return base_state
+
+    candidate = f"{base_state}.2P"
+    if stable_retro.data.get_file_path(game, f"{candidate}.state", inttype):
+        return candidate
+
+    return base_state
 
 
 def make_retro(
@@ -38,6 +60,7 @@ def make_retro(
         'MULTI_DISCRETE': retro.Actions.MULTI_DISCRETE
     }
     action_enum = action_map.get(action_type.upper(), retro.Actions.FILTERED)
+    state = resolve_retro_state_name(game, state, num_players, inttype)
 
     env = retro.make(
         game,
@@ -66,6 +89,9 @@ def init_env(
 ):
     wrapper_kwargs = {}
 
+    if getattr(args, 'selfplay', False) and not isMLP(args.nn):
+        raise ValueError('Self-play currently requires an MLP-style observation wrapper.')
+
     clip_reward = resolve_clip_reward(args, hyperparams)
     args.clip_reward = clip_reward
     sticky_actions_enabled, sticky_action_prob = resolve_sticky_action_settings(
@@ -77,22 +103,25 @@ def init_env(
     start_index = 0
     start_method = os.environ.get('RETRO_VECENV_START_METHOD')
     allow_early_resets=True
+    env_num_players = 2 if getattr(args, 'selfplay', False) else num_players
 
     # N64 cores/plugins are commonly unsafe under Linux's default multiprocessing start method (fork).
     # Prefer spawn unless the user explicitly overrides via RETRO_VECENV_START_METHOD.
-    if start_method is None and hasattr(args, 'env') and args.env and 'N64' in args.env:
+    if start_method is None and getattr(args, 'selfplay', False):
+        start_method = 'spawn'
+    elif start_method is None and hasattr(args, 'env') and args.env and 'N64' in args.env:
         start_method = 'spawn'
 
     def make_env(rank):
         def _thunk():
             games.wrappers.init(args)
 
-            env = make_retro(game=args.env, action_type=args.action_type, state=state, num_players=num_players)
+            env = make_retro(game=args.env, action_type=args.action_type, state=state, num_players=env_num_players)
 
             env.action_space.seed(seed + rank)
 
             if isMLP(args.nn):
-                env = games.wrappers.obs_env(env, args, num_players, args.rf)
+                env = games.wrappers.obs_env(env, args, env_num_players, args.rf)
 
             env = Monitor(env, output_path and os.path.join(output_path, str(rank)), allow_early_resets=allow_early_resets)
 
@@ -136,7 +165,7 @@ def get_button_names(args):
         game=args.env,
         state=args.state,
         use_restricted_actions=action_enum,
-        players=args.num_players,
+        players=2 if getattr(args, 'selfplay', False) else args.num_players,
         inttype=retro.data.Integrations.ALL,
     )
     print(env.buttons)

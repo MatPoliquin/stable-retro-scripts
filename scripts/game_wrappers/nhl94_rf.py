@@ -373,15 +373,15 @@ def rf_scoregoal(state):
     #if state.puck.y < 100:
     #    rew = -1.0
 
-    #if t1.stats.passing > t1.last_stats.passing:
-    #    rew = 0.1
+    if t1.stats.passing > t1.last_stats.passing:
+        rew = 0.1
 
     #if t1.stats.shots > t1.last_stats.shots:
     #    rew = 0.1
 
     #if t1.stats.score > t1.last_stats.score:
     if t1.stats.onetimer > t1.last_stats.onetimer:
-        rew = 0.5
+        rew = 0.1
 
     if t1.stats.score > t1.last_stats.score:
         rew = 1.0
@@ -565,7 +565,7 @@ def isdone_defensezone(state):
     if t2.stats.score > t2.last_stats.score:
         return True
 
-    if state.time < 100:
+    if state.time < 200:
         return True
 
 def rf_defensezone(state):
@@ -653,14 +653,14 @@ def rf_defensezone(state):
         if state.action[5] and state.puck.y < GameConsts.DEFENSEZONE_POS_Y + 15:
             reward -= 0.4
 
-        if state.puck.y >= -100:
+        if state.puck.y >= GameConsts.ATACKZONE_POS_Y:
             start_y = carry_state.get("carry_start_y")
-            exit_requires_carry = (
+            attackzone_requires_carry = (
                 progress >= 20
                 or carry_state["possession_frames"] >= 20
                 or (start_y is not None and start_y >= GameConsts.DEFENSEZONE_POS_Y - 15)
             )
-            if exit_requires_carry:
+            if attackzone_requires_carry:
                 reward += 1.0
             else:
                 reward -= 0.3
@@ -800,6 +800,30 @@ def rf_selfplay(state):
     # wrapper will negate if training Team-2
     return base
 
+
+def init_selfplay_offense(env, env_name):
+    init_attackzone(env, env_name)
+
+
+def isdone_selfplay_offense(state):
+    return isdone_scoregoal(state)
+
+
+def rf_selfplay_offense(state):
+    return rf_scoregoal(state)
+
+
+def init_selfplay_defense(env, env_name):
+    init_defensezone(env, env_name)
+
+
+def isdone_selfplay_defense(state):
+    return isdone_defensezone(state)
+
+
+def rf_selfplay_defense(state):
+    return rf_defensezone(state)
+
 # =====================================================================
 # Register Functions
 # =====================================================================
@@ -813,6 +837,8 @@ _reward_function_map = {
     "Passing": (init_attackzone, rf_passing, isdone_passing, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_no_shoot),
     "General": (init_general, rf_general, isdone_general, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "SelfPlay": (init_selfplay, rf_selfplay, isdone_selfplay, init_model_invariant, set_model_input_invariant, input_overide_empty),
+    "SelfPlayOffenseFinetune": (init_selfplay_offense, rf_selfplay_offense, isdone_selfplay_offense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
+    "SelfPlayDefenseFinetune": (init_selfplay_defense, rf_selfplay_defense, isdone_selfplay_defense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
 }
 
 def register_functions(name: str) -> Tuple[Callable, Callable, Callable]:

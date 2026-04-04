@@ -24,6 +24,7 @@ def parse_cmdline(argv):
     parser.add_argument('--num_timesteps', type=int, default=6000000)
     parser.add_argument('--output_basedir', type=str, default='~/OUTPUT')
     parser.add_argument('--load_p1_model', type=str, default='')
+    parser.add_argument('--load_opponent_model', type=str, default='')
     parser.add_argument('--display_width', type=int, default='1440')
     parser.add_argument('--display_height', type=int, default='810')
     parser.add_argument('--alg_verbose', default=True, action='store_true')
@@ -33,6 +34,7 @@ def parse_cmdline(argv):
     parser.add_argument('--deterministic', default=True, action='store_true')
     parser.add_argument('--hyperparams', type=str, default='../hyperparams/default.json')
     parser.add_argument('--selfplay', default=False, action='store_true')
+    parser.add_argument('--selfplay_role', type=str, default='offense', choices=['offense', 'defense'])
     parser.add_argument('--seq_len', type=int, default=16,
                        help='Frame history length for temporal policies such as HybridMambaPolicy or GRUMlpPolicy')
 
@@ -131,6 +133,12 @@ def main(argv):
         required=True,
         base_dir=os.path.dirname(__file__),
     )
+
+    if args.selfplay:
+        if not args.rf:
+            args.rf = 'SelfPlayOffenseFinetune' if args.selfplay_role == 'offense' else 'SelfPlayDefenseFinetune'
+        if not args.load_opponent_model:
+            args.load_opponent_model = args.load_p1_model
 
     trainer = ModelTrainer(args, logger)
 

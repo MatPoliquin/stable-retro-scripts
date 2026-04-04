@@ -1,6 +1,6 @@
 {
-  "name": "NHL94 Offensive Curriculum",
-  "description": "Example curriculum showing how to chain NHL94 live-training phases with shared arguments.",
+  "name": "NHL94 Curriculum With Self-Play",
+  "description": "Sequential NHL94 curriculum that moves from shaped skill phases into explicit offense and defense self-play finetuning.",
   "common": {
     "alg": "ppo2",
     "nn": "MlpPolicy",
@@ -57,6 +57,34 @@
       "state": "PenguinsVsSenators.DefenseZone",
       "rf": "DefenseZone",
       "num_timesteps": 20000000
+    },
+    {
+      "name": "Self-Play Offense",
+      "description": "Finetune the chained model as team 1 attacking against a frozen team 2 opponent from attack-zone starts.",
+      "state": "PenguinsVsSenators.AttackZone",
+      "rf": "SelfPlayOffenseFinetune",
+      "selfplay": true,
+      "selfplay_role": "offense",
+      "num_env": 8,
+      "num_timesteps": 5000000,
+      "live_eval_freq": 50000,
+      "live_eval_episodes": 3,
+      "selfplay_snapshot_freq": 100000,
+      "selfplay_max_snapshots": 8
+    },
+    {
+      "name": "Self-Play Defense",
+      "description": "Finetune the chained model as team 1 defending against a frozen team 2 opponent from defensive-zone starts.",
+      "state": "PenguinsVsSenators.DefenseZone",
+      "rf": "SelfPlayDefenseFinetune",
+      "selfplay": true,
+      "selfplay_role": "defense",
+      "num_env": 8,
+      "num_timesteps": 5000000,
+      "live_eval_freq": 50000,
+      "live_eval_episodes": 3,
+      "selfplay_snapshot_freq": 100000,
+      "selfplay_max_snapshots": 8
     },
     {
       "name": "Start State Test",
