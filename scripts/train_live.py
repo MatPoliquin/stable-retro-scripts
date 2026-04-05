@@ -39,6 +39,7 @@ from game_wrappers.nhl94_gamestate import NHL94GameState
 
 
 SIM_STEPS_PER_SECOND = 60
+NHL94_ENVS = {"NHL941on1-Genesis-v0", "NHL942on2-Genesis-v0", "NHL94-Genesis-v0"}
 
 
 @dataclass
@@ -317,10 +318,34 @@ class LiveTrainingDisplay(threading.Thread):
         self.button_names: List[str] = []
         self.button_probs: Optional[np.ndarray] = None
         self.button_actions: Optional[np.ndarray] = None
-        self.game_state = NHL94GameState(args.num_players)
+        self.uses_nhl94_gamestate = args.env in NHL94_ENVS
+        self.game_state = NHL94GameState(args.num_players) if self.uses_nhl94_gamestate else None
 
     def stop(self) -> None:
         self.running = False
+
+    def _ensure_replay_env(self) -> bool:
+        if self.env is not None:
+            return True
+
+        try:
+            self.env = init_env(
+                None,
+                1,
+                self.args.state,
+                self.args.num_players,
+                self.args,
+                self.args.hyperparams_dict,
+                use_sticky_action=False,
+                use_frame_skip=False,
+            )
+            self.obs = self.env.reset()
+            return True
+        except Exception as exc:  # pylint: disable=broad-except
+            com_print(f"[Live UI] Failed to create replay environment: {exc}")
+            self.env = None
+            self.obs = None
+            return False
 
     def _ensure_model_loaded(self) -> None:
         with self.shared_state.lock:
@@ -332,6 +357,9 @@ class LiveTrainingDisplay(threading.Thread):
 
         zip_path = ensure_zip_path(base_path)
         if not os.path.exists(zip_path):
+            return
+
+        if not self._ensure_replay_env():
             return
 
         try:
@@ -419,7 +447,13 @@ class LiveTrainingDisplay(threading.Thread):
             probs = probs[:button_count]
 
         if acts.size < button_count:
-            if acts.size == 0:
+            if acts.size == 1 and button_count > 1:
+                discrete_index = int(acts[0])
+                one_hot = np.zeros(button_count, dtype=float)
+                if 0 <= discrete_index < button_count:
+                    one_hot[discrete_index] = 1.0
+                acts = one_hot
+            elif acts.size == 0:
                 acts = np.zeros(button_count, dtype=float)
             else:
                 acts = np.pad(acts, (0, button_count - acts.size), constant_values=0.0)
@@ -630,23 +664,6 @@ class LiveTrainingDisplay(threading.Thread):
             self.button_probs = zeros.copy()
             self.button_actions = zeros.copy()
 
-        try:
-            self.env = init_env(
-                None,
-                1,
-                self.args.state,
-                self.args.num_players,
-                self.args,
-                self.args.hyperparams_dict,
-                use_sticky_action=False,
-                use_frame_skip=False,
-            )
-            self.obs = self.env.reset()
-        except Exception as exc:  # pylint: disable=broad-except
-            com_print(f"[Live UI] Failed to create replay environment: {exc}")
-            self.running = False
-            return
-
         window_width = self.args.live_window_width
         window_height = self.args.live_window_height
         self.screen = pygame.display.set_mode((window_width, window_height))
@@ -678,8 +695,9 @@ class LiveTrainingDisplay(threading.Thread):
                 self.button_actions = acts
                 try:
                     self.obs, _reward, done, info = self.env.step(action)
-                    self.game_state.BeginFrame(info[0], [0] * 6)
-                    self.game_state.EndFrame()
+                    if self.uses_nhl94_gamestate and self.game_state is not None:
+                        self.game_state.BeginFrame(info[0], [0] * 6)
+                        self.game_state.EndFrame()
                     if np.any(done):
                         self.obs = self.env.reset()
                 except Exception as exc:  # pylint: disable=broad-except
@@ -823,6 +841,9 @@ class LiveTrainingDisplay(threading.Thread):
 
     def _draw_game_stats(self, surface: pygame.Surface, graph_rect: pygame.Rect) -> None:
         if self.body_font is None or self.subheader_font is None:
+            return
+
+        if not self.uses_nhl94_gamestate or self.game_state is None:
             return
 
         stats_rect = pygame.Rect(

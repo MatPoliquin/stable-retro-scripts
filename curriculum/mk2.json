@@ -1,0 +1,184 @@
+{
+  "name": "MK2 Liu Kang Ladder",
+  "description": "Ladder-style Mortal Kombat II curriculum that warms up on VeryEasy Liu Kang states, climbs the VeryHard opponent ladder, and leaves a disabled self-play placeholder for later fighter-wrapper support.",
+  "common": {
+    "alg": "ppo2",
+    "nn": "CombinedPolicy",
+    "env": "MortalKombatII-Genesis-v0",
+    "num_players": 1,
+    "num_env": 8,
+    "output_basedir": "~/OUTPUT",
+    "hyperparams": "../hyperparams/mk2.json",
+    "action_type": "MULTI_DISCRETE",
+    "live_eval_freq": 25000,
+    "live_eval_episodes": 3,
+    "live_window_width": 1280,
+    "live_window_height": 720,
+    "live_graph_width": 420,
+    "live_fps": 60,
+    "live_sleep_per_step": 0.0,
+    "deterministic": true,
+    "play": false,
+    "selfplay": false
+  },
+  "phases": [
+    {
+      "name": "VeryEasy 02",
+      "state": "VeryEasy.LiuKang-02",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "VeryEasy 03",
+      "state": "VeryEasy.LiuKang-03",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "VeryEasy 04",
+      "state": "VeryEasy.LiuKang-04",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "VeryEasy 05",
+      "state": "VeryEasy.LiuKang-05",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "VeryEasy 06",
+      "state": "VeryEasy.LiuKang-06",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "VeryEasy 07",
+      "state": "VeryEasy.LiuKang-07",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "VeryEasy 08",
+      "state": "VeryEasy.LiuKang-08",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "VeryEasy 09",
+      "state": "VeryEasy.LiuKang-09",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "VeryEasy 10",
+      "state": "VeryEasy.LiuKang-10",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "VeryEasy 11",
+      "state": "VeryEasy.LiuKang-11",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "VeryEasy 12",
+      "state": "VeryEasy.LiuKang-12",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "VeryEasy 13",
+      "state": "VeryEasy.LiuKang-13",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "VeryEasy 14",
+      "state": "VeryEasy.LiuKang-14",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "VeryEasy 15",
+      "state": "VeryEasy.LiuKang-15",
+      "num_timesteps": 500000
+    },
+    {
+      "name": "Baraka VeryHard",
+      "state": "LiuKangVsBaraka_VeryHard_01",
+      "num_timesteps": 1000000
+    },
+    {
+      "name": "Reptile VeryHard",
+      "state": "LiuKangVsReptile_VeryHard_02",
+      "num_timesteps": 1000000
+    },
+    {
+      "name": "Jax VeryHard",
+      "state": "LiuKangVsJax_VeryHard_03",
+      "num_timesteps": 1000000
+    },
+    {
+      "name": "Rayden VeryHard",
+      "state": "LiuKangVsRayden_VeryHard_04",
+      "num_timesteps": 1000000
+    },
+    {
+      "name": "Kitana VeryHard",
+      "state": "LiuKangVsKitana_VeryHard_05",
+      "num_timesteps": 1000000
+    },
+    {
+      "name": "Mirror VeryHard",
+      "state": "LiuKangVsLiuKang_VeryHard_06",
+      "num_timesteps": 1000000
+    },
+    {
+      "name": "SubZero VeryHard",
+      "state": "LiuKangVsSubZero_VeryHard_07",
+      "num_timesteps": 1000000
+    },
+    {
+      "name": "Mileena VeryHard",
+      "state": "LiuKangVsMileena_VeryHard_08",
+      "num_timesteps": 1000000
+    },
+    {
+      "name": "Cage VeryHard",
+      "state": "LiuKangVsCage_VeryHard_09",
+      "num_timesteps": 1000000
+    },
+    {
+      "name": "KungLao VeryHard",
+      "state": "LiuKangVsKungLao_VeryHard_10",
+      "num_timesteps": 1000000
+    },
+    {
+      "name": "Scorpion VeryHard",
+      "state": "LiuKangVsScorpion_VeryHard_11",
+      "num_timesteps": 1000000
+    },
+    {
+      "name": "Jade VeryHard",
+      "state": "LiuKangVsJade_VeryHard_12",
+      "num_timesteps": 1000000
+    },
+    {
+      "name": "ShangTsung Finetune",
+      "state": "LiuKangVsShangTsung_VeryHard_13",
+      "num_timesteps": 2000000
+    },
+    {
+      "name": "Kintaro Finetune",
+      "state": "LiuKangVsKintaro_VeryHard_14",
+      "num_timesteps": 2000000
+    },
+    {
+      "name": "ShaoKahn Finetune",
+      "state": "LiuKangVsShaoKahn_VeryHard_15",
+      "num_timesteps": 2000000
+    },
+    {
+      "name": "Self-Play Placeholder",
+      "description": "Enable this after the fighter wrapper gains env-side frozen-opponent self-play support.",
+      "enabled": false,
+      "state": "LiuKangVsLiuKang_VeryHard_06",
+      "selfplay": true,
+      "num_env": 4,
+      "num_timesteps": 5000000,
+      "live_eval_freq": 50000,
+      "live_eval_episodes": 3,
+      "selfplay_snapshot_freq": 100000,
+      "selfplay_max_snapshots": 8
+    }
+  ]
+}

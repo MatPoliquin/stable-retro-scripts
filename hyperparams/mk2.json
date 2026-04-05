@@ -1,0 +1,22 @@
+{
+  "learning_rate": 0.00025,
+  "batch_size": 256,
+  "n_steps": 256,
+  "n_epochs": 4,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip_range": 0.2,
+  "vf_coef": 0.5,
+  "ent_coef": 0.005,
+  "max_grad_norm": 0.5,
+  "clip_range_vf": null,
+  "net_arch": {
+    "pi": [256, 256],
+    "vf": [256, 256]
+  },
+  "features_dim": 256,
+  "frame_skip": 1,
+  "sticky_actions": false,
+  "sticky_action_prob": 0.0,
+  "clip_reward": false
+}

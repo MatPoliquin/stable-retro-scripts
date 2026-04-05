@@ -103,7 +103,10 @@ def init_model(output_path, player_model, player_alg, args, env, logger, hyperpa
         policy_kwargs = dict(features_extractor_class=CustomImpalaFeatureExtractor)
     elif args.nn == 'CombinedPolicy':
         nn_type = CustomPolicy
-        policy_kwargs = {}
+        policy_kwargs = dict(
+            net_arch=hyperparams.get('net_arch', dict(pi=[size, size], vf=[size, size])),
+            features_extractor_kwargs=dict(features_dim=hyperparams.get('features_dim', 128))
+        )
     elif args.nn == 'ViTPolicy':
         nn_type = ViTPolicy
         policy_kwargs = {}

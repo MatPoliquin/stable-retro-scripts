@@ -18,6 +18,18 @@ def isMLP(name):
           or name == 'HybridMambaPolicy' or name == 'GRUMlpPolicy'
 
 
+def resolve_backend_action_type(args, num_players):
+    requested_action_type = getattr(args, 'action_type', 'FILTERED').upper()
+    if (
+        getattr(args, 'env', '') == 'MortalKombatII-Genesis-v0'
+        and isMLP(getattr(args, 'nn', ''))
+        and num_players == 1
+        and requested_action_type in ('DISCRETE', 'MULTI_DISCRETE')
+    ):
+        return 'FILTERED'
+    return requested_action_type
+
+
 def resolve_retro_state_name(game, state, num_players, inttype):
     if num_players <= 1:
         return state
@@ -98,6 +110,7 @@ def init_env(
         use_sticky_action,
         hyperparams,
     )
+    frame_skip = max(1, int(hyperparams.get('frame_skip', 4)))
 
     seed = 0
     start_index = 0
@@ -116,7 +129,8 @@ def init_env(
         def _thunk():
             games.wrappers.init(args)
 
-            env = make_retro(game=args.env, action_type=args.action_type, state=state, num_players=env_num_players)
+            backend_action_type = resolve_backend_action_type(args, env_num_players)
+            env = make_retro(game=args.env, action_type=backend_action_type, state=state, num_players=env_num_players)
 
             env.action_space.seed(seed + rank)
 
@@ -127,9 +141,9 @@ def init_env(
 
             if use_frame_skip:
                 if sticky_actions_enabled:
-                    env = StochasticFrameSkip(env, n=4, stickprob=sticky_action_prob)
+                    env = StochasticFrameSkip(env, n=frame_skip, stickprob=sticky_action_prob)
                 else:
-                    env = StochasticFrameSkip(env, n=4, stickprob=-1)
+                    env = StochasticFrameSkip(env, n=frame_skip, stickprob=-1)
 
             if not isMLP(args.nn):
                 env = WarpFrame(env)
@@ -159,7 +173,8 @@ def get_button_names(args):
         'DISCRETE': retro.Actions.DISCRETE,
         'MULTI_DISCRETE': retro.Actions.MULTI_DISCRETE
     }
-    action_enum = action_map.get(args.action_type.upper(), retro.Actions.FILTERED)
+    backend_action_type = resolve_backend_action_type(args, 2 if getattr(args, 'selfplay', False) else args.num_players)
+    action_enum = action_map.get(backend_action_type.upper(), retro.Actions.FILTERED)
 
     env = retro.make(
         game=args.env,
@@ -168,8 +183,20 @@ def get_button_names(args):
         players=2 if getattr(args, 'selfplay', False) else args.num_players,
         inttype=retro.data.Integrations.ALL,
     )
-    print(env.buttons)
-    return env.buttons
+    try:
+        games.wrappers.init(args)
+        if isMLP(args.nn) and games.wrappers.obs_env is not None:
+            wrapped_env = games.wrappers.obs_env(
+                env,
+                args,
+                2 if getattr(args, 'selfplay', False) else args.num_players,
+                getattr(args, 'rf', ''),
+            )
+            if hasattr(wrapped_env, 'get_action_names'):
+                return wrapped_env.get_action_names()
+        return env.buttons
+    finally:
+        env.close()
 
 def init_play_env(args, num_players, hyperparams, is_pvp_display=False, need_display=True, use_frame_skip=True):
     button_names = get_button_names(args)

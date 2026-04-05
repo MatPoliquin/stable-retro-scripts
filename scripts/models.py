@@ -644,9 +644,12 @@ class ViTPolicy(ActorCriticPolicy):
         )
 # ==========================================================================================
 class CustomCombinedExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.spaces.Dict, cnn_output_dim=128):
+    def __init__(self, observation_space: gym.spaces.Dict, features_dim=128, cnn_output_dim=None):
         # Extract the observation space dict components
         super(CustomCombinedExtractor, self).__init__(observation_space, features_dim=1)
+
+        if cnn_output_dim is None:
+            cnn_output_dim = features_dim
 
         # Assume observation_space is gym.spaces.Dict with keys "image" and "scalar"
         # Customize according to the actual keys and shapes in your observations
@@ -700,11 +703,15 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
 
 class CustomPolicy(ActorCriticPolicy):
     def __init__(self, *args, **kwargs):
+        features_extractor_kwargs = dict(kwargs.pop('features_extractor_kwargs', {}))
+        if 'cnn_output_dim' not in features_extractor_kwargs:
+            features_extractor_kwargs['cnn_output_dim'] = features_extractor_kwargs.pop('features_dim', 128)
+
         super(CustomPolicy, self).__init__(
             *args,
             **kwargs,
             features_extractor_class=CustomCombinedExtractor,
-            features_extractor_kwargs=dict(cnn_output_dim=128)
+            features_extractor_kwargs=features_extractor_kwargs
         )
 
 
