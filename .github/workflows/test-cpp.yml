@@ -16,21 +16,21 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Install system packages + get pytoch libs
+      - name: Install system packages and fetch libtorch
         run: |
           sudo apt-get update
-          sudo apt install cmake unzip zlib1g-dev build-essential libopencv-dev
-          cd ef_lib
+          sudo apt install -y cmake unzip zlib1g-dev build-essential libopencv-dev
+          cd retro_ai_lib
           wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.3.1%2Bcpu.zip
           unzip libtorch-cxx11-abi-shared-with-deps-2.3.1+cpu.zip
 
-      - name: Build ef_lib
+      - name: Build retro_ai_lib
         run: |
-          cd ef_lib
+          cd retro_ai_lib
           cmake . -DCMAKE_PREFIX_PATH=./libtorch
           make -j
 
       - name: Run tests
         run: |
-          cd ef_lib
+          cd retro_ai_lib
           ./test

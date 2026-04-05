@@ -57,10 +57,12 @@ In your rom directory exec this command, it will import the roms into stable-ret
 python3 -m retro.import .
 ```
 
+All command examples below assume you run them from the repository root.
+
 ### Train a model
 Note: Airstriker is a public domain rom and is already included in stable-retro
 ```bash
-python3 train.py --env=Airstriker-Genesis --nn=CnnPolicy --num_env=8 --num_timesteps=1_000_000 --play --hyperparams=../hyperparams/default.json
+python3 scripts/train.py --env=Airstriker-Genesis --nn=CnnPolicy --num_env=8 --num_timesteps=1_000_000 --play --hyperparams=../hyperparams/default.json
 ```
 
 ### Run a curriculum
