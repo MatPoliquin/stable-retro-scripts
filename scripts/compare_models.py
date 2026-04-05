@@ -210,7 +210,7 @@ def get_env_frame(env) -> np.ndarray:
     return frame
 
 
-def prepare_action_info(probabilities, actions, button_count: int) -> tuple[np.ndarray, np.ndarray]:
+def prepare_action_info(probabilities, actions, button_count: int) -> Tuple[np.ndarray, np.ndarray]:
     probs = np.asarray(probabilities, dtype=float).flatten()
     acts = np.asarray(actions, dtype=float).flatten()
 

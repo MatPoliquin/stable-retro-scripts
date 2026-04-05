@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 
 def resolve_config_path(path: Optional[str], base_dir: Optional[str] = None) -> Optional[str]:
@@ -113,7 +113,7 @@ def resolve_sticky_action_settings(
     hyperparams: Optional[Dict[str, Any]],
     *,
     default_prob: float = 0.25,
-) -> tuple[bool, float]:
+) -> Tuple[bool, float]:
     if not requested_enabled:
         return False, -1.0
 
