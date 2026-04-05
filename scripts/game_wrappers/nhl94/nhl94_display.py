@@ -3,8 +3,8 @@ environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'  # must be set before pygame import
 import gymnasium as gym
 import numpy as np
 from collections import deque
-from game_wrappers.nhl94_rf import rf_defensezone, rf_scoregoal
-from game_wrappers.nhl94_gamestate import NHL94GameState
+from game_wrappers.nhl94.nhl94_rf import rf_defensezone, rf_scoregoal
+from game_wrappers.nhl94.nhl94_gamestate import NHL94GameState
 import pygame
 import pygame.freetype
 import cv2

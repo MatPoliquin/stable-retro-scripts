@@ -4,8 +4,8 @@ NHL AI
 
 import math
 import random
-from game_wrappers.nhl94_const import GameConsts
-from game_wrappers.nhl94_gamestate import NHL94GameState
+from game_wrappers.nhl94.nhl94_const import GameConsts
+from game_wrappers.nhl94.nhl94_gamestate import NHL94GameState
 from models_utils import init_model, get_num_parameters, get_model_probabilities
 
 

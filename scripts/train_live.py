@@ -35,7 +35,7 @@ from env_utils import get_button_names, init_env
 from models_utils import get_model_probabilities, init_model
 from utils import load_hyperparams
 import game_wrappers_mgr as games
-from game_wrappers.nhl94_gamestate import NHL94GameState
+from game_wrappers.nhl94.nhl94_gamestate import NHL94GameState
 
 
 SIM_STEPS_PER_SECOND = 60

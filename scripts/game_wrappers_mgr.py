@@ -1,11 +1,11 @@
-from game_wrappers.nhl94_obs import NHL94Observation2PEnv
-from game_wrappers.nhl94_display import NHL94GameDisplayEnv
-from game_wrappers.nhl94_display_debug import NHL94DebugDisplay
-from game_wrappers.nhl94_display_pvp import NHL94PvPGameDisplayEnv
-from game_wrappers.nhl94_ai import NHL94AISystem
+from game_wrappers.nhl94.nhl94_obs import NHL94Observation2PEnv
+from game_wrappers.nhl94.nhl94_display import NHL94GameDisplayEnv
+from game_wrappers.nhl94.nhl94_display_debug import NHL94DebugDisplay
+from game_wrappers.nhl94.nhl94_display_pvp import NHL94PvPGameDisplayEnv
+from game_wrappers.nhl94.nhl94_ai import NHL94AISystem
 
 from game_wrappers.pong_obs import PongObservationEnv, PongTemporalObservationEnv
-from game_wrappers.mk2_obs import MK2ObservationEnv
+from game_wrappers.mk2.mk2_obs import MK2ObservationEnv
 from game_wrappers.display import GameDisplayEnv
 from game_wrappers.display_pvp import PvPGameDisplayEnv
 from game_wrappers.ai_sys import AISys

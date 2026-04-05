@@ -3,7 +3,7 @@ NHL94 Game State
 """
 
 import math
-from game_wrappers.nhl94_const import GameConsts
+from game_wrappers.nhl94.nhl94_const import GameConsts
 from typing import Dict, Any
 from copy import deepcopy
 from dataclasses import dataclass

@@ -4,7 +4,7 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 
-from game_wrappers.mk2_actions import MK2MacroActionTranslator
+from game_wrappers.mk2.mk2_actions import MK2MacroActionTranslator
 
 NUM_PARAMS = 16
 MIN_X = 284

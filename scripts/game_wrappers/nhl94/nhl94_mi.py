@@ -4,7 +4,7 @@ NHL94 Model Input function
 
 import random
 from typing import Tuple, Callable
-from game_wrappers.nhl94_const import GameConsts
+from game_wrappers.nhl94.nhl94_const import GameConsts
 
 
 

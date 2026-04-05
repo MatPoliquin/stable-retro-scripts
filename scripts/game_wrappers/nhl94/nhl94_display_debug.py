@@ -4,9 +4,9 @@ NHL94 Debug Display with Player Input
 
 import pygame
 import numpy as np
-from game_wrappers.nhl94_const import GameConsts
+from game_wrappers.nhl94.nhl94_const import GameConsts
 from pygame import gfxdraw
-from game_wrappers.nhl94_gamestate import NHL94GameState
+from game_wrappers.nhl94.nhl94_gamestate import NHL94GameState
 
 class NHL94DebugDisplay:
     DEBUG_WIDTH = 800

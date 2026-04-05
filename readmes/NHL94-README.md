@@ -31,7 +31,7 @@ python3 train.py --env=NHL941on1-Genesis --state=PenguinsVsSenators.FrontOfNet -
 ```
 
 ### Play against the game
-Useful for debugging purposes, check /scripts/game_wrappers/nhl94_display_debug.py
+Useful for debugging purposes, check /scripts/game_wrappers/nhl94/nhl94_display_debug.py
 ```bash
 python3 play.py --mode=player_vs_game --env=NHL94-Genesis-v0  --num_env=1 --nn=MlpPolicy --num_players=1 --rf="General" --hyperparams=../hyperparams/nhl94.json
 ```

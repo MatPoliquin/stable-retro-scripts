@@ -6,8 +6,8 @@ import random
 import numpy as np
 import math
 from typing import Tuple, Callable
-from game_wrappers.nhl94_const import GameConsts
-from game_wrappers.nhl94_mi import init_model, init_model_rel, init_model_rel_dist, init_model_rel_dist_buttons, init_model_1p, init_model_2p, \
+from game_wrappers.nhl94.nhl94_const import GameConsts
+from game_wrappers.nhl94.nhl94_mi import init_model, init_model_rel, init_model_rel_dist, init_model_rel_dist_buttons, init_model_1p, init_model_2p, \
       set_model_input, set_model_input_1p, set_model_input_2p, set_model_input_rel, set_model_input_rel_dist, set_model_input_rel_dist_buttons, \
       init_model_invariant, set_model_input_invariant
 

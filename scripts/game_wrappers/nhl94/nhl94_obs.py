@@ -9,10 +9,10 @@ from datetime import datetime
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
-from game_wrappers.nhl94_const import GameConsts
-from game_wrappers.nhl94_rf import register_functions
-from game_wrappers.nhl94_ai import NHL94AISystem
-from game_wrappers.nhl94_gamestate import NHL94GameState
+from game_wrappers.nhl94.nhl94_const import GameConsts
+from game_wrappers.nhl94.nhl94_rf import register_functions
+from game_wrappers.nhl94.nhl94_ai import NHL94AISystem
+from game_wrappers.nhl94.nhl94_gamestate import NHL94GameState
 from models_utils import load_model_for_inference
 
 
