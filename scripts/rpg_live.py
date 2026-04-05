@@ -530,11 +530,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
             step_result = env.step(last_action)
             if len(step_result) == 4:
-                obs, _, done, info = step_result
+                obs = step_result[0]
+                done = step_result[2]
+                info = step_result[3]
                 terminated = bool(done)
                 truncated = False
             else:
-                obs, _, terminated, truncated, info = step_result
+                obs = step_result[0]
+                terminated = step_result[2]
+                truncated = step_result[3]
+                info = step_result[4]
 
             info = dict(info or {})
 

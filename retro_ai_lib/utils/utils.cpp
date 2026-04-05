@@ -11,40 +11,40 @@ using namespace std;
 namespace Retro {
 
 int64_t calculate(Operation op, int64_t reference, int64_t value) {
-	switch (op) {
-	case Operation::NOOP:
-		return value;
-	case Operation::EQUAL:
-		return value == reference;
-	case Operation::NEGATIVE_EQUAL:
-		return value == -reference;
-	case Operation::NOT_EQUAL:
-		return value != reference;
-	case Operation::LESS_THAN:
-		return value < reference;
-	case Operation::GREATER_THAN:
-		return value > reference;
-	case Operation::LESS_OR_EQUAL:
-		return value <= reference;
-	case Operation::GREATER_OR_EQUAL:
-		return value >= reference;
-	case Operation::NONZERO:
-		return value != 0;
-	case Operation::ZERO:
-		return value == 0;
-	case Operation::POSITIVE:
-		return value > 0;
-	case Operation::NEGATIVE:
-		return value < 0;
-	case Operation::SIGN:
-		return value < 0 ? -1 : value > 0 ? 1 : 0;
-	}
-	return 0;
+  switch (op) {
+  case Operation::NOOP:
+    return value;
+  case Operation::EQUAL:
+    return value == reference;
+  case Operation::NEGATIVE_EQUAL:
+    return value == -reference;
+  case Operation::NOT_EQUAL:
+    return value != reference;
+  case Operation::LESS_THAN:
+    return value < reference;
+  case Operation::GREATER_THAN:
+    return value > reference;
+  case Operation::LESS_OR_EQUAL:
+    return value <= reference;
+  case Operation::GREATER_OR_EQUAL:
+    return value >= reference;
+  case Operation::NONZERO:
+    return value != 0;
+  case Operation::ZERO:
+    return value == 0;
+  case Operation::POSITIVE:
+    return value > 0;
+  case Operation::NEGATIVE:
+    return value < 0;
+  case Operation::SIGN:
+    return value < 0 ? -1 : value > 0 ? 1 : 0;
+  }
+  return 0;
 }
 
-string drillUp(const vector<string>& targets, const string& fail, const string& hint)
-{
-	#if 0
+string drillUp(const vector<string> &targets, const string &fail,
+               const string &hint) {
+#if 0
 	char rpath[PATH_MAX];
 	string path(".");
 #ifndef _WIN32
@@ -85,7 +85,7 @@ string drillUp(const vector<string>& targets, const string& fail, const string& 
 	return {};
 
 #else
-return {};
+  return {};
 #endif
 }
-}
+} // namespace Retro
