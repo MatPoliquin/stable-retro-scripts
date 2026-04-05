@@ -347,7 +347,7 @@ class NHL94DebugDisplay:
 
         # Team 1 stats (left column)
         team1_stats = [
-            f"TEAM 1:",
+            "TEAM 1:",
             f"Score: {team1.stats.score}",
             f"Shots: {team1.stats.shots}",
             f"Checks: {team1.stats.bodychecks}",
@@ -365,7 +365,7 @@ class NHL94DebugDisplay:
 
         # Team 2 stats (right column)
         team2_stats = [
-            f"TEAM 2:",
+            "TEAM 2:",
             f"Score: {team2.stats.score}",
             f"Shots: {team2.stats.shots}",
             f"Checks: {team2.stats.bodychecks}",

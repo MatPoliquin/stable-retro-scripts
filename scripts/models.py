@@ -419,11 +419,11 @@ class HybridMambaMLPExtractor(TemporalHybridExtractorBase):
         except ImportError:
             try:
                 from mamba_ssm import Mamba
-            except ImportError:
+            except ImportError as exc:
                 raise ImportError(
                     "HybridMambaPolicy requires a Mamba backend. Install mamba-ssm or mambapy, "
                     "or use GRUMlpPolicy instead."
-                )
+                ) from exc
 
         return Mamba(
             d_model=self.temporal_dim,
@@ -847,4 +847,3 @@ class CustomMlpPolicy(ActorCriticPolicy):
         super().__init__(*args, **kwargs)
         net_arch = kwargs.get("net_arch", [64, 64])
         self.mlp_extractor = CustomMLPExtractor(self.features_dim, net_arch, dropout_prob)
-

@@ -142,7 +142,7 @@ def isdone_general(state):
 def rf_general(state):
     t1 = state.team1
     t2 = state.team2
-    
+
     # Scoring rewards (team 1 scores or concedes)
     if t1.stats.score > t1.last_stats.score:
         return 1.0  # Big reward for scoring
@@ -262,7 +262,7 @@ def rf_scoregoal_cc(state):
         # Reward for velocity toward net
         #if controlled_player.vy > 0:  # Moving up toward opponent net
         #    rew += 0.1 * min(controlled_player.vy, 1.0)  # Cap velocity reward
-        
+
         if abs(controlled_player.vx) > 15:  # Moving up toward opponent net
             rew = 0.5
 
@@ -331,7 +331,7 @@ def rf_scoregoal_ot(state):
 
     if t1.stats.onetimer > t1.last_stats.onetimer:
         rew = 1.0
-    
+
     if t1.stats.score > 0: #and t1.stats.onetimer > 0:
         rew = 1.0
 
@@ -410,7 +410,7 @@ def isdone_keeppuck(state):
 
     if t1.player_haspuck == False:
         return True
-    
+
     if state.puck.y < 100:
         return True
 
@@ -664,7 +664,7 @@ def rf_defensezone(state):
                 reward += 1.0
             else:
                 reward -= 0.3
-        
+
     if t1.stats.bodychecks > t1.last_stats.bodychecks:
         reward += 1.0
 

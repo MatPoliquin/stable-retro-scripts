@@ -53,10 +53,12 @@ class GameConsts():
     CREASE_MAX_X = 23
     CREASE_MIN_GOALIE_PUCK_DIST_X = 7
 
+    @staticmethod
     def Distance(vec1, vec2):
         tmp = (vec1[0] - vec2[0])**2 + (vec1[1] - vec2[1])**2
         return math.sqrt(tmp)
 
+    @staticmethod
     def DistToPos(vec1, vec2):
         tmp = (vec1[0] - vec2[0])**2 + (vec1[1] - vec2[1])**2
         return math.sqrt(tmp)

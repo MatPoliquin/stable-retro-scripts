@@ -115,7 +115,7 @@ class NHL94GameDisplayEnv():
         obs, rew, done, info = self.env.step(action)
 
         rew = 0.0
-        self.game_state.BeginFrame(info[0])
+        self.game_state.BeginFrame(info[0], action)
         if self.model_in_use == 1:
             rew = rf_defensezone(self.game_state)
         elif self.model_in_use == 2:

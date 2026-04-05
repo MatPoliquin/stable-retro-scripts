@@ -46,7 +46,7 @@ class TestPyTorchInstallation(unittest.TestCase):
 class TestSB3(unittest.TestCase):
 
     def test_single_player(self):
-        with open(os.devnull, 'w') as f:
+        with open(os.devnull, 'w', encoding='utf-8') as f:
             original_stdout = sys.stdout
             import stable_retro as retro
             from stable_baselines3 import PPO
@@ -89,7 +89,7 @@ class TestSB3(unittest.TestCase):
             sys.stdout = original_stdout
 
     def test_two_players(self):
-        with open(os.devnull, 'w') as f:
+        with open(os.devnull, 'w', encoding='utf-8') as f:
             import stable_retro as retro
             import numpy as np
             from stable_baselines3 import PPO

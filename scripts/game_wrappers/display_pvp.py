@@ -6,8 +6,6 @@ from os import environ
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-import cv2
-import gymnasium as gym
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame # pylint: disable=wrong-import-position
 import pygame.freetype # pylint: disable=wrong-import-position
@@ -147,4 +145,3 @@ class PvPGameDisplayEnv():
         pygame.event.pump()
         keystate = pygame.key.get_pressed()
         return keystate
-

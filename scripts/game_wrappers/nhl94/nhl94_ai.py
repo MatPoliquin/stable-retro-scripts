@@ -133,7 +133,7 @@ class NHL94AISystem():
             p1_actions = [[0] * GameConsts.INPUT_MAX]
             return p1_actions
 
-        self.game_state.BeginFrame(info[0])
+        self.game_state.BeginFrame(info[0], [0] * 6)
 
         if self.num_models == 1:
             p1_actions = self.Predict(self.model_in_use, state, deterministic)

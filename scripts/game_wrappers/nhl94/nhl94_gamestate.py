@@ -132,8 +132,8 @@ class Team():
 
         # special case for team 1 as the stable-retro ram var name don't have the prefix
         if self.controller == 1:
-            self.stats.fullstar_x = info.get(f"fullstar_x")
-            self.stats.fullstar_y = info.get(f"fullstar_y")
+            self.stats.fullstar_x = info.get("fullstar_x")
+            self.stats.fullstar_y = info.get("fullstar_y")
         else:
             self.stats.fullstar_x = info.get(f"{self.ram_var_prefix}fullstar_x")
             self.stats.fullstar_y = info.get(f"{self.ram_var_prefix}fullstar_y")
