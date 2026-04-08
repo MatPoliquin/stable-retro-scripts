@@ -104,7 +104,7 @@ class ModelTrainer:
 
         state = self.env.reset()
         while True:
-            self.env.render(mode='human')
+            self.env.render()
 
             p1_actions = self.p1_model.predict(state, deterministic=args.deterministic)
 

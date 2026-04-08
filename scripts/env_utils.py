@@ -12,10 +12,20 @@ from env_wrappers import StochasticFrameSkip, WarpFrameDict, RewardClipper
 from utils import resolve_clip_reward, resolve_sticky_action_settings
 
 
+_MLP_POLICIES = frozenset({
+    'MlpPolicy',
+    'MlpDropoutPolicy',
+    'CombinedPolicy',
+    'AttentionMLPPolicy',
+    'EntityAttentionPolicy',
+    'HockeyMultiHeadPolicy',
+    'HybridMambaPolicy',
+    'GRUMlpPolicy',
+})
+
+
 def isMLP(name):
-    return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy' \
-          or name == 'AttentionMLPPolicy' or name == 'EntityAttentionPolicy' or name == 'HockeyMultiHeadPolicy' \
-          or name == 'HybridMambaPolicy' or name == 'GRUMlpPolicy'
+    return name in _MLP_POLICIES
 
 
 def resolve_backend_action_type(args, num_players):
