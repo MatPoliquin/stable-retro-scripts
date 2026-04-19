@@ -360,9 +360,23 @@ class NHL94GameState():
         return
 
     def _is_passing_lane_clear(self, start_pos, end_pos, opponents):
-        """Check if a straight-line path between two points is obstructed."""
+        """
+        Check if a straight-line path between two points is obstructed.
+        
+        Based on NHL94 ROM data:
+        - Stick interception: 14 units from stick hotspot (dist^2 <= 196)
+        - Body collision: 8 units from player center (dist^2 <= 64)
+        - Broad-phase Y-filter: 22 units (ROM optimization)
+        
+        Using radius=18 (14 + 4 buffer for moving stick hotspot)
+        """
         for opponent in opponents:
-            if self._line_intersects_circle(start_pos, end_pos, (opponent.x, opponent.y), radius=10):
+            # Broad-phase: skip if Y difference is too large (ROM optimization)
+            min_y_dist = min(abs(opponent.y - start_pos[1]), abs(opponent.y - end_pos[1]))
+            if min_y_dist > 22:
+                continue
+                
+            if self._line_intersects_circle(start_pos, end_pos, (opponent.x, opponent.y), radius=18):
                 return False
         return True
 
