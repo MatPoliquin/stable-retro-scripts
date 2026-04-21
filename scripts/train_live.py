@@ -74,6 +74,33 @@ class LiveEvaluationResult:
     episodes: int
 
 
+@dataclass
+class LiveTeamTotals:
+    goals: int = 0
+    shots: int = 0
+    passes: int = 0
+    one_timers: int = 0
+
+    @classmethod
+    def from_game_stats(cls, stats) -> "LiveTeamTotals":
+        return cls(
+            goals=int(getattr(stats, "score", 0) or 0),
+            shots=int(getattr(stats, "shots", 0) or 0),
+            passes=int(getattr(stats, "passing", 0) or 0),
+            one_timers=int(getattr(stats, "onetimer", 0) or 0),
+        )
+
+    def add_delta(self, previous: Optional["LiveTeamTotals"], current: "LiveTeamTotals") -> None:
+        self.goals += current.goals if previous is None or current.goals < previous.goals else current.goals - previous.goals
+        self.shots += current.shots if previous is None or current.shots < previous.shots else current.shots - previous.shots
+        self.passes += current.passes if previous is None or current.passes < previous.passes else current.passes - previous.passes
+        self.one_timers += (
+            current.one_timers
+            if previous is None or current.one_timers < previous.one_timers
+            else current.one_timers - previous.one_timers
+        )
+
+
 def ensure_zip_path(path: str) -> str:
     """Append the SB3 .zip suffix if the path doesn't already include it."""
 
@@ -320,6 +347,11 @@ class LiveTrainingDisplay(threading.Thread):
         self.button_actions: Optional[np.ndarray] = None
         self.uses_nhl94_gamestate = args.env in NHL94_ENVS
         self.game_state = NHL94GameState(args.num_players) if self.uses_nhl94_gamestate else None
+        self.total_sessions_played = 0
+        self.total_team1_stats = LiveTeamTotals()
+        self.total_team2_stats = LiveTeamTotals()
+        self.last_team1_session_stats: Optional[LiveTeamTotals] = None
+        self.last_team2_session_stats: Optional[LiveTeamTotals] = None
 
     def stop(self) -> None:
         self.running = False
@@ -366,6 +398,7 @@ class LiveTrainingDisplay(threading.Thread):
             self.display_model = PPO.load(zip_path, env=self.env)
             self.model_version_loaded = version
             self.obs = self.env.reset()
+            self._begin_new_replay_session()
             self.loaded_model_name = os.path.basename(zip_path)
             try:
                 self.display_model_param_count = sum(
@@ -646,6 +679,24 @@ class LiveTrainingDisplay(threading.Thread):
         except Exception:  # pylint: disable=broad-except
             return []
 
+    def _begin_new_replay_session(self) -> None:
+        self.total_sessions_played += 1
+        self.last_team1_session_stats = None
+        self.last_team2_session_stats = None
+
+    def _update_total_game_stats(self) -> None:
+        if not self.uses_nhl94_gamestate or self.game_state is None:
+            return
+
+        team1_stats = LiveTeamTotals.from_game_stats(self.game_state.team1.stats)
+        team2_stats = LiveTeamTotals.from_game_stats(self.game_state.team2.stats)
+
+        self.total_team1_stats.add_delta(self.last_team1_session_stats, team1_stats)
+        self.total_team2_stats.add_delta(self.last_team2_session_stats, team2_stats)
+
+        self.last_team1_session_stats = team1_stats
+        self.last_team2_session_stats = team2_stats
+
     def run(self) -> None:  # noqa: D401
         pygame.init()
         pygame.freetype.init()
@@ -698,11 +749,14 @@ class LiveTrainingDisplay(threading.Thread):
                     if self.uses_nhl94_gamestate and self.game_state is not None:
                         self.game_state.BeginFrame(info[0], [0] * 6)
                         self.game_state.EndFrame()
+                        self._update_total_game_stats()
                     if np.any(done):
                         self.obs = self.env.reset()
+                        self._begin_new_replay_session()
                 except Exception as exc:  # pylint: disable=broad-except
                     com_print(f"[Live UI] env.step failed: {exc}")
                     self.obs = self.env.reset()
+                    self._begin_new_replay_session()
 
                 try:
                     frame = self._extract_frame(self.env)
@@ -799,6 +853,7 @@ class LiveTrainingDisplay(threading.Thread):
             f"{best_reward_value:.2f}" if best_reward_value != float("-inf") else "—"
         )
         playtime_text = format_playtime(latest_steps)
+        sessions_text = f"{self.total_sessions_played:,}"
 
         info_items = [
             ("Environment", env_text),
@@ -807,6 +862,7 @@ class LiveTrainingDisplay(threading.Thread):
             ("Parameters", param_text),
             ("Best Reward", best_reward_text),
             ("Playtime", playtime_text),
+            ("Total Sessions", sessions_text),
         ]
 
         count = len(info_items)
@@ -855,17 +911,17 @@ class LiveTrainingDisplay(threading.Thread):
         surface.fill(self.PANEL_BG_COLOR, stats_rect)
         pygame.draw.rect(surface, self.PANEL_BORDER_COLOR, stats_rect, width=2, border_radius=10)
 
-        t1 = self.game_state.team1.stats
-        t2 = self.game_state.team2.stats
+        t1 = self.total_team1_stats
+        t2 = self.total_team2_stats
 
-        self.subheader_font.render_to(surface, (stats_rect.x + 14, stats_rect.y + 10), "Team 1", self.TITLE_COLOR)
-        self.subheader_font.render_to(surface, (stats_rect.x + stats_rect.width // 2 + 14, stats_rect.y + 10), "Team 2", self.TITLE_COLOR)
+        self.subheader_font.render_to(surface, (stats_rect.x + 14, stats_rect.y + 10), "Team 1 Totals", self.TITLE_COLOR)
+        self.subheader_font.render_to(surface, (stats_rect.x + stats_rect.width // 2 + 14, stats_rect.y + 10), "Team 2 Totals", self.TITLE_COLOR)
 
         rows = [
-            ("Score", t1.score, t2.score),
+            ("Goals", t1.goals, t2.goals),
             ("Shots", t1.shots, t2.shots),
-            ("Passes", t1.passing, t2.passing),
-            ("One Timers", t1.onetimer, t2.onetimer),
+            ("Passes", t1.passes, t2.passes),
+            ("One Timers", t1.one_timers, t2.one_timers),
         ]
 
         for idx, (label, v1, v2) in enumerate(rows):

@@ -9,7 +9,7 @@ from typing import Tuple, Callable
 from game_wrappers.nhl94.nhl94_const import GameConsts
 from game_wrappers.nhl94.nhl94_mi import init_model, init_model_rel, init_model_rel_dist, init_model_rel_dist_buttons, init_model_1p, init_model_2p, \
       set_model_input, set_model_input_1p, set_model_input_2p, set_model_input_rel, set_model_input_rel_dist, set_model_input_rel_dist_buttons, \
-      init_model_invariant, set_model_input_invariant
+    init_model_invariant, set_model_input_invariant, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2
 
 # =====================================================================
 # Common functions
@@ -143,63 +143,29 @@ def rf_general(state):
     t1 = state.team1
     t2 = state.team2
 
+    rew = 0.0
+    if state.puck.y > 100 and t1.player_haspuck:
+        rew = 0.1
+    
+    if t1.stats.passing > t1.last_stats.passing:
+        rew += 0.1
+
+    if state.puck.y > 120 and t1.stats.onetimer > t1.last_stats.onetimer:
+        rew += 0.5
+
+    if t1.stats.score > t1.last_stats.score:
+        rew = 1.0
+
     # Scoring rewards (team 1 scores or concedes)
     if t1.stats.score > t1.last_stats.score:
         return 1.0  # Big reward for scoring
     if t2.stats.score > t2.last_stats.score:
         return -1.0  # Penalty for conceding
 
-    reward = 0.0
-
-    # Possession shaping
-    if t1.player_haspuck or t1.goalie_haspuck:
-        reward += 0.12
-    elif t2.player_haspuck or t2.goalie_haspuck:
-        reward -= 0.1
-
-    # Encourage advancing the puck into the offensive zone
-    zone_span = GameConsts.ATACKZONE_POS_Y - GameConsts.DEFENSEZONE_POS_Y
-    if zone_span:
-        puck_progress = (state.puck.y - GameConsts.DEFENSEZONE_POS_Y) / zone_span
-        puck_progress = float(np.clip(puck_progress, 0.0, 1.0))
-        reward += 0.1 * (puck_progress * 2.0 - 1.0)
-
-    # Keep skater moving, especially with possession
-    controlled_player = t1.goalie if t1.control == 0 else t1.players[t1.control - 1]
-    speed = math.sqrt(controlled_player.vx ** 2 + controlled_player.vy ** 2)
-    speed_norm = min(1.0, speed / GameConsts.MAX_VEL_XY)
-    if t1.player_haspuck:
-        reward += 0.05 * speed_norm
-    else:
-        reward += 0.02 * speed_norm
-
-    # Reward purposeful passing (limit farming by requiring forward/zone progress)
-    passes_delta = max(0, t1.stats.passing - t1.last_stats.passing)
-    if passes_delta:
-        in_attack_zone = state.puck.y >= GameConsts.ATACKZONE_POS_Y
-        forward_velocity = state.puck.vy > 0
-        pass_bonus = 0.12 if in_attack_zone or forward_velocity else 0.04
-        reward += pass_bonus * min(passes_delta, 2)
-
-    # Reward generating shots, penalize conceded shots
-    if t1.stats.shots > t1.last_stats.shots:
-        reward += 0.25
     if t2.stats.shots > t2.last_stats.shots:
-        reward -= 0.25
+        return -0.5  # Penalty for conceding
 
-    # Encourage time in offensive zone, discourage defending too long
-    attackzone_delta = max(0, t1.stats.attackzone - t1.last_stats.attackzone)
-    if attackzone_delta:
-        reward += min(0.15, 0.01 * attackzone_delta)
-
-    opponent_zone_delta = max(0, t2.stats.attackzone - t2.last_stats.attackzone)
-    if opponent_zone_delta:
-        reward -= min(0.12, 0.008 * opponent_zone_delta)
-
-    # Small living penalty to push toward decisive plays
-    reward -= 0.002
-
-    return reward
+    return rew
 
 # =====================================================================
 # ScoreGoal - Cross Crease technic
@@ -293,7 +259,7 @@ def isdone_scoregoal_ot(state):
     if t1.stats.score > t1.last_stats.score:
         return True
 
-    if t2.goalie_haspuck:
+    if t2.player_haspuck or t2.goalie_haspuck:
         return True
 
     if state.puck.y < 0:
@@ -309,34 +275,19 @@ def rf_scoregoal_ot(state):
     t2 = state.team2
     rew = 0.0
 
-    #if t1.stats.passing > t1.last_stats.passing:
-    #    rew = 0.1
+    if t1.stats.passing > t1.last_stats.passing:
+        rew = 0.01
 
     #if t1.stats.shots > t1.last_stats.shots:
     #    rew = 0.1
 
-    controlled_idx = max(0, t1.control - 1) if t1.control > 0 else 0
-    player = t1.players[controlled_idx]
-
-    speed = math.sqrt(player.vx**2 + player.vy**2)
-    #print(speed)
-    #if t1.player_haspuck and speed > 20:
-    #    rew = 1.0
-
-    if speed > 15:
-        rew += 0.1
-
-    if t2.player_haspuck:
-        rew = -0.1
-
     if t1.stats.onetimer > t1.last_stats.onetimer:
+        rew = 0.1
+
+    if t1.stats.score > t1.last_stats.score:
         rew = 1.0
 
-    if t1.stats.score > 0: #and t1.stats.onetimer > 0:
-        rew = 1.0
 
-    if state.puck.y < 0:
-        rew = -0.3
 
     return rew
 
@@ -385,6 +336,179 @@ def rf_scoregoal(state):
 
     if t1.stats.score > t1.last_stats.score:
         rew = 1.0
+
+    return rew
+
+
+def isdone_scoregoal_v2(state):
+    if isdone_scoregoal(state):
+        return True
+
+    tracker = getattr(state, "_scoregoal_v2_tracker", None)
+    if tracker is None:
+        return False
+
+    if tracker["stall_frames"] >= 45:
+        return True
+
+    if tracker["possession_frames"] >= 240 and not tracker["shot_taken_once"]:
+        return True
+
+    return False
+
+
+def rf_scoregoal_v2(state):
+    t1 = state.team1
+    t2 = state.team2
+    engine = state.engine
+
+    tracker = getattr(state, "_scoregoal_v2_tracker", None)
+    if tracker is None:
+        tracker = {
+            "possession_frames": 0,
+            "stall_frames": 0,
+            "shot_mode_frames": 0,
+            "best_attack_y": state.puck.y,
+            "last_puck_x": state.puck.x,
+            "last_puck_y": state.puck.y,
+            "prev_shot_mode_active": bool(engine.shot_mode_active),
+            "prev_shot_taken": bool(engine.shot_taken),
+            "prev_top_shelf": bool(engine.in_close_top_shelf),
+            "prev_in_danger_area": False,
+            "shot_taken_once": False,
+        }
+        setattr(state, "_scoregoal_v2_tracker", tracker)
+
+    if t1.stats.score > t1.last_stats.score:
+        return 1.0
+
+    if t2.player_haspuck or t2.goalie_haspuck:
+        return -0.5
+
+    if state.puck.y < GameConsts.ATACKZONE_POS_Y:
+        return -0.5
+
+    controlled_player = t1.get_controlled_player()
+    opponent_goalie = t2.goalie
+    controlled_idx = t1.control - 1 if t1.control > 0 else -1
+
+    in_slot_lane = abs(controlled_player.x) < GameConsts.CREASE_MAX_X * 3
+    near_net = controlled_player.y > (GameConsts.CREASE_LOWER_BOUND - 10)
+    in_danger_area = near_net and abs(controlled_player.x) < GameConsts.CREASE_MAX_X * 2
+    goalie_gap_x = abs(controlled_player.x - opponent_goalie.x)
+    goalie_gap_good = goalie_gap_x > GameConsts.CREASE_MIN_GOALIE_PUCK_DIST_X
+    goalie_committed = opponent_goalie.is_pad_stack or opponent_goalie.is_dive
+    control_speed = math.hypot(controlled_player.vx, controlled_player.vy)
+    puck_step = math.hypot(state.puck.x - tracker["last_puck_x"], state.puck.y - tracker["last_puck_y"])
+    corner_trap = controlled_player.y > 150 and abs(controlled_player.x) > 55
+    shot_taken_now = bool(engine.shot_taken) and not tracker["prev_shot_taken"]
+    shot_mode_started = bool(engine.shot_mode_active) and not tracker["prev_shot_mode_active"]
+    top_shelf_started = bool(engine.in_close_top_shelf) and not tracker["prev_top_shelf"]
+
+    teammate_one_timer = False
+    teammate_one_timer_lane = False
+    for index, player in enumerate(t1.players):
+        if index == controlled_idx:
+            continue
+        teammate_one_timer = teammate_one_timer or bool(player.is_one_timer)
+        teammate_one_timer_lane = teammate_one_timer_lane or bool(player.is_one_timer and player.passing_lane_clear)
+
+    rew = 0.0
+
+    if t1.player_haspuck:
+        tracker["possession_frames"] += 1
+
+        attack_progress = max(0.0, state.puck.y - tracker["best_attack_y"])
+        if attack_progress > 0:
+            rew += min(attack_progress * 0.01, 0.10)
+            tracker["best_attack_y"] = state.puck.y
+
+        rew -= 0.003
+
+        if tracker["possession_frames"] > 60:
+            rew -= min((tracker["possession_frames"] - 60) * 0.001, 0.06)
+
+        if corner_trap:
+            rew -= 0.03
+
+        if puck_step < 2.0 and control_speed < 4.0 and not engine.shot_mode_active and not state.action[4] and not state.action[5]:
+            tracker["stall_frames"] += 1
+        else:
+            tracker["stall_frames"] = max(0, tracker["stall_frames"] - 2)
+
+        if tracker["stall_frames"] > 15:
+            rew -= min((tracker["stall_frames"] - 15) * 0.004, 0.12)
+    else:
+        tracker["possession_frames"] = 0
+        tracker["shot_mode_frames"] = 0
+        tracker["stall_frames"] = 0
+        tracker["best_attack_y"] = max(GameConsts.ATACKZONE_POS_Y, state.puck.y)
+
+    if in_danger_area and not tracker["prev_in_danger_area"]:
+        rew += 0.08
+
+    if t1.stats.passing > t1.last_stats.passing:
+        rew += 0.15
+        if teammate_one_timer_lane:
+            rew += 0.10
+        tracker["stall_frames"] = max(0, tracker["stall_frames"] - 10)
+
+    if teammate_one_timer and teammate_one_timer_lane and not t1.player_haspuck:
+        rew += 0.03
+
+    if t1.stats.onetimer > t1.last_stats.onetimer:
+        rew += 0.35
+
+    if engine.shot_mode_active:
+        tracker["shot_mode_frames"] += 1
+        if shot_mode_started and t1.player_haspuck and in_slot_lane:
+            rew += 0.10
+            if goalie_gap_good:
+                rew += 0.05
+            if goalie_committed:
+                rew += 0.05
+
+        if tracker["shot_mode_frames"] > 12:
+            rew -= min((tracker["shot_mode_frames"] - 12) * 0.01, 0.12)
+    else:
+        tracker["shot_mode_frames"] = 0
+
+    if shot_taken_now:
+        tracker["shot_taken_once"] = True
+        rew += 0.10
+        if in_danger_area:
+            rew += 0.08
+        if goalie_gap_good:
+            rew += 0.08
+        if engine.goalie_box_small:
+            rew += 0.12
+        if goalie_committed:
+            rew += 0.10
+        if engine.controlled_is_shooter:
+            rew += min(engine.pass_speed / 512.0, 0.08)
+        tracker["stall_frames"] = 0
+
+    if top_shelf_started and near_net:
+        rew += 0.18
+
+    if shot_taken_now and engine.one_timer_collision_mode:
+        rew += 0.10
+
+    if opponent_goalie.is_pad_stack and near_net and shot_taken_now:
+        rew += 0.10
+
+    if state.action[5] and not in_slot_lane:
+        rew -= 0.02
+
+    if shot_taken_now and not goalie_committed and not goalie_gap_good:
+        rew -= 0.05
+
+    tracker["prev_shot_mode_active"] = bool(engine.shot_mode_active)
+    tracker["prev_shot_taken"] = bool(engine.shot_taken)
+    tracker["prev_top_shelf"] = bool(engine.in_close_top_shelf)
+    tracker["prev_in_danger_area"] = in_danger_area
+    tracker["last_puck_x"] = state.puck.x
+    tracker["last_puck_y"] = state.puck.y
 
     return rew
 
@@ -832,6 +956,7 @@ _reward_function_map = {
     "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
+    "ScoreGoalV2": (init_attackzone, rf_scoregoal_v2, isdone_scoregoal_v2, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
     "KeepPuck": (init_attackzone, rf_keeppuck, isdone_keeppuck, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "Passing": (init_attackzone, rf_passing, isdone_passing, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_no_shoot),

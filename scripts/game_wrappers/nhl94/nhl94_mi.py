@@ -380,6 +380,57 @@ def set_model_input_rel_dist_buttons(game_state) -> Tuple[float, ...]:
     # Combine all features
     return tuple(features + button_features + [normalized_slapshot])
 
+
+def init_model_rel_dist_buttons_v2(num_players: int) -> int:
+    """V2 model input that augments the existing relative/button model with hidden shot-state features."""
+    hidden_feature_count = 19
+    return init_model_rel_dist_buttons(num_players) + hidden_feature_count
+
+
+def set_model_input_rel_dist_buttons_v2(game_state) -> Tuple[float, ...]:
+    """Model input with the original relative/button features plus decoded shot and goalie state."""
+    features = list(set_model_input_rel_dist_buttons(game_state))
+    t1 = game_state.team1
+    t2 = game_state.team2
+    engine = game_state.engine
+
+    controlled_player = t1.get_controlled_player()
+    opponent_goalie = t2.goalie
+    controlled_idx = t1.control - 1 if t1.control > 0 else -1
+
+    teammate_one_timer = 0.0
+    teammate_one_timer_lane = 0.0
+    for index, player in enumerate(t1.players):
+        if index == controlled_idx:
+            continue
+        teammate_one_timer = max(teammate_one_timer, player.is_one_timer)
+        if player.is_one_timer and player.passing_lane_clear:
+            teammate_one_timer_lane = 1.0
+
+    hidden_features = [
+        controlled_player.is_one_timer,
+        controlled_player.is_breakaway,
+        controlled_player.is_falling,
+        min(abs(controlled_player.anim_frame) / 32.0, 1.0),
+        float(controlled_player.anim != 0),
+        teammate_one_timer,
+        teammate_one_timer_lane,
+        opponent_goalie.is_pad_stack,
+        opponent_goalie.is_dive,
+        min(abs(opponent_goalie.anim_frame) / 32.0, 1.0),
+        engine.shot_mode_active,
+        engine.shot_taken,
+        engine.in_close_top_shelf,
+        engine.one_timer_collision_mode,
+        engine.breakaway_context,
+        engine.controlled_is_shooter,
+        engine.goalie_box_small,
+        min(engine.pass_dir / 7.0, 1.0),
+        min(engine.pass_speed / 255.0, 1.0),
+    ]
+
+    return tuple(features + hidden_features)
+
 def init_model_invariant(num_players: int) -> int:
     """
     Same length as set_model_input_rel_dist.

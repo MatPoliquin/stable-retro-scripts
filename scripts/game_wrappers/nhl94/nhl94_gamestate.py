@@ -26,6 +26,9 @@ class Player:
     y: int = 0
     vx: int = 0
     vy: int = 0
+    anim: int = 0
+    anim_frame: int = 0
+    state_flags: int = 0
     orientation: int = 0  # New field for orientation (0-7)
     ori_x: float = 0.0    # Normalized x component of orientation
     ori_y: float = 0.0    # Normalized y component of orientation
@@ -41,9 +44,15 @@ class Player:
     dist_to_controlled_opp: float = 0.0  # New: Distance to controlled opponent player
     dist_to_puck: float = 0.0  # New: Distance to puck
     passing_lane_clear: bool = False
+    is_one_timer: float = 0.0
+    is_breakaway: float = 0.0
+    is_falling: float = 0.0
+    is_pad_stack: float = 0.0
+    is_dive: float = 0.0
 
     def debug_print(self, prefix="Player"):
         print(f"{prefix} - x: {self.x}, y: {self.y}, vx: {self.vx}, vy: {self.vy}, "
+            f"anim: {hex(self.anim)}, anim_frame: {self.anim_frame}, state_flags: {bin(self.state_flags)}, "
             f"orientation: {self.orientation}, ori_vec: ({self.ori_x:.2f}, {self.ori_y:.2f})\n"
             f"  rel_puck: ({self.rel_puck_x:.1f}, {self.rel_puck_y:.1f}) "
             f"rel_puck_vel: ({self.rel_puck_vx:.1f}, {self.rel_puck_vy:.1f})\n"
@@ -52,6 +61,8 @@ class Player:
             f"  dist_to_controlled: {self.dist_to_controlled:.1f}, "
             f"dist_to_controlled_opp: {self.dist_to_controlled_opp:.1f}, "
             f"dist_to_puck: {self.dist_to_puck:.1f}\n"
+            f"  one_timer: {self.is_one_timer}, breakaway: {self.is_breakaway}, "
+            f"falling: {self.is_falling}, pad_stack: {self.is_pad_stack}, dive: {self.is_dive}\n"
             f"  passing_lane_clear: {self.passing_lane_clear}")
 
 @dataclass
@@ -73,8 +84,42 @@ class Stats:
               f"attackzone: {self.attackzone}, faceoffwon: {self.faceoffwon}, passing: {self.passing}, onetimer: {self.onetimer},"
               f"fullstar: ({self.fullstar_x},{self.fullstar_y}), emptystar: ({self.emptystar_x},{self.emptystar_y})")
 
+
+@dataclass
+class EngineState:
+    puck_owner: int = -1
+    shot_player: int = -1
+    pass_dir: int = 0
+    pass_speed: int = 0
+    goalie_chk_body: int = 0
+    sflags: int = 0
+    sflags2: int = 0
+    ba_ps_flags: int = 0
+    word_ffc2f6: int = 0
+    word_ffc2f8: int = 0
+    word_ffc2fa: int = 0
+    shot_mode_active: float = 0.0
+    shot_taken: float = 0.0
+    in_close_top_shelf: float = 0.0
+    one_timer_collision_mode: float = 0.0
+    breakaway_context: float = 0.0
+    controlled_is_shooter: float = 0.0
+    goalie_box_small: float = 0.0
+
+    def debug_print(self, prefix="EngineState"):
+        print(
+            f"{prefix} - puck_owner: {self.puck_owner}, shot_player: {self.shot_player}, "
+            f"pass_dir: {self.pass_dir}, pass_speed: {self.pass_speed}, goalie_chk_body: {self.goalie_chk_body}\n"
+            f"  shot_mode_active: {self.shot_mode_active}, shot_taken: {self.shot_taken}, "
+            f"in_close_top_shelf: {self.in_close_top_shelf}, one_timer_collision_mode: {self.one_timer_collision_mode},\n"
+            f"  breakaway_context: {self.breakaway_context}, controlled_is_shooter: {self.controlled_is_shooter}, "
+            f"goalie_box_small: {self.goalie_box_small}"
+        )
+
 class Team():
     HAS_PUCK_TRESHOLD = 3
+    PAD_STACK_ANIMS = {0x250, 0x2A2}
+    DIVE_ANIM = 0x2F4
 
     def __init__(self, controller: int, num_players: int):
         self.controller = controller
@@ -106,6 +151,26 @@ class Team():
         nz_net_left_rel: tuple = (0.0, 0.0)    # Relative to controlled player
         nz_net_right_rel: tuple = (0.0, 0.0)
         nz_net_center_rel: tuple = (0.0, 0.0)
+
+    def get_controlled_player(self) -> Player:
+        return self.goalie if self.control == 0 else self.players[self.control - 1]
+
+    def controlled_scnum(self) -> int:
+        if self.control == 0:
+            return 5 if self.controller == 1 else 11
+        base_scnum = 0 if self.controller == 1 else 6
+        return base_scnum + (self.control - 1)
+
+    def _load_hidden_player_fields(self, player: Player, info: Dict[str, Any], prefix: str) -> None:
+        player.anim = info.get(f"{prefix}anim", 0) or 0
+        player.anim_frame = info.get(f"{prefix}anim_frame", 0) or 0
+        player.state_flags = info.get(f"{prefix}state_flags", 0) or 0
+
+        player.is_one_timer = 1.0 if player.state_flags & (1 << 3) else 0.0
+        player.is_breakaway = 1.0 if player.state_flags & (1 << 1) else 0.0
+        player.is_falling = 1.0 if player.state_flags & (1 << 5) else 0.0
+        player.is_pad_stack = 1.0 if player.anim in self.PAD_STACK_ANIMS else 0.0
+        player.is_dive = 1.0 if player.anim == self.DIVE_ANIM else 0.0
 
         nz_net_left: tuple = (0.0, 0.0)        # Normalized absolute left post
         nz_net_right: tuple = (0.0, 0.0)       # Normalized absolute right post
@@ -146,6 +211,7 @@ class Team():
         self.goalie.y = info.get(f"{self.ram_var_goalie_prefix}y")
         self.goalie.vx = info.get(f"{self.ram_var_goalie_prefix}vel_x", 0)
         self.goalie.vy = info.get(f"{self.ram_var_goalie_prefix}vel_y", 0)
+        self._load_hidden_player_fields(self.goalie, info, f"{self.ram_var_goalie_prefix}")
 
         # Players
         for p in range(0, self.num_players):
@@ -155,6 +221,7 @@ class Team():
                 self.players[p].vx = info.get(f"{self.ram_var_prefix}vel_x")
                 self.players[p].vy = info.get(f"{self.ram_var_prefix}vel_y")
                 self.players[p].orientation = info.get(f"{self.ram_var_prefix}ori", 0)
+                self._load_hidden_player_fields(self.players[p], info, self.ram_var_prefix)
             else:
                 pi = p + 1
                 self.players[p].x = info.get(f"{self.ram_var_prefix}{pi}_x")
@@ -162,6 +229,7 @@ class Team():
                 self.players[p].vx = info.get(f"{self.ram_var_prefix}{pi}_vel_x")
                 self.players[p].vy = info.get(f"{self.ram_var_prefix}{pi}_vel_y")
                 self.players[p].orientation = info.get(f"{self.ram_var_prefix}{pi}_ori", 0)
+                self._load_hidden_player_fields(self.players[p], info, f"{self.ram_var_prefix}{pi}_")
 
             # Convert orientation to vector
             angle = self.players[p].orientation * (2 * math.pi / 8)
@@ -340,6 +408,7 @@ class NHL94GameState():
         self.team1 = Team(1, numPlayers)
         self.team2 = Team(2, numPlayers)
         self.puck = Player()
+        self.engine = EngineState()
         self.period = 1
         self.time = 0
         self.last_time = 0
@@ -353,6 +422,30 @@ class NHL94GameState():
 
         #For model input
         self.nz_puck = Player()
+
+    def _update_engine_state(self, info: Dict[str, Any]) -> None:
+        puck_owner = info.get("puck_owner")
+        shot_player = info.get("shot_player")
+
+        self.engine.puck_owner = -1 if puck_owner is None else puck_owner
+        self.engine.shot_player = -1 if shot_player is None else shot_player
+        self.engine.pass_dir = info.get("pass_dir", 0) or 0
+        self.engine.pass_speed = info.get("pass_speed", 0) or 0
+        self.engine.goalie_chk_body = info.get("goalie_chk_body", 0) or 0
+        self.engine.sflags = info.get("sflags", 0) or 0
+        self.engine.sflags2 = info.get("sflags2", 0) or 0
+        self.engine.ba_ps_flags = info.get("ba_ps_flags", 0) or 0
+        self.engine.word_ffc2f6 = info.get("word_ffc2f6", 0) or 0
+        self.engine.word_ffc2f8 = info.get("word_ffc2f8", 0) or 0
+        self.engine.word_ffc2fa = info.get("word_ffc2fa", 0) or 0
+
+        self.engine.shot_mode_active = 1.0 if self.engine.sflags & (1 << 3) else 0.0
+        self.engine.shot_taken = 1.0 if self.engine.sflags2 & (1 << 4) else 0.0
+        self.engine.in_close_top_shelf = 1.0 if self.engine.word_ffc2f6 & (1 << 4) else 0.0
+        self.engine.one_timer_collision_mode = 1.0 if self.engine.word_ffc2f8 & (1 << 1) else 0.0
+        self.engine.breakaway_context = 1.0 if self.engine.word_ffc2fa & (1 << 4) else 0.0
+        self.engine.controlled_is_shooter = 1.0 if self.engine.shot_player == self.team1.controlled_scnum() else 0.0
+        self.engine.goalie_box_small = 1.0 if self.engine.goalie_chk_body <= 0xC else 0.0
 
     # Flip the variables
     def Flip(self):
@@ -580,6 +673,7 @@ class NHL94GameState():
         #Teams
         self.team1.begin_frame(info, self.puck.x, self.puck.y, self.puck.vx, self.puck.vy)
         self.team2.begin_frame(info, self.puck.x, self.puck.y, self.puck.vx, self.puck.vy)
+        self._update_engine_state(info)
 
         self.update_nets()
 
@@ -629,3 +723,4 @@ class NHL94GameState():
         for name, val in zip(action_names, self.action):
             print(f"{name}: {'ON' if val else 'OFF'}", end=" | ")
         print()
+        self.engine.debug_print()
