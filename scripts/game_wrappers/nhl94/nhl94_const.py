@@ -37,6 +37,11 @@ class GameConsts():
     MAX_PLAYER_X = 120
     MAX_PLAYER_Y = 270
 
+    CAMERA_MIN_X = -60
+    CAMERA_MAX_X = 60
+    CAMERA_MIN_Y = -200
+    CAMERA_MAX_Y = 256
+
     MAX_PUCK_X = 130
     MAX_PUCK_Y = 270
 

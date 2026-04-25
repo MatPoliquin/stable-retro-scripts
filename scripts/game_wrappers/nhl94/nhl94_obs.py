@@ -2,10 +2,8 @@
 NHL94 Observation wrapper
 """
 
-import random
 import copy
 from collections import deque
-from datetime import datetime
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
@@ -69,7 +67,6 @@ class NHL94Observation2PEnv(gym.Wrapper):
             self.observation_space = spaces.Box(low, high, dtype=np.float32)
 
         self.target_xy = [-1, -1]
-        random.seed(datetime.now().timestamp())
 
         self.num_players = num_players
         if self.selfplay_enabled and self.num_players != 2:
@@ -171,13 +168,25 @@ class NHL94Observation2PEnv(gym.Wrapper):
     def reset(self, **kwargs):
         state, info = self.env.reset(**kwargs)
 
-        self.state = tuple([0] * self.NUM_PARAMS)
-        self._reset_frame_buffer()
+        self.init_function(self.env, self.env_name)
+
+        reset_action = self._default_env_action()
+        if self.num_players == 2:
+            reset_action = np.concatenate([reset_action, reset_action])
+
+        state, _, _, _, info = self.env.step(reset_action)
 
         self.game_state = NHL94GameState(self.num_players_per_team)
-        self.ram_inited = False
+        self.ram_inited = True
         self._reset_action_state(self.learner_action_state)
         self._reset_action_state(self.opponent_action_state)
+
+        self.game_state.BeginFrame(info, [0] * 6)
+        self.game_state.EndFrame()
+        self.state = self.set_model_input(self.game_state)
+        self._reset_frame_buffer()
+        if self.uses_sequence_obs:
+            self.frame_buffer.append(self._get_scalar_state_array().copy())
 
         return self._get_obs(state), info
 
@@ -423,10 +432,6 @@ class NHL94Observation2PEnv(gym.Wrapper):
             ac2 = np.concatenate([learner_action, opponent_action])
 
         ob, rew, terminated, truncated, info = self.env.step(ac2)
-
-        if not self.ram_inited:
-            self.init_function(self.env, self.env_name)
-            self.ram_inited = True
 
         self.game_state.BeginFrame(info, gamestate_ac)
 
