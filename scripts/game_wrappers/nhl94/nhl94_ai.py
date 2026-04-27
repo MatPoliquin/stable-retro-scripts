@@ -26,9 +26,15 @@ class NHL94AISystem():
         self.shooting = False
 
         if args.env == 'NHL941on1-Genesis-v0':
-            self.game_state = NHL94GameState(1)
+            num_players_per_team = 1
+        elif args.env == 'NHL942on2-Genesis-v0':
+            num_players_per_team = 2
+        elif args.env == 'NHL94-Genesis-v0':
+            num_players_per_team = 5
         else:
-            self.game_state = NHL94GameState(2)
+            num_players_per_team = 2
+
+        self.game_state = NHL94GameState(num_players_per_team)
 
         self.models = [None, None, None]
         self.model_params = [None, None, None]
@@ -40,7 +46,11 @@ class NHL94AISystem():
         i=1
         self.num_models = 0
         for p in model_paths:
-            if (p != ''):
+            should_init = (p != '')
+            if self.args.nn == 'ClassicAI' and i == 1:
+                should_init = True
+
+            if should_init:
                 self.models[i] = init_model(
                     None,
                     p,
@@ -72,7 +82,11 @@ class NHL94AISystem():
         return math.sqrt(tmp)
 
     def Predict(self, model_index, model_input, deterministic):
-        p1_actions = self.models[model_index].predict(model_input, deterministic=deterministic)[0][0]
+        model = self.models[model_index]
+        if hasattr(model, 'predict_game_state'):
+            p1_actions = model.predict_game_state(self.game_state, deterministic=deterministic)[0]
+        else:
+            p1_actions = model.predict(model_input, deterministic=deterministic)[0]
         self.display_probs = get_model_probabilities(self.models[model_index], model_input)[0]
         self.model_in_use = model_index
 
@@ -137,9 +151,13 @@ class NHL94AISystem():
 
         if self.num_models == 1:
             p1_actions = self.Predict(self.model_in_use, state, deterministic)
-            p1_actions[GameConsts.INPUT_MODE] = 0
+            if self.args.nn != 'ClassicAI':
+                p1_actions[GameConsts.INPUT_MODE] = 0
+            p1_actions = [p1_actions]
         elif self.models[1] and self.models[2]:
             p1_actions = [self.Think_TwoModels(state, self.game_state, deterministic)]
+        else:
+            p1_actions = [[0] * GameConsts.INPUT_MAX]
 
         self.game_state.EndFrame()
 

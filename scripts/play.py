@@ -9,6 +9,7 @@ Play modes:
 import sys
 import argparse
 import os
+import time
 import numpy as np
 from common import com_print, init_logger
 from env_utils import init_env, init_play_env
@@ -40,6 +41,8 @@ def parse_cmdline(argv):
     parser.add_argument('--video_path', type=str, default='../retro_game.avi')
     parser.add_argument('--seq_len', type=int, default=16,
                        help='Frame history length for temporal policies such as HybridMambaPolicy or GRUMlpPolicy')
+    parser.add_argument('--max_playback_speed', type=float, default=2.0,
+                       help='Maximum watched playback speed relative to normal game speed. Capped at 2.0.')
 
     # Model-related arguments
     parser.add_argument('--alg', type=str, default='ppo2', help='Algorithm for single model')
@@ -71,11 +74,35 @@ class NHL94Player:
         self.args = args
         self.logger = logger
         self.need_display = need_display
+        self.max_playback_speed = max(0.1, min(float(getattr(args, 'max_playback_speed', 2.0)), 2.0))
+        self.display_frame_interval = 1.0 / (60.0 * self.max_playback_speed) if need_display else 0.0
+        self.next_display_frame_time = None
 
         if args.mode == 'model_vs_model':
             self.init_model_vs_model()
         else:
             self.init_player_or_game_mode()
+
+    def _reset_playback_timer(self):
+        if not self.need_display:
+            return
+        self.next_display_frame_time = time.monotonic()
+
+    def _throttle_display_frame(self):
+        if not self.need_display:
+            return
+
+        now = time.monotonic()
+        if self.next_display_frame_time is None:
+            self.next_display_frame_time = now
+
+        self.next_display_frame_time += self.display_frame_interval
+        sleep_time = self.next_display_frame_time - now
+        if sleep_time > 0:
+            time.sleep(sleep_time)
+        elif sleep_time < -0.5:
+            # If rendering falls far behind, reset instead of trying to catch up forever.
+            self.next_display_frame_time = now
 
     def init_model_vs_model(self):
         """Initialize for model vs model mode"""
@@ -97,7 +124,7 @@ class NHL94Player:
 
         if self.args.mode != 'player_vs_game':
             self.ai_sys = games.wrappers.ai_sys(self.args, self.p1_env, self.logger)
-            if self.args.model_1 != '' or self.args.model_2 != '':
+            if self.args.nn == 'ClassicAI' or self.args.model_1 != '' or self.args.model_2 != '':
                 models = [self.args.model_1, self.args.model_2]
                 self.ai_sys.SetModels(models)
 
@@ -111,6 +138,7 @@ class NHL94Player:
     def play_model_vs_model(self, continuous, need_reset):
         """Game loop for model vs model mode"""
         state = self.play_env.reset()
+        self._reset_playback_timer()
 
         while True:
             p1_actions = self.p1_model.predict(state)[0]  # Get the action array directly
@@ -123,17 +151,20 @@ class NHL94Player:
             actions = [p1_actions, p2_actions]
 
             state, _, done, _ = self.play_env.step(actions)
+            self._throttle_display_frame()
 
             if done:
                 if continuous:
                     if need_reset:
                         state = self.play_env.reset()
+                        self._reset_playback_timer()
                 else:
                     return
 
     def play_player_or_game_mode(self, continuous, need_reset):
         """Game loop for player vs model or model vs game or player vs game modes"""
         state = self.display_env.reset()
+        self._reset_playback_timer()
         total_rewards = 0
         info = None
 
@@ -167,21 +198,26 @@ class NHL94Player:
                 try:
                     state, reward, done, info = self.display_env.step(actions)
                     total_rewards += reward
+                    self._throttle_display_frame()
                 except ValueError as e:
                     print(f"Invalid action format: {actions}")
                     actions = [0] * 6  # Fallback to no-op
                     state, reward, done, info = self.display_env.step(actions)
                     total_rewards += reward
+                    self._throttle_display_frame()
 
             if done:
                 if continuous:
                     if need_reset:
                         state = self.display_env.reset()
+                        self._reset_playback_timer()
                 else:
                     return info, total_rewards
 
 def main(argv):
     args = parse_cmdline(argv[1:])
+    if args.nn == 'ClassicAI' and args.env in ('NHL941on1-Genesis-v0', 'NHL942on2-Genesis-v0', 'NHL94-Genesis-v0') and not args.rf:
+        args.rf = 'General'
     args.hyperparams_dict = load_hyperparams(
         args.hyperparams,
         required=True,

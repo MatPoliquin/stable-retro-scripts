@@ -525,6 +525,7 @@ def rf_scoregoal(state):
 
 def isdone_scoregoal_v2(state):
     t1 = state.team1
+    t2 = state.team2
 
     if t1.stats.score > t1.last_stats.score:
         return True
@@ -533,6 +534,9 @@ def isdone_scoregoal_v2(state):
         return True
 
     if state.time < 100:
+        return True
+    
+    if t2.player_haspuck or t2.goalie_haspuck:
         return True
 
     tracker = getattr(state, "_scoregoal_v2_tracker", None)
@@ -1046,8 +1050,8 @@ def isdone_getpuck(state):
 def isdone_getpuck_az(state):
     if isdone_getpuck(state):
         return True
-
-    if state.puck.y < GameConsts.ATACKZONE_POS_Y:
+    
+    if state.puck.y < 0:
         return True
 
 def isdone_getpuck_nz(state):
@@ -1076,8 +1080,8 @@ def rf_getpuck(state):
     if t1.stats.bodychecks > t1.last_stats.bodychecks:
         rew = 0.5
 
-    if t2.player_haspuck == True:
-        rew -= 0.1
+    #if t2.player_haspuck == True:
+    #    rew -= 0.1
 
     if t1.player_haspuck == True:
         return 1.0
@@ -1091,8 +1095,17 @@ def rf_getpuck(state):
     if t1.stats.shots > t1.last_stats.shots:
         rew = -1.0
 
-    #if state.time < 200:
-    #    rew = -1
+    if state.puck.y <= 0:
+        rew = -1.0
+
+    controlled_idx = max(0, t1.control - 1) if t1.control > 0 else 0
+    dist_to_puck = t1.nz_players[controlled_idx].dist_to_puck  # 0.0 to ~1.0
+
+    # Small time pressure: ~0.3 over 100 frames
+    rew -= 0.003
+
+    # Closeness bonus: reward being near the puck (always positive or zero)
+    rew += max(0.0, 1.0 - dist_to_puck) * 0.01
 
     return rew
 
@@ -1419,19 +1432,19 @@ def rf_selfplay_defense(state):
 # Register Functions
 # =====================================================================
 _reward_function_map = {
-    "GetPuck": (init_getpuck, rf_getpuck, isdone_getpuck, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
-    "GetPuckAZ": (init_getpuck_az, rf_getpuck, isdone_getpuck_az, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
-    "GetPuckNZ": (init_getpuck_nz, rf_getpuck, isdone_getpuck_nz, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
-    "GetPuckDZ": (init_getpuck_dz, rf_getpuck, isdone_getpuck_dz, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
-    "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
+    "GetPuck": (init_getpuck, rf_getpuck, isdone_getpuck, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
+    "GetPuckAZ": (init_getpuck_az, rf_getpuck, isdone_getpuck_az, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
+    "GetPuckNZ": (init_getpuck_nz, rf_getpuck, isdone_getpuck_nz, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
+    "GetPuckDZ": (init_getpuck_dz, rf_getpuck, isdone_getpuck_dz, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons_v2, input_overide_empty),
+    "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons, input_overide_empty),
     "CrossCreaseV2": (init_attackzone, rf_crosscrease_v2, isdone_crosscrease_v2, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
-    "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
+    "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
+    "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
     "ScoreGoalV2": (init_attackzone, rf_scoregoal_v2, isdone_scoregoal_v2, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
-    "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
-    "Passing": (init_attackzone, rf_passing, isdone_passing, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_no_shoot),
-    "General": (init_general, rf_general, isdone_general, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
+    "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
+    "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
+    "Passing": (init_attackzone, rf_passing, isdone_passing, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_no_shoot),
+    "General": (init_general, rf_general, isdone_general, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons_v2, input_overide_empty),
     "SelfPlay": (init_selfplay, rf_selfplay, isdone_selfplay, init_model_invariant, set_model_input_invariant, input_overide_empty),
     "SelfPlayOffenseFinetune": (init_selfplay_offense, rf_selfplay_offense, isdone_selfplay_offense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "SelfPlayDefenseFinetune": (init_selfplay_defense, rf_selfplay_defense, isdone_selfplay_defense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),

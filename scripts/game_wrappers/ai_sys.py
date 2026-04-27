@@ -19,7 +19,11 @@ class AISys():
         self.model_num_params = None
 
     def SetModels(self, model_paths):
-        if model_paths[0] != None:
+        should_init = model_paths[0] is not None and model_paths[0] != ''
+        if self.args.nn == 'ClassicAI':
+            should_init = True
+
+        if should_init:
             self.model = init_model(
                 None,
                 model_paths[0],

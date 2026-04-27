@@ -54,6 +54,9 @@ class NHL94DebugDisplay:
 
         # Input state
         self.player_actions = [0] * GameConsts.INPUT_MAX
+        self.action_probabilities = None
+        self.model_params = None
+        self.model_in_use = None
         self.key_action_map = {
             pygame.K_UP: GameConsts.INPUT_UP,
             pygame.K_DOWN: GameConsts.INPUT_DOWN,
@@ -70,7 +73,7 @@ class NHL94DebugDisplay:
         }
 
         # Control mode (AI or human)
-        self.human_control = True
+        self.human_control = args.mode in ('player_vs_game', 'player_vs_model')
         self.control_help = [
             "CONTROLS:",
             "Arrows: Move",
@@ -94,6 +97,49 @@ class NHL94DebugDisplay:
         self.show_velocities = True
         self.show_orientations = True
         self.show_distances = True
+
+    def set_ai_sys_info(self, ai_sys):
+        if ai_sys is None:
+            return
+        self.action_probabilities = getattr(ai_sys, 'display_probs', None)
+        self.model_params = getattr(ai_sys, 'model_num_params', None)
+        self.model_in_use = getattr(ai_sys, 'model_in_use', None)
+
+    def _normalize_env_action(self, action):
+        if action is None:
+            return [[0] * GameConsts.INPUT_MAX]
+
+        if isinstance(action, np.ndarray):
+            action = action.tolist()
+
+        if isinstance(action, list) and len(action) == GameConsts.INPUT_MAX and not isinstance(action[0], (list, np.ndarray)):
+            return [[int(a) for a in action]]
+
+        if isinstance(action, list) and len(action) == 1:
+            first = action[0]
+            if isinstance(first, np.ndarray):
+                first = first.tolist()
+            if isinstance(first, list) and len(first) == GameConsts.INPUT_MAX:
+                return [[int(a) for a in first]]
+
+        if isinstance(action, list) and len(action) == 2:
+            normalized = []
+            for player_action in action:
+                if isinstance(player_action, np.ndarray):
+                    player_action = player_action.tolist()
+                if not isinstance(player_action, list) or len(player_action) != GameConsts.INPUT_MAX:
+                    break
+                normalized.append([int(a) for a in player_action])
+            if len(normalized) == 2:
+                return normalized
+
+        return [[0] * GameConsts.INPUT_MAX]
+
+    def _flatten_action_for_display(self, action):
+        normalized = self._normalize_env_action(action)
+        if normalized and len(normalized[0]) == GameConsts.INPUT_MAX:
+            return normalized[0]
+        return [0] * GameConsts.INPUT_MAX
 
     def close(self):
         pygame.quit()
@@ -120,17 +166,9 @@ class NHL94DebugDisplay:
         if self.human_control:
             action = self.get_human_input()
 
-        # Convert to the format expected by the environment
-        if action is None:
-            env_action = [0] * 12  # Default no-op action
-        elif isinstance(action, list) and len(action) == 12:
-            # Already in correct format
-            env_action = [int(a) for a in action]
-        else:
-            # Fallback to no-op
-            env_action = [0] * 12
+        env_action = self._normalize_env_action(action)
 
-        obs, rew, done, info = self.env.step([env_action])
+        obs, rew, done, info = self.env.step(env_action)
 
         # Draw the frame
         framebuffer = self.env.render()
@@ -440,8 +478,9 @@ class NHL94DebugDisplay:
 
         # Draw action info if available
         if action is not None:
+            flat_action = self._flatten_action_for_display(action)
             action_names = ["Up", "Down", "Left", "Right", "B", "C", "A", "Start", "Mode", "X", "Y", "Z"]
-            active_actions = [name for name, val in zip(action_names, action) if val]
+            active_actions = [name for name, val in zip(action_names, flat_action) if val]
             action_text = "Active: " + ", ".join(active_actions) if active_actions else "No actions"
             text_surface = self.font.render(action_text, True, self.COLOR_WHITE)
             self.debug_surf.blit(text_surface, (self.DEBUG_WIDTH/2 - text_surface.get_width()/2, 120))

@@ -1002,6 +1002,8 @@ class LiveTrainer:
     def train(self, callback: BaseCallback) -> None:
         if self.args.alg == "es":
             raise NotImplementedError("Live training does not currently support Evolution Strategies.")
+        if self.args.nn == 'ClassicAI':
+            raise NotImplementedError('ClassicAI is inference-only for now. Use scripts/play.py to view it.')
 
         com_print("========= Live Training ==========")
         com_print(f"OUTPUT PATH:   {self.output_fullpath}")

@@ -13,6 +13,7 @@ except Exception:
 
 from stable_baselines3 import PPO, A2C
 from torchsummary import summary
+from classic_ai import ClassicAIModel
 from models import CustomMlpPolicy, CustomPolicy, ViTPolicy, DartPolicy, AttentionMLPPolicy,\
     EntityAttentionPolicy, CustomCNN, CustomImpalaFeatureExtractor, CNNTransformer, HockeyMultiHeadPolicy, HybridMambaPolicy, GRUMlpPolicy
 from es import EvolutionStrategies
@@ -38,10 +39,15 @@ def load_model_for_inference(player_model, player_alg='ppo2'):
     raise NotImplementedError(f"Inference loading is not implemented for algorithm '{player_alg}'")
 
 def get_num_parameters(model):
+    if not hasattr(model, "policy"):
+        return 0
     total_params = sum(p.numel() for p in model.policy.parameters() if p.requires_grad)
     return total_params
 
 def get_model_probabilities(model, state):
+    if hasattr(model, "get_action_preferences"):
+        return model.get_action_preferences(state)
+
     #obs = obs_as_tensor(state, model.policy.device)
     obs = model.policy.obs_to_tensor(state)[0]
     dis = model.policy.get_distribution(obs)
@@ -50,6 +56,8 @@ def get_model_probabilities(model, state):
     return probs_np
 
 def print_model_summary(args, env, player_model, model):
+    if not hasattr(model, "policy"):
+        return
 
     obs_space = getattr(model, "observation_space", None) or env.observation_space
     print(obs_space)
@@ -74,6 +82,10 @@ def print_model_summary(args, env, player_model, model):
 def init_model(output_path, player_model, player_alg, args, env, logger, hyperparams):
     policy_kwargs = None
     nn_type = args.nn
+
+    if args.nn == 'ClassicAI':
+        return ClassicAIModel(args=args, env=env)
+
     size = args.nnsize
 
     if hyperparams is None:

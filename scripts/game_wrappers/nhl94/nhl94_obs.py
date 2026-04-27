@@ -107,16 +107,12 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
     def _new_action_state(self):
         return {
-            'b_pressed': False,
-            'c_pressed': False,
             'slapshot_frames': 0,
             'last_env_action': self._default_env_action(),
             'last_gamestate_action': [0] * 6,
         }
 
     def _reset_action_state(self, action_state):
-        action_state['b_pressed'] = False
-        action_state['c_pressed'] = False
         action_state['slapshot_frames'] = 0
         action_state['last_env_action'] = self._default_env_action()
         action_state['last_gamestate_action'] = [0] * 6
@@ -196,34 +192,6 @@ class NHL94Observation2PEnv(gym.Wrapper):
         if isinstance(ac, (list, np.ndarray)) and len(ac) == GameConsts.INPUT_MAX:
             processed_ac = np.asarray(ac, dtype=np.int8).copy()
 
-            if action_state['b_pressed'] and processed_ac[GameConsts.INPUT_B] == 1:
-                processed_ac[GameConsts.INPUT_B] = 0
-                action_state['b_pressed'] = False
-            elif not action_state['b_pressed'] and processed_ac[GameConsts.INPUT_B] == 1:
-                action_state['b_pressed'] = True
-            else:
-                action_state['b_pressed'] = False
-
-            if processed_ac[GameConsts.INPUT_MODE] == 1:
-                if action_state['slapshot_frames'] == 0:
-                    action_state['slapshot_frames'] = 1
-                    processed_ac[GameConsts.INPUT_C] = 1
-                else:
-                    action_state['slapshot_frames'] += 1
-                    processed_ac[GameConsts.INPUT_C] = 1
-                    if action_state['slapshot_frames'] >= 60:
-                        action_state['slapshot_frames'] = 0
-                        processed_ac[GameConsts.INPUT_C] = 0
-            else:
-                if action_state['c_pressed'] and processed_ac[GameConsts.INPUT_C] == 1:
-                    processed_ac[GameConsts.INPUT_C] = 0
-                    action_state['c_pressed'] = False
-                elif not action_state['c_pressed'] and processed_ac[GameConsts.INPUT_C] == 1:
-                    action_state['c_pressed'] = True
-                else:
-                    action_state['c_pressed'] = False
-                action_state['slapshot_frames'] = 0
-
             gamestate_ac[0] = bool(processed_ac[GameConsts.INPUT_UP])
             gamestate_ac[1] = bool(processed_ac[GameConsts.INPUT_DOWN])
             gamestate_ac[2] = bool(processed_ac[GameConsts.INPUT_LEFT])
@@ -234,26 +202,6 @@ class NHL94Observation2PEnv(gym.Wrapper):
         elif isinstance(ac, (list, np.ndarray)) and len(ac) == 3:
             processed_ac = np.asarray(ac, dtype=np.int8).copy()
 
-            if processed_ac[2] == 1:
-                if action_state['b_pressed']:
-                    processed_ac[2] = 0
-                    action_state['b_pressed'] = False
-                else:
-                    action_state['b_pressed'] = True
-            else:
-                action_state['b_pressed'] = False
-
-            if processed_ac[2] == 2:
-                if action_state['slapshot_frames'] == 0:
-                    action_state['slapshot_frames'] = 1
-                else:
-                    action_state['slapshot_frames'] += 1
-                    if action_state['slapshot_frames'] >= 60:
-                        processed_ac[2] = 0
-                        action_state['slapshot_frames'] = 0
-            else:
-                action_state['slapshot_frames'] = 0
-
             gamestate_ac[0] = processed_ac[0] == 1
             gamestate_ac[1] = processed_ac[0] == 2
             gamestate_ac[2] = processed_ac[1] == 1
@@ -263,6 +211,10 @@ class NHL94Observation2PEnv(gym.Wrapper):
         else:
             raise ValueError(f"Unsupported action format: {ac}")
 
+        if gamestate_ac[5]:
+            action_state['slapshot_frames'] += 1
+        else:
+            action_state['slapshot_frames'] = 0
         action_state['last_env_action'] = processed_ac.copy()
         action_state['last_gamestate_action'] = list(gamestate_ac)
         return processed_ac, gamestate_ac

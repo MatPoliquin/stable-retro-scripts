@@ -80,6 +80,9 @@ class ModelTrainer:
     def train(self):
         com_print('========= Start Training ==========')
 
+        if self.args.nn == 'ClassicAI':
+            raise NotImplementedError('ClassicAI is inference-only for now. Use scripts/play.py to run it.')
+
         if self.args.alg == 'es':
             self.p1_model.train(num_generations=500)
         else:
