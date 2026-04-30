@@ -1,0 +1,21 @@
+{
+  "learning_rate": 0.00025,
+  "batch_size": 512,
+  "n_steps": 2048,
+  "n_epochs": 4,
+  "gamma": 0.99,
+  "clip_range": 0.2,
+  "vf_coef": 0.5,
+  "ent_coef": 0.01,
+  "max_grad_norm": 0.5,
+  "clip_range_vf": null,
+  "sticky_actions": false,
+  "sticky_action_prob": 0.25,
+  "clip_reward": true,
+  "residual_mlp": {
+    "hidden_dim": 256,
+    "num_blocks": 4,
+    "head_dim": 256,
+    "activation": "relu"
+  }
+}

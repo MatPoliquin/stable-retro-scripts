@@ -15,7 +15,7 @@ from stable_baselines3 import PPO, A2C
 from torchsummary import summary
 from classic_ai import ClassicAIModel
 from models import CustomMlpPolicy, CustomPolicy, ViTPolicy, DartPolicy, AttentionMLPPolicy,\
-    EntityAttentionPolicy, CustomCNN, CustomImpalaFeatureExtractor, CNNTransformer, HockeyMultiHeadPolicy, HybridMambaPolicy, GRUMlpPolicy
+    EntityAttentionPolicy, CustomCNN, CustomImpalaFeatureExtractor, CNNTransformer, HockeyMultiHeadPolicy, HybridMambaPolicy, GRUMlpPolicy, ResidualMlpPolicy
 from es import EvolutionStrategies
 
 
@@ -24,6 +24,7 @@ VECTOR_POLICIES = (
     'AttentionMLPPolicy',
     'EntityAttentionPolicy',
     'CustomMlpPolicy',
+    'ResidualMlpPolicy',
     'HybridMambaPolicy',
     'GRUMlpPolicy',
 )
@@ -103,6 +104,14 @@ def init_model(output_path, player_model, player_alg, args, env, logger, hyperpa
             activation_fn=th.nn.ReLU,
             net_arch=hyperparams.get("net_arch", [size, size]),
             dropout_prob=hyperparams.get("dropout_prob", 0.3)
+        )
+    elif args.nn == 'ResidualMlpPolicy':
+        nn_type = ResidualMlpPolicy
+        residual_kwargs = hyperparams.get('residual_mlp', {}) if hyperparams else {}
+        if not isinstance(residual_kwargs, dict):
+            raise TypeError("hyperparams['residual_mlp'] must be a dict when provided")
+        policy_kwargs = dict(
+            residual_mlp=residual_kwargs,
         )
     elif args.nn == 'CustomCnnPolicy':
         nn_type = 'CnnPolicy'

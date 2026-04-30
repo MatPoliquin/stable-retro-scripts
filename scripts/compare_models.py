@@ -237,7 +237,7 @@ def generate_model_summary(model: PPO, env, policy_name: str) -> str:
     obs_space = getattr(model, "observation_space", None) or env.observation_space
 
     try:
-        if policy_name in ("MlpPolicy", "EntityAttentionPolicy", "CustomMlpPolicy", "MlpDropoutPolicy", "CombinedPolicy", "AttentionMLPPolicy", "HockeyMultiHeadPolicy", "HybridMambaPolicy", "GRUMlpPolicy"):
+        if policy_name in ("MlpPolicy", "EntityAttentionPolicy", "CustomMlpPolicy", "MlpDropoutPolicy", "CombinedPolicy", "AttentionMLPPolicy", "HockeyMultiHeadPolicy", "ResidualMlpPolicy", "HybridMambaPolicy", "GRUMlpPolicy"):
             if hasattr(obs_space, "shape") and obs_space.shape:
                 input_shape = tuple(obs_space.shape)
             else:

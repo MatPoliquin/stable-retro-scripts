@@ -239,7 +239,7 @@ class TestModels(unittest.TestCase):
             self.fail(f"Command failed with return code {e.returncode}\nSTDERR: {e.stderr}")
 
     def test_policies(self):
-        for policy in ["CnnPolicy", "CustomCnnPolicy", "CustomMlpPolicy", "MlpPolicy", "CombinedPolicy", "ImpalaCnnPolicy"]:
+        for policy in ["CnnPolicy", "CustomCnnPolicy", "CustomMlpPolicy", "ResidualMlpPolicy", "MlpPolicy", "CombinedPolicy", "ImpalaCnnPolicy"]:
             with self.subTest(nn_policy=policy):
                 result = self.run_command(policy)
                 # Example assertion, modify as needed:

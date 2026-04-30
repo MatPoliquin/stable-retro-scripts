@@ -15,6 +15,7 @@ from utils import resolve_clip_reward, resolve_sticky_action_settings
 def isMLP(name):
     return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy' \
           or name == 'AttentionMLPPolicy' or name == 'EntityAttentionPolicy' or name == 'HockeyMultiHeadPolicy' \
+          or name == 'ResidualMlpPolicy' \
           or name == 'HybridMambaPolicy' or name == 'GRUMlpPolicy' or name == 'ClassicAI'
 
 
