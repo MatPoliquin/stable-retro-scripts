@@ -15,25 +15,13 @@ from game_wrappers.nhl94.nhl94_mi import init_model, init_model_rel, init_model_
 # Common functions
 # =====================================================================
 def RandomPos():
-    x = (random.random() - 0.5) * GameConsts.SPAWNABLE_AREA_WIDTH
-    y = (random.random() - 0.5) * GameConsts.SPAWNABLE_AREA_HEIGHT
-
-    #print(x,y)
-    return x, y
+    return _sample_non_net_pos_uniform(-GameConsts.MAX_PLAYER_Y, GameConsts.MAX_PLAYER_Y)
 
 def RandomPosAttackZone():
-    x = (random.random() - 0.5) * GameConsts.SPAWNABLE_AREA_WIDTH
-    y = (random.random() * (GameConsts.SPAWNABLE_ZONE_HEIGHT + 100)) + 0
-
-    #print(x,y)
-    return x, y
+    return _sample_non_net_pos_uniform(GameConsts.ATACKZONE_POS_Y, GameConsts.MAX_PLAYER_Y)
 
 def RandomPosDefenseZone():
-    x = (random.random() - 0.5) * GameConsts.SPAWNABLE_AREA_WIDTH
-    y = (random.random() * GameConsts.SPAWNABLE_ZONE_HEIGHT) - 220
-
-    #print(x,y)
-    return x, y
+    return _sample_non_net_pos_uniform(-GameConsts.MAX_PLAYER_Y, GameConsts.DEFENSEZONE_POS_Y - 1)
 
 def _env_rng(env):
     return getattr(env, "np_random", None)
@@ -53,6 +41,36 @@ def _random_pos_from_rng(rng, y_min, y_max):
     y = _randint_inclusive(rng, y_min, y_max)
     return x, y
 
+def _is_inside_net_area(x, y):
+    in_goal_width = GameConsts.P1_NET_LEFT_POLL <= x <= GameConsts.P1_NET_RIGHT_POLL
+    if not in_goal_width:
+        return False
+
+    # Treat positions on/behind each goal line as inside the net.
+    in_p1_net = (GameConsts.P1_NET_Y - GameConsts.NET_DEPTH) <= y <= (GameConsts.P1_NET_Y + 1)
+    in_p2_net = (GameConsts.P2_NET_Y - 1) <= y <= (GameConsts.P2_NET_Y + GameConsts.NET_DEPTH)
+    return in_p1_net or in_p2_net
+
+def _sample_non_net_pos_from_rng(env, y_min, y_max):
+    rng = _env_rng(env)
+    for _ in range(64):
+        x, y = _random_pos_from_rng(rng, y_min, y_max)
+        if not _is_inside_net_area(x, y):
+            return x, y
+
+    # Fallback: preserve progress even in pathological edge cases.
+    return _random_pos_from_rng(rng, y_min, y_max)
+
+def _sample_non_net_pos_uniform(y_min, y_max):
+    half_width = GameConsts.SPAWNABLE_AREA_WIDTH * 0.5
+    for _ in range(64):
+        x = random.uniform(-half_width, half_width)
+        y = random.uniform(y_min, y_max)
+        if not _is_inside_net_area(x, y):
+            return x, y
+
+    return random.uniform(-half_width, half_width), random.uniform(y_min, y_max)
+
 def _choose_index(env, count):
     rng = _env_rng(env)
     if count <= 1:
@@ -67,18 +85,17 @@ def _choose_index(env, count):
     return int(rng.randint(0, count))
 
 def SampleRandomPos(env):
-    half_height = GameConsts.SPAWNABLE_AREA_HEIGHT // 2
-    return _random_pos_from_rng(_env_rng(env), -half_height, half_height)
+    return _sample_non_net_pos_from_rng(env, -GameConsts.MAX_PLAYER_Y, GameConsts.MAX_PLAYER_Y)
 
 def SampleRandomPosAttackZone(env):
-    return _random_pos_from_rng(_env_rng(env), 0, GameConsts.SPAWNABLE_ZONE_HEIGHT + 99)
+    return _sample_non_net_pos_from_rng(env, GameConsts.ATACKZONE_POS_Y, GameConsts.MAX_PLAYER_Y)
 
 def SampleRandomPosDefenseZone(env):
-    return _random_pos_from_rng(_env_rng(env), -220, -81)
+    return _sample_non_net_pos_from_rng(env, -GameConsts.MAX_PLAYER_Y, GameConsts.DEFENSEZONE_POS_Y - 1)
 
 def SampleRandomPosNeutralZone(env):
-    return _random_pos_from_rng(
-        _env_rng(env),
+    return _sample_non_net_pos_from_rng(
+        env,
         GameConsts.DEFENSEZONE_POS_Y,
         GameConsts.ATACKZONE_POS_Y - 1,
     )
