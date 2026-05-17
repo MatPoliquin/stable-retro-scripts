@@ -320,6 +320,27 @@ def init_general(env, env_name):
         env.set_value("p1_2_x", x)
         env.set_value("p1_2_y", y)
         team1_positions.append((x, y))
+    elif env_name == 'NHL94-Genesis-v0':
+        for i in range(5):
+            x, y = SampleRandomPos(env)
+            if i == 0:
+                env.set_value("p1_x", x)
+                env.set_value("p1_y", y)
+            else:
+                env.set_value(f"p1_{i+1}_x", x)
+                env.set_value(f"p1_{i+1}_y", y)
+            team1_positions.append((x, y))
+
+        for i in range(5):
+            x, y = SampleRandomPos(env)
+            if i == 0:
+                env.set_value("p2_x", x)
+                env.set_value("p2_y", y)
+            else:
+                env.set_value(f"p2_{i+1}_x", x)
+                env.set_value(f"p2_{i+1}_y", y)
+    else:
+        raise ValueError(f"Invalid environment name, got '{env_name}'")
 
     if team1_positions:
         puck_owner_index = _choose_index(env, len(team1_positions))
@@ -364,6 +385,147 @@ def rf_general(state):
 
     if t2.stats.shots > t2.last_stats.shots:
         return -0.5  # Penalty for conceding
+
+    return rew
+
+# =====================================================================
+# GeneralV2 - Zone-based reward to prevent farming
+# Defense zone = negative biased, Attack zone = positive biased
+# =====================================================================
+def init_general_v2(env, env_name):
+    """Same initialization as General."""
+    init_general(env, env_name)
+
+def isdone_general_v2(state):
+    """Same termination as General."""
+    return isdone_general(state)
+
+def rf_general_v2(state):
+    t1 = state.team1
+    t2 = state.team2
+    engine = state.engine
+    puck_y = state.puck.y
+    team1_has_control = bool(t1.player_haspuck or t1.goalie_haspuck)
+    team2_has_control = bool(t2.player_haspuck or t2.goalie_haspuck)
+
+    tracker = getattr(state, "_general_v2_tracker", None)
+    if tracker is None:
+        tracker = {
+            "last_zone": None,
+            "frames_in_zone": 0,
+            "last_puck_y": puck_y,
+            "had_team1_control": team1_has_control,
+            "had_team2_control": team2_has_control,
+        }
+        setattr(state, "_general_v2_tracker", tracker)
+
+    # Determine current zone
+    if puck_y <= GameConsts.DEFENSEZONE_POS_Y:
+        zone = "defense"
+    elif puck_y >= GameConsts.ATACKZONE_POS_Y:
+        zone = "attack"
+    else:
+        zone = "neutral"
+
+    # Detect zone transitions
+    last_zone = tracker["last_zone"]
+    zone_transition = None
+    if last_zone is not None and last_zone != zone:
+        zone_transition = (last_zone, zone)
+
+    rew = 0.0
+
+    # Goals always override everything
+    if t1.stats.score > t1.last_stats.score:
+        return 1.0
+    if t2.stats.score > t2.last_stats.score:
+        return -1.0
+
+    puck_delta_y = puck_y - tracker["last_puck_y"]
+    controlled_forward_delta = max(0.0, puck_delta_y) if team1_has_control else 0.0
+    controlled_backward_delta = min(0.0, puck_delta_y) if team1_has_control else 0.0
+
+    # --- Zone Transition Rewards ---
+    if zone_transition == ("defense", "neutral") and team1_has_control:
+        rew += 0.15  # Cleared the zone
+    elif zone_transition == ("neutral", "attack") and team1_has_control:
+        rew += 0.10  # Entered attack zone
+    elif zone_transition == ("attack", "neutral"):
+        if tracker["had_team1_control"] or team1_has_control:
+            rew -= 0.12
+    elif zone_transition == ("neutral", "defense"):
+        if tracker["had_team2_control"] or team2_has_control:
+            rew -= 0.12
+    elif zone_transition == ("defense", "attack") and team1_has_control:
+        rew += 0.25  # Direct breakout to attack (rare but great)
+    elif zone_transition == ("attack", "defense"):
+        if tracker["had_team1_control"] or team1_has_control:
+            rew -= 0.30
+
+    # --- Zone-Based Frame Rewards ---
+    if zone == "defense":
+        # DEFENSE ZONE: Negative-biased. Must earn your way out.
+        rew -= 0.01
+
+        if t1.player_haspuck:
+            rew += min(controlled_forward_delta * 0.003, 0.025)
+            rew += max(controlled_backward_delta * 0.004, -0.03)
+            rew -= 0.003
+            if t1.stats.passing > t1.last_stats.passing:
+                rew += 0.02
+            if state.action[5] and puck_y < GameConsts.DEFENSEZONE_POS_Y + 15:
+                rew -= 0.2
+        elif t1.goalie_haspuck:
+            rew -= 0.08
+        else:
+            if team2_has_control:
+                rew -= 0.05
+
+        if t2.stats.shots > t2.last_stats.shots:
+            rew -= 0.4
+
+        if t1.stats.bodychecks > t1.last_stats.bodychecks:
+            rew += 0.12
+
+        if t1.stats.shots > t1.last_stats.shots:
+            rew -= 0.2
+
+    elif zone == "attack":
+        attack_tracker = _ensure_attack_tracker(state, "_general_v2_attack_tracker")
+        rew += _scoregoal_v2_attack_reward(state, attack_tracker, turnover_penalty=-0.15)
+
+    else:  # neutral
+        if t1.player_haspuck:
+            rew += min(controlled_forward_delta * 0.0025, 0.02)
+            rew += max(controlled_backward_delta * 0.003, -0.025)
+            rew -= 0.002
+            if t1.stats.passing > t1.last_stats.passing:
+                rew += 0.03
+        elif team2_has_control:
+            rew -= 0.01
+
+        if t2.stats.shots > t2.last_stats.shots:
+            rew -= 0.2
+
+    if zone != "attack":
+        attack_tracker = getattr(state, "_general_v2_attack_tracker", None)
+        if attack_tracker is not None:
+            _reset_attack_tracker(attack_tracker, state)
+
+    # --- Global Events (all zones) ---
+    if t1.stats.bodychecks > t1.last_stats.bodychecks:
+        rew += 0.05
+
+    # --- Update Tracker ---
+    if zone != last_zone:
+        tracker["frames_in_zone"] = 0
+    else:
+        tracker["frames_in_zone"] += 1
+
+    tracker["last_zone"] = zone
+    tracker["last_puck_y"] = puck_y
+    tracker["had_team1_control"] = team1_has_control
+    tracker["had_team2_control"] = team2_has_control
 
     return rew
 
@@ -540,41 +702,8 @@ def rf_scoregoal(state):
     return rew
 
 
-def isdone_scoregoal_v2(state):
-    t1 = state.team1
-    t2 = state.team2
-
-    if t1.stats.score > t1.last_stats.score:
-        return True
-
-    if state.puck.y < GameConsts.ATACKZONE_POS_Y:
-        return True
-
-    if state.time < 100:
-        return True
-    
-    if t2.player_haspuck or t2.goalie_haspuck:
-        return True
-
-    tracker = getattr(state, "_scoregoal_v2_tracker", None)
-    if tracker is None:
-        return False
-
-    if tracker["stall_frames"] >= 45:
-        return True
-
-    if tracker["possession_frames"] >= 240 and not tracker["shot_taken_once"]:
-        return True
-
-    return False
-
-
-def rf_scoregoal_v2(state):
-    t1 = state.team1
-    t2 = state.team2
-    engine = state.engine
-
-    tracker = getattr(state, "_scoregoal_v2_tracker", None)
+def _ensure_attack_tracker(state, attr_name):
+    tracker = getattr(state, attr_name, None)
     if tracker is None:
         tracker = {
             "possession_frames": 0,
@@ -583,37 +712,54 @@ def rf_scoregoal_v2(state):
             "best_attack_y": state.puck.y,
             "last_puck_x": state.puck.x,
             "last_puck_y": state.puck.y,
-            "prev_shot_mode_active": bool(engine.shot_mode_active),
-            "prev_shot_taken": bool(engine.shot_taken),
-            "prev_top_shelf": bool(engine.in_close_top_shelf),
+            "prev_shot_mode_active": bool(state.engine.shot_mode_active),
+            "prev_shot_taken": bool(state.engine.shot_taken),
+            "prev_top_shelf": bool(state.engine.in_close_top_shelf),
             "prev_in_danger_area": False,
-            "prev_team1_haspuck": bool(t1.player_haspuck or t1.goalie_haspuck),
-            "prev_team2_haspuck": bool(t2.player_haspuck or t2.goalie_haspuck),
+            "prev_team1_haspuck": bool(state.team1.player_haspuck or state.team1.goalie_haspuck),
+            "prev_team2_haspuck": bool(state.team2.player_haspuck or state.team2.goalie_haspuck),
             "shot_taken_once": False,
         }
-        setattr(state, "_scoregoal_v2_tracker", tracker)
+        setattr(state, attr_name, tracker)
+    return tracker
+
+
+def _reset_attack_tracker(tracker, state):
+    tracker["possession_frames"] = 0
+    tracker["stall_frames"] = 0
+    tracker["shot_mode_frames"] = 0
+    tracker["best_attack_y"] = max(GameConsts.ATACKZONE_POS_Y, state.puck.y)
+    tracker["last_puck_x"] = state.puck.x
+    tracker["last_puck_y"] = state.puck.y
+    tracker["prev_shot_mode_active"] = bool(state.engine.shot_mode_active)
+    tracker["prev_shot_taken"] = bool(state.engine.shot_taken)
+    tracker["prev_top_shelf"] = bool(state.engine.in_close_top_shelf)
+    tracker["prev_in_danger_area"] = False
+    tracker["prev_team1_haspuck"] = bool(state.team1.player_haspuck or state.team1.goalie_haspuck)
+    tracker["prev_team2_haspuck"] = bool(state.team2.player_haspuck or state.team2.goalie_haspuck)
+    tracker["shot_taken_once"] = False
+
+
+def _scoregoal_v2_attack_reward(state, tracker, turnover_penalty, exit_penalty=None):
+    t1 = state.team1
+    t2 = state.team2
+    engine = state.engine
 
     if t1.stats.score > t1.last_stats.score:
         return 1.0
 
     if t2.player_haspuck or t2.goalie_haspuck:
-        tracker["possession_frames"] = 0
-        tracker["shot_mode_frames"] = 0
-        tracker["stall_frames"] = 0
-        tracker["best_attack_y"] = max(GameConsts.ATACKZONE_POS_Y, state.puck.y)
-        tracker["prev_shot_mode_active"] = bool(engine.shot_mode_active)
-        tracker["prev_shot_taken"] = bool(engine.shot_taken)
-        tracker["prev_top_shelf"] = bool(engine.in_close_top_shelf)
-        tracker["prev_in_danger_area"] = False
-        tracker["last_puck_x"] = state.puck.x
-        tracker["last_puck_y"] = state.puck.y
+        _reset_attack_tracker(tracker, state)
         tracker["prev_team1_haspuck"] = False
         tracker["prev_team2_haspuck"] = True
-        return -0.05
+        return turnover_penalty
 
-    if state.puck.y < GameConsts.ATACKZONE_POS_Y:
+    if exit_penalty is not None and state.puck.y < GameConsts.ATACKZONE_POS_Y:
         exited_after_team1_control = tracker["prev_team1_haspuck"] and not tracker["prev_team2_haspuck"]
-        return -1.0 if exited_after_team1_control else -0.5
+        _reset_attack_tracker(tracker, state)
+        tracker["prev_team1_haspuck"] = bool(t1.player_haspuck or t1.goalie_haspuck)
+        tracker["prev_team2_haspuck"] = bool(t2.player_haspuck or t2.goalie_haspuck)
+        return exit_penalty[0] if exited_after_team1_control else exit_penalty[1]
 
     controlled_player = t1.get_controlled_player()
     opponent_goalie = t2.goalie
@@ -628,6 +774,7 @@ def rf_scoregoal_v2(state):
     control_speed = math.hypot(controlled_player.vx, controlled_player.vy)
     puck_step = math.hypot(state.puck.x - tracker["last_puck_x"], state.puck.y - tracker["last_puck_y"])
     corner_trap = controlled_player.y > 150 and abs(controlled_player.x) > 55
+    deep_corner_trap = controlled_player.y > 185 and abs(controlled_player.x) > 72
     shot_taken_now = bool(engine.shot_taken) and not tracker["prev_shot_taken"]
     shot_mode_started = bool(engine.shot_mode_active) and not tracker["prev_shot_mode_active"]
     top_shelf_started = bool(engine.in_close_top_shelf) and not tracker["prev_top_shelf"]
@@ -656,7 +803,15 @@ def rf_scoregoal_v2(state):
             rew -= min((tracker["possession_frames"] - 60) * 0.001, 0.06)
 
         if corner_trap:
-            rew -= 0.03
+            rew -= 0.08
+            if deep_corner_trap:
+                rew -= 0.08
+
+        lateral_escape = abs(tracker["last_puck_x"]) - abs(state.puck.x)
+        if state.puck.y > 135 and lateral_escape > 0:
+            rew += min(0.14, lateral_escape * 0.012)
+            if corner_trap:
+                rew += min(0.06, lateral_escape * 0.008)
 
         if puck_step < 2.0 and control_speed < 4.0 and not engine.shot_mode_active and not state.action[4] and not state.action[5]:
             tracker["stall_frames"] += 1
@@ -665,6 +820,8 @@ def rf_scoregoal_v2(state):
 
         if tracker["stall_frames"] > 15:
             rew -= min((tracker["stall_frames"] - 15) * 0.004, 0.12)
+            if corner_trap:
+                rew -= min((tracker["stall_frames"] - 15) * 0.006, 0.12)
     else:
         tracker["possession_frames"] = 0
         tracker["shot_mode_frames"] = 0
@@ -740,6 +897,40 @@ def rf_scoregoal_v2(state):
     tracker["prev_team2_haspuck"] = bool(t2.player_haspuck or t2.goalie_haspuck)
 
     return rew
+
+
+def isdone_scoregoal_v2(state):
+    t1 = state.team1
+    t2 = state.team2
+
+    if t1.stats.score > t1.last_stats.score:
+        return True
+
+    if state.puck.y < GameConsts.ATACKZONE_POS_Y:
+        return True
+
+    if state.time < 100:
+        return True
+    
+    if t2.player_haspuck or t2.goalie_haspuck:
+        return True
+
+    tracker = getattr(state, "_scoregoal_v2_tracker", None)
+    if tracker is None:
+        return False
+
+    if tracker["stall_frames"] >= 45:
+        return True
+
+    if tracker["possession_frames"] >= 240 and not tracker["shot_taken_once"]:
+        return True
+
+    return False
+
+
+def rf_scoregoal_v2(state):
+    tracker = _ensure_attack_tracker(state, "_scoregoal_v2_tracker")
+    return _scoregoal_v2_attack_reward(state, tracker, turnover_penalty=-0.05, exit_penalty=(-1.0, -0.5))
 
 
 def _x_side(value: float, threshold: float = 6.0) -> int:
@@ -818,6 +1009,7 @@ def rf_crosscrease_v2(state):
     deep_side_setup = side_setup and abs(controlled_player.x) > (GameConsts.CREASE_MAX_X + 10)
     danger_receiver_area = controlled_player.y > GameConsts.CREASE_LOWER_BOUND and abs(controlled_player.x) < GameConsts.CREASE_MAX_X * 2
     corner_trap = controlled_player.y > 150 and abs(controlled_player.x) > 65
+    deep_corner_trap = controlled_player.y > 185 and abs(controlled_player.x) > 78
 
     rew = 0.0
 
@@ -831,7 +1023,15 @@ def rf_crosscrease_v2(state):
             rew -= min((tracker["possession_frames"] - 70) * 0.0015, 0.08)
 
         if corner_trap:
-            rew -= 0.04
+            rew -= 0.08
+            if deep_corner_trap:
+                rew -= 0.10
+
+        lateral_escape = abs(tracker["last_puck_x"]) - abs(state.puck.x)
+        if state.puck.y > 145 and lateral_escape > 0:
+            rew += min(0.16, lateral_escape * 0.014)
+            if corner_trap:
+                rew += min(0.08, lateral_escape * 0.01)
 
         if puck_step < 2.0 and control_speed < 4.0 and not state.action[4] and not state.action[5]:
             tracker["stall_frames"] += 1
@@ -840,6 +1040,8 @@ def rf_crosscrease_v2(state):
 
         if tracker["stall_frames"] > 12:
             rew -= min((tracker["stall_frames"] - 12) * 0.005, 0.14)
+            if corner_trap:
+                rew -= min((tracker["stall_frames"] - 12) * 0.006, 0.12)
     else:
         tracker["possession_frames"] = 0
         tracker["stall_frames"] = 0
@@ -1179,8 +1381,9 @@ def init_defensezone(env, env_name):
 def isdone_defensezone(state):
     t1 = state.team1
     t2 = state.team2
+    team1_has_control = bool(t1.player_haspuck or t1.goalie_haspuck)
 
-    if state.puck.y >= 100:
+    if state.puck.y >= GameConsts.ATACKZONE_POS_Y and team1_has_control:
         return True
 
     if t2.stats.score > t2.last_stats.score:
@@ -1193,122 +1396,37 @@ def rf_defensezone(state):
     t1 = state.team1
     t2 = state.team2
 
-    tracker = getattr(state, "t1", None)
-
-    # Track short-lived possessions so dumping the puck is penalized
-    carry_state = getattr(state, "_defensezone_carry", None)
-    if carry_state is None:
-        carry_state = {
-            "last_player_haspuck": t1.player_haspuck,
-            "possession_frames": 1 if t1.player_haspuck else 0,
-            "carry_start_y": state.puck.y if t1.player_haspuck else None,
-            "last_carry_y": state.puck.y if t1.player_haspuck else None,
+    tracker = getattr(state, "_defensezone_tracker", None)
+    if tracker is None:
+        tracker = {
+            "last_puck_y": state.puck.y,
         }
-        setattr(state, "_defensezone_carry", carry_state)
+        setattr(state, "_defensezone_tracker", tracker)
 
-    def _closest_team_distance(team, puck):
-        members = []
-        goalie = getattr(team, "goalie", None)
-        if goalie is not None:
-            members.append(goalie)
-        members.extend(getattr(team, "players", []))
-        distances = [
-            math.hypot(player.x - puck.x, player.y - puck.y)
-            for player in members
-            if player is not None
-        ]
-        return min(distances) if distances else None
-
-    dist_to_puck = getattr(tracker, "distToPuck", None)
-    if dist_to_puck is None:
-        dist_to_puck = _closest_team_distance(t1, state.puck)
-
-    last_dist_to_puck = getattr(tracker, "last_distToPuck", None)
-    if last_dist_to_puck is None:
-        last_dist_to_puck = dist_to_puck
+    team1_has_control = bool(t1.player_haspuck or t1.goalie_haspuck)
+    puck_delta_y = state.puck.y - tracker["last_puck_y"]
 
     reward = 0.0
 
-    if not t1.player_haspuck:
-        if dist_to_puck is not None and last_dist_to_puck is not None:
-            if dist_to_puck < last_dist_to_puck:
-                reward += 1 - (dist_to_puck / 200.0) ** 0.5
-            else:
-                reward -= 0.1
-        else:
-            reward -= 0.05
+    if team1_has_control and puck_delta_y > 0:
+        reward += min(0.25, puck_delta_y * 0.01)
 
-        if carry_state.get("last_player_haspuck", False):
-            possession_frames = carry_state.get("possession_frames", 0)
-            last_carry_y = carry_state.get("last_carry_y")
-            if last_carry_y is None:
-                last_carry_y = state.puck.y
-            carry_start_y = carry_state.get("carry_start_y")
-            if carry_start_y is None:
-                carry_start_y = last_carry_y
-            forward_gain = last_carry_y - carry_start_y
-            launched_forward = state.puck.vy > 12 and state.puck.y > last_carry_y
-            still_inside_zone = last_carry_y < GameConsts.DEFENSEZONE_POS_Y
-            if possession_frames < 20 and forward_gain < 25 and launched_forward and still_inside_zone:
-                reward -= 1.0
-
-        carry_state["possession_frames"] = 0
-        carry_state["carry_start_y"] = None
-        carry_state["last_carry_y"] = None
-    else:
-        if not carry_state.get("last_player_haspuck", False):
-            carry_state["carry_start_y"] = state.puck.y
-            carry_state["possession_frames"] = 0
-
-        carry_state["possession_frames"] = carry_state.get("possession_frames", 0) + 1
-        carry_state["last_carry_y"] = state.puck.y
-
-        progress = 0.0
-        if carry_state.get("carry_start_y") is not None:
-            progress = state.puck.y - carry_state["carry_start_y"]
-        if progress > 0:
-            reward += min(0.3, 0.02 * (progress / 5.0))
-
-        reward += 0.1
-
-        if state.action[5] and state.puck.y < GameConsts.DEFENSEZONE_POS_Y + 15:
-            reward -= 0.4
-
-        if state.puck.y >= GameConsts.ATACKZONE_POS_Y:
-            start_y = carry_state.get("carry_start_y")
-            attackzone_requires_carry = (
-                progress >= 20
-                or carry_state["possession_frames"] >= 20
-                or (start_y is not None and start_y >= GameConsts.DEFENSEZONE_POS_Y - 15)
-            )
-            if attackzone_requires_carry:
-                reward += 1.0
-            else:
-                reward -= 0.3
-
-    if t1.stats.bodychecks > t1.last_stats.bodychecks:
+    if state.puck.y >= GameConsts.ATACKZONE_POS_Y and team1_has_control:
         reward += 1.0
 
-    if t1.stats.passing > t1.last_stats.passing:
-        reward += 1.0
+    if t1.stats.shots > t1.last_stats.shots:
+        reward -= 0.5
 
-    if not t1.player_haspuck:
-        first_player = t1.players[0] if t1.players else None
-        if first_player is not None and first_player.y > -80:
-            reward -= 1.0
-        if state.puck.y > -80:
-            reward -= 1.0
+    if t2.stats.shots > t2.last_stats.shots:
+        reward -= 0.75
 
-    if t1.goalie_haspuck:
+    if t1.stats.score > t1.last_stats.score:
         reward -= 1.0
 
     if t2.stats.score > t2.last_stats.score:
         reward -= 1.0
 
-    if t2.stats.shots > t2.last_stats.shots:
-        reward -= 0.1
-
-    carry_state["last_player_haspuck"] = t1.player_haspuck
+    tracker["last_puck_y"] = state.puck.y
 
     return reward
 
@@ -1462,6 +1580,7 @@ _reward_function_map = {
     "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
     "Passing": (init_attackzone, rf_passing, isdone_passing, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_no_shoot),
     "General": (init_general, rf_general, isdone_general, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons_v2, input_overide_empty),
+    "GeneralV2": (init_general_v2, rf_general_v2, isdone_general_v2, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
     "SelfPlay": (init_selfplay, rf_selfplay, isdone_selfplay, init_model_invariant, set_model_input_invariant, input_overide_empty),
     "SelfPlayOffenseFinetune": (init_selfplay_offense, rf_selfplay_offense, isdone_selfplay_offense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "SelfPlayDefenseFinetune": (init_selfplay_defense, rf_selfplay_defense, isdone_selfplay_defense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
