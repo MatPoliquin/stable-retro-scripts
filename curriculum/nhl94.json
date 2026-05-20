@@ -1,6 +1,6 @@
 {
-  "name": "NHL94 Curriculum With Self-Play",
-  "description": "Sequential NHL94 curriculum that moves from shaped skill phases into explicit offense and defense self-play finetuning.",
+  "name": "NHL94 Curriculum",
+  "description": "Sequential NHL94 curriculum that chains puck recovery, scoring, and defensive transition before launching the final model from the normal start state.",
   "common": {
     "alg": "ppo2",
     "nn": "MlpPolicy",
@@ -24,75 +24,31 @@
   },
   "phases": [
     {
-      "name": "Keep Puck",
-      "description": "Teach possession and movement in the attack zone.",
+      "name": "GetPuckAZ",
+      "description": "Recover loose pucks in the attack zone and stabilize possession.",
       "state": "PenguinsVsSenators.AttackZone",
-      "rf": "KeepPuck",
-      "num_timesteps": 20000000
+      "rf": "GetPuckAZ",
+      "num_timesteps": 100000000
     },
     {
-      "name": "Passing",
-      "description": "Build passing mechanics before shot-finishing drills.",
+      "name": "ScoreGoalV2",
+      "description": "Convert attack-zone possession into reliable scoring pressure.",
       "state": "PenguinsVsSenators.AttackZone",
-      "rf": "Passing",
-      "num_timesteps": 20000000
+      "rf": "ScoreGoalV2",
+      "num_timesteps": 100000000
     },
     {
-      "name": "One Timers",
-      "description": "Train fast pass-to-shot timing in offensive scenarios.",
-      "state": "PenguinsVsSenators.AttackZone",
-      "rf": "ScoreGoalOT",
-      "num_timesteps": 20000000
-    },
-    {
-      "name": "Cross Crease",
-      "description": "Train lateral puck movement and crease-side finishing.",
-      "state": "PenguinsVsSenators.AttackZone",
-      "rf": "ScoreGoalCC",
-      "num_timesteps": 20000000
-    },
-    {
-      "name": "Defense Zone",
+      "name": "DefenseZone",
       "description": "Recover the puck in the defensive zone and transition it cleanly toward attack.",
       "state": "PenguinsVsSenators.DefenseZone",
       "rf": "DefenseZone",
-      "num_timesteps": 20000000
-    },
-    {
-      "name": "Self-Play Offense",
-      "description": "Finetune the chained model as team 1 attacking against a frozen team 2 opponent from attack-zone starts.",
-      "state": "PenguinsVsSenators.AttackZone",
-      "rf": "SelfPlayOffenseFinetune",
-      "selfplay": true,
-      "selfplay_role": "offense",
-      "num_env": 8,
-      "num_timesteps": 5000000,
-      "live_eval_freq": 50000,
-      "live_eval_episodes": 3,
-      "selfplay_snapshot_freq": 100000,
-      "selfplay_max_snapshots": 8
-    },
-    {
-      "name": "Self-Play Defense",
-      "description": "Finetune the chained model as team 1 defending against a frozen team 2 opponent from defensive-zone starts.",
-      "state": "PenguinsVsSenators.DefenseZone",
-      "rf": "SelfPlayDefenseFinetune",
-      "selfplay": true,
-      "selfplay_role": "defense",
-      "num_env": 8,
-      "num_timesteps": 5000000,
-      "live_eval_freq": 50000,
-      "live_eval_episodes": 3,
-      "selfplay_snapshot_freq": 100000,
-      "selfplay_max_snapshots": 8
-    },
-    {
-      "name": "Start State Test",
-      "description": "Evaluate the chained model from the normal game start state without additional training.",
-      "phase_type": "eval",
-      "state": "PenguinsVsSenators.start",
-      "rf": "DefenseZone",
-      "eval_episodes": 10
+      "num_timesteps": 100000000
     }
-  ]
+  ],
+  "post_play": {
+    "enabled": true,
+    "mode": "model_vs_game",
+    "state": "PenguinsVsSenators.start",
+    "rf": "PostPlay"
+  }
 }

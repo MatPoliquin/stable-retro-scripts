@@ -4,6 +4,7 @@ NHL AI
 
 import math
 import random
+import numpy as np
 from game_wrappers.nhl94.nhl94_const import GameConsts
 from game_wrappers.nhl94.nhl94_gamestate import NHL94GameState
 from models_utils import init_model, get_num_parameters, get_model_probabilities
@@ -87,6 +88,11 @@ class NHL94AISystem():
             p1_actions = model.predict_game_state(self.game_state, deterministic=deterministic)[0]
         else:
             p1_actions = model.predict(model_input, deterministic=deterministic)[0]
+
+        p1_actions = np.asarray(p1_actions)
+        if p1_actions.ndim > 1 and p1_actions.shape[0] == 1:
+            p1_actions = p1_actions[0]
+
         self.display_probs = get_model_probabilities(self.models[model_index], model_input)[0]
         self.model_in_use = model_index
 

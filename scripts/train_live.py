@@ -18,7 +18,7 @@ import sys
 import threading
 from collections import deque
 from dataclasses import dataclass
-from typing import Deque, List, Optional, Sequence, Tuple
+from typing import Callable, Deque, List, Optional, Sequence, Tuple
 
 # Hide the pygame greeting before importing pygame modules
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
@@ -28,7 +28,6 @@ import pygame
 import pygame.freetype
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback, CallbackList
-from stable_baselines3.common.evaluation import evaluate_policy
 
 from common import com_print, create_output_dir, get_model_file_name, init_logger
 from env_utils import get_button_names, init_env
@@ -72,6 +71,8 @@ class LiveEvaluationResult:
     mean_reward: float
     std_reward: float
     episodes: int
+    team1_totals: "LiveTeamTotals"
+    team2_totals: "LiveTeamTotals"
 
 
 @dataclass
@@ -80,6 +81,7 @@ class LiveTeamTotals:
     shots: int = 0
     passes: int = 0
     one_timers: int = 0
+    cross_checks: int = 0
 
     @classmethod
     def from_game_stats(cls, stats) -> "LiveTeamTotals":
@@ -88,6 +90,7 @@ class LiveTeamTotals:
             shots=int(getattr(stats, "shots", 0) or 0),
             passes=int(getattr(stats, "passing", 0) or 0),
             one_timers=int(getattr(stats, "onetimer", 0) or 0),
+            cross_checks=int(getattr(stats, "bodychecks", 0) or 0),
         )
 
     def add_delta(self, previous: Optional["LiveTeamTotals"], current: "LiveTeamTotals") -> None:
@@ -99,12 +102,104 @@ class LiveTeamTotals:
             if previous is None or current.one_timers < previous.one_timers
             else current.one_timers - previous.one_timers
         )
+        self.cross_checks += (
+            current.cross_checks
+            if previous is None or current.cross_checks < previous.cross_checks
+            else current.cross_checks - previous.cross_checks
+        )
 
 
 def ensure_zip_path(path: str) -> str:
     """Append the SB3 .zip suffix if the path doesn't already include it."""
 
     return path if path.endswith(".zip") else f"{path}.zip"
+
+
+def _first_item(value, default=None):
+    if isinstance(value, np.ndarray):
+        if value.size == 0:
+            return default
+        return value.reshape(-1)[0]
+
+    if isinstance(value, (list, tuple)):
+        if not value:
+            return default
+        return value[0]
+
+    return value if value is not None else default
+
+
+def evaluate_policy_with_totals(
+    model,
+    eval_env,
+    *,
+    n_eval_episodes: int,
+    deterministic: bool,
+    env_name: str,
+    num_players: int,
+    episode_reporter: Optional[Callable[[int, float, LiveTeamTotals, LiveTeamTotals], None]] = None,
+) -> Tuple[float, float, LiveTeamTotals, LiveTeamTotals]:
+    total_episodes = max(1, int(n_eval_episodes))
+    episode_rewards: List[float] = []
+    team1_totals = LiveTeamTotals()
+    team2_totals = LiveTeamTotals()
+    uses_nhl94_gamestate = env_name in NHL94_ENVS
+    game_state = NHL94GameState(num_players) if uses_nhl94_gamestate else None
+
+    observation = eval_env.reset()
+    episode_reward = 0.0
+    episodes_completed = 0
+
+    while episodes_completed < total_episodes:
+        action, _ = model.predict(observation, deterministic=deterministic)
+        observation, reward, done, info = eval_env.step(action)
+        episode_reward += float(_first_item(reward, 0.0) or 0.0)
+
+        if game_state is not None:
+            frame_info = _first_item(info)
+            if isinstance(frame_info, dict):
+                game_state.BeginFrame(frame_info, [0] * 6)
+                game_state.EndFrame()
+
+        if not bool(_first_item(done, False)):
+            continue
+
+        episode_rewards.append(episode_reward)
+        episode_reward = 0.0
+
+        if game_state is not None:
+            team1_totals.add_delta(None, LiveTeamTotals.from_game_stats(game_state.team1.stats))
+            team2_totals.add_delta(None, LiveTeamTotals.from_game_stats(game_state.team2.stats))
+            game_state = NHL94GameState(num_players)
+
+        episodes_completed += 1
+        if episode_reporter is not None:
+            running_mean = float(np.mean(episode_rewards)) if episode_rewards else 0.0
+            episode_reporter(
+                episodes_completed,
+                running_mean,
+                LiveTeamTotals(
+                    goals=team1_totals.goals,
+                    shots=team1_totals.shots,
+                    passes=team1_totals.passes,
+                    one_timers=team1_totals.one_timers,
+                    cross_checks=team1_totals.cross_checks,
+                ),
+                LiveTeamTotals(
+                    goals=team2_totals.goals,
+                    shots=team2_totals.shots,
+                    passes=team2_totals.passes,
+                    one_timers=team2_totals.one_timers,
+                    cross_checks=team2_totals.cross_checks,
+                ),
+            )
+
+        if episodes_completed < total_episodes:
+            observation = eval_env.reset()
+
+    mean_reward = float(np.mean(episode_rewards)) if episode_rewards else 0.0
+    std_reward = float(np.std(episode_rewards)) if episode_rewards else 0.0
+    return mean_reward, std_reward, team1_totals, team2_totals
 
 
 def format_playtime(steps: int) -> str:
@@ -133,15 +228,21 @@ class LiveTrainingCallback(BaseCallback):
         self,
         shared_state: LiveTrainingState,
         eval_env,
+        env_name: str,
+        num_players: int,
         eval_freq: int,
         eval_episodes: int,
+        status_reporter: Optional[Callable[[int, float, float, int, LiveTeamTotals, LiveTeamTotals], None]] = None,
         verbose: int = 0,
     ) -> None:
         super().__init__(verbose=verbose)
         self.shared_state = shared_state
         self.eval_env = eval_env
+        self.env_name = env_name
+        self.num_players = num_players
         self.eval_freq = max(1, eval_freq)
         self.eval_episodes = max(1, eval_episodes)
+        self.status_reporter = status_reporter
         self._last_eval_step = 0
 
     def _on_step(self) -> bool:
@@ -155,14 +256,27 @@ class LiveTrainingCallback(BaseCallback):
         if self.num_timesteps - self._last_eval_step < self.eval_freq:
             return True
 
-        mean_reward, _ = evaluate_policy(
+        self._run_evaluation()
+        return True
+
+    def _on_training_end(self) -> None:
+        if self.num_timesteps <= 0 or self._last_eval_step == self.num_timesteps:
+            return
+
+        self._run_evaluation()
+
+    def _run_evaluation(self) -> None:
+        mean_reward, _, team1_totals, team2_totals = evaluate_policy_with_totals(
             self.model,
             self.eval_env,
             n_eval_episodes=self.eval_episodes,
             deterministic=True,
+            env_name=self.env_name,
+            num_players=self.num_players,
         )
 
         self._last_eval_step = self.num_timesteps
+        best_reward = float("-inf")
 
         with self.shared_state.lock:
             self.shared_state.latest_eval_reward = mean_reward
@@ -175,13 +289,23 @@ class LiveTrainingCallback(BaseCallback):
                 self.shared_state.best_mean_reward = mean_reward
                 self.shared_state.model_version += 1
 
+            best_reward = self.shared_state.best_mean_reward
+
+        if self.status_reporter is not None:
+            self.status_reporter(
+                self.num_timesteps,
+                mean_reward,
+                best_reward,
+                self.eval_episodes,
+                team1_totals,
+                team2_totals,
+            )
+
         if self.verbose:
             com_print(
                 f"[Live eval] steps={self.num_timesteps:,} "
-                f"reward={mean_reward:.3f} best={self.shared_state.best_mean_reward:.3f}"
+                f"reward={mean_reward:.3f} best={best_reward:.3f}"
             )
-
-        return True
 
 
 class SelfPlaySnapshotCallback(BaseCallback):
@@ -962,7 +1086,11 @@ class LiveTrainer:
             args.hyperparams_dict,
         )
 
-    def build_callback(self, shared_state: LiveTrainingState) -> BaseCallback:
+    def build_callback(
+        self,
+        shared_state: LiveTrainingState,
+        status_reporter: Optional[Callable[[int, float, float, int, LiveTeamTotals, LiveTeamTotals], None]] = None,
+    ) -> BaseCallback:
         eval_env = init_env(
             None,
             1,
@@ -977,8 +1105,11 @@ class LiveTrainer:
         live_callback = LiveTrainingCallback(
             shared_state=shared_state,
             eval_env=eval_env,
+            env_name=self.args.env,
+            num_players=self.args.num_players,
             eval_freq=self.args.live_eval_freq,
             eval_episodes=self.args.live_eval_episodes,
+            status_reporter=status_reporter,
             verbose=1 if self.args.alg_verbose else 0,
         )
 
@@ -1112,7 +1243,11 @@ def prepare_args(args: argparse.Namespace, *, hyperparams_base_dir: Optional[str
     return args
 
 
-def run_training_session(args: argparse.Namespace, logger=None) -> LiveTrainingResult:
+def run_training_session(
+    args: argparse.Namespace,
+    logger=None,
+    status_reporter: Optional[Callable[[int, float, float, int, LiveTeamTotals, LiveTeamTotals], None]] = None,
+) -> LiveTrainingResult:
     prepare_args(args)
 
     if logger is None:
@@ -1135,7 +1270,7 @@ def run_training_session(args: argparse.Namespace, logger=None) -> LiveTrainingR
     )
     display.start()
 
-    callback = trainer.build_callback(shared_state)
+    callback = trainer.build_callback(shared_state, status_reporter=status_reporter)
 
     try:
         trainer.train(callback)
@@ -1163,6 +1298,7 @@ def run_evaluation_session(
     *,
     eval_episodes: int = 5,
     logger=None,
+    status_reporter: Optional[Callable[[int, float, LiveTeamTotals, LiveTeamTotals], None]] = None,
 ) -> LiveEvaluationResult:
     prepare_args(args)
 
@@ -1190,11 +1326,14 @@ def run_evaluation_session(
     )
 
     try:
-        mean_reward, std_reward = evaluate_policy(
+        mean_reward, std_reward, team1_totals, team2_totals = evaluate_policy_with_totals(
             model,
             eval_env,
             n_eval_episodes=max(1, eval_episodes),
             deterministic=bool(getattr(args, "deterministic", True)),
+            env_name=args.env,
+            num_players=args.num_players,
+            episode_reporter=status_reporter,
         )
     finally:
         eval_env.close()
@@ -1204,6 +1343,8 @@ def run_evaluation_session(
         mean_reward=float(mean_reward),
         std_reward=float(std_reward),
         episodes=max(1, eval_episodes),
+        team1_totals=team1_totals,
+        team2_totals=team2_totals,
     )
 
 

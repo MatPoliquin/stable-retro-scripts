@@ -39,6 +39,8 @@ def parse_cmdline(argv):
     parser.add_argument('--hyperparams', type=str, default='../hyperparams/default.json')
     parser.add_argument('--video', default=False, action='store_true')
     parser.add_argument('--video_path', type=str, default='../retro_game.avi')
+    parser.add_argument('--single_session', default=False, action='store_true',
+                       help='Exit after the first completed game instead of continuing to the next session')
     parser.add_argument('--seq_len', type=int, default=16,
                        help='Frame history length for temporal policies such as HybridMambaPolicy or GRUMlpPolicy')
     parser.add_argument('--max_playback_speed', type=float, default=2.0,
@@ -234,7 +236,7 @@ def main(argv):
     if args.mode in ['player_vs_model', 'player_vs_game']:
         com_print('Press ESC or Q to quit')
 
-    player.play(need_reset=False)
+    player.play(continuous=not args.single_session, need_reset=False)
 
 if __name__ == '__main__':
     main(sys.argv)

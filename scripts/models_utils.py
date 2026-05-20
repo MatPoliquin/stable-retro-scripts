@@ -57,6 +57,9 @@ def get_model_probabilities(model, state):
     return probs_np
 
 def print_model_summary(args, env, player_model, model):
+    if not getattr(args, 'alg_verbose', True):
+        return
+
     if not hasattr(model, "policy"):
         return
 
@@ -194,12 +197,13 @@ def init_model(output_path, player_model, player_alg, args, env, logger, hyperpa
     if player_alg == 'ppo2':
         if player_model == '':
             batch_size = hyperparams.get('batch_size', 256)
-            print("batch_size:%d" % batch_size)
+            if getattr(args, 'alg_verbose', True):
+                print("batch_size:%d" % batch_size)
             model = PPO(
                 policy=nn_type,
                 env=env,
                 policy_kwargs=policy_kwargs,
-                verbose=1,
+                verbose=1 if getattr(args, 'alg_verbose', True) else 0,
                 n_steps=hyperparams.get('n_steps', 2048),
                 n_epochs=hyperparams.get('n_epochs', 4),
                 batch_size=batch_size,

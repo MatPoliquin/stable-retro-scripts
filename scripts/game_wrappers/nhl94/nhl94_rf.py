@@ -1563,6 +1563,21 @@ def isdone_selfplay_defense(state):
 def rf_selfplay_defense(state):
     return rf_defensezone(state)
 
+
+def init_postplay(env, env_name):
+    return None
+
+
+def isdone_postplay(state):
+    if state.time < 10:
+        return True
+
+    return False
+
+
+def rf_postplay(state):
+    return 0.0
+
 # =====================================================================
 # Register Functions
 # =====================================================================
@@ -1581,6 +1596,7 @@ _reward_function_map = {
     "Passing": (init_attackzone, rf_passing, isdone_passing, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_no_shoot),
     "General": (init_general, rf_general, isdone_general, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons_v2, input_overide_empty),
     "GeneralV2": (init_general_v2, rf_general_v2, isdone_general_v2, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
+    "PostPlay": (init_postplay, rf_postplay, isdone_postplay, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
     "SelfPlay": (init_selfplay, rf_selfplay, isdone_selfplay, init_model_invariant, set_model_input_invariant, input_overide_empty),
     "SelfPlayOffenseFinetune": (init_selfplay_offense, rf_selfplay_offense, isdone_selfplay_offense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
     "SelfPlayDefenseFinetune": (init_selfplay_defense, rf_selfplay_defense, isdone_selfplay_defense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
