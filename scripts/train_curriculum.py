@@ -388,7 +388,7 @@ def build_post_play_config(
     config.update({key: value for key, value in post_play.items() if key not in POST_PLAY_METADATA})
     config.setdefault("mode", "model_vs_game")
     config.setdefault("rf", "PostPlay")
-    config.setdefault("single_session", True)
+    config.setdefault("single_session", False)
     config["num_env"] = int(post_play.get("num_env", 1))
     config["model_1"] = final_model_path
 
