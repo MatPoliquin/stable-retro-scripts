@@ -219,7 +219,7 @@ class NHL94Player:
 def main(argv):
     args = parse_cmdline(argv[1:])
     if args.nn == 'ClassicAI' and args.env in ('NHL941on1-Genesis-v0', 'NHL942on2-Genesis-v0', 'NHL94-Genesis-v0') and not args.rf:
-        args.rf = 'General'
+        args.rf = 'PostPlay'
     args.hyperparams_dict = load_hyperparams(
         args.hyperparams,
         required=True,
