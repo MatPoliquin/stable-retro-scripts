@@ -1,0 +1,75 @@
+{
+  "name": "NHL94 BC Test",
+  "description": "ClassicAI imitation test: collect full NHL94 PostPlay demos, behavior-clone them, then preview the cloned model.",
+  "common": {
+    "alg": "ppo2",
+    "nn": "ResidualMlpPolicy",
+    "env": "NHL94-Genesis-v0",
+    "state": "PenguinsVsSenators.start",
+    "rf": "PostPlay",
+    "num_players": 1,
+    "hyperparams": "../hyperparams/nhl94_residual_mlp.json",
+    "action_type": "FILTERED",
+    "seq_len": 16
+  },
+  "phases": [
+    {
+      "name": "CollectPostPlayDemos",
+      "phase_type": "collect_demos",
+      "description": "Collect a full-ROM PostPlay ClassicAI demonstration shard.",
+      "num_episodes": 50,
+      "num_workers": 4,
+      "max_steps": 4500,
+      "output": "~/OUTPUT/classic_ai_demos",
+      "shard_name": "nhl94_bctest_postplay_demos.npz"
+    },
+    {
+      "name": "CollectAttackZoneDemos",
+      "phase_type": "collect_demos",
+      "description": "Collect attack-zone ClassicAI demonstrations so scoring and one-timer states are not drowned out by full-rink play.",
+      "state": "PenguinsVsSenators.AttackZone",
+      "num_episodes": 50,
+      "num_workers": 4,
+      "max_steps": 1200,
+      "output": "~/OUTPUT/classic_ai_demos",
+      "shard_name": "nhl94_bctest_attackzone_demos.npz"
+    },
+    {
+      "name": "BCPretrain",
+      "phase_type": "bc_pretrain",
+      "description": "Behavior-clone the collected ClassicAI shard into an SB3-compatible checkpoint.",
+      "epochs": 10,
+      "batch_size": 1024,
+      "rare_weight": 4.0,
+      "positive_weight_max": 12.0,
+      "release_weight": 8.0,
+      "output_dir": "~/OUTPUT/classic_ai_bc",
+      "output_model": "~/OUTPUT/classic_ai_bc/nhl94_bctest_bc.zip"
+    },
+    {
+      "name": "DAggerCorrection",
+      "phase_type": "dagger",
+      "description": "Run ClassicAI oracle relabeling on attack-zone states visited by the BC clone, then retrain from the aggregated dataset.",
+      "state": "PenguinsVsSenators.AttackZone",
+      "rounds": 2,
+      "episodes_per_round": 10,
+      "num_workers": 2,
+      "max_steps": 1800,
+      "bc_epochs": 4,
+      "bc_batch_size": 1024,
+      "bc_learning_rate": 0.0001,
+      "rare_weight": 4.0,
+      "positive_weight_max": 12.0,
+      "release_weight": 8.0,
+      "output_dir": "~/OUTPUT/classic_ai_dagger"
+    }
+  ],
+  "post_play": {
+    "enabled": true,
+    "mode": "model_vs_game",
+    "state": "PenguinsVsSenators.start",
+    "rf": "PostPlay",
+    "single_session": false,
+    "max_playback_speed": 2.0
+  }
+}

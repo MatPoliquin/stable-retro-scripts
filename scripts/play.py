@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Play modes:
 - Player vs Model

@@ -12,6 +12,13 @@ from env_wrappers import StochasticFrameSkip, WarpFrameDict, RewardClipper
 from utils import resolve_clip_reward, resolve_sticky_action_settings
 
 
+NHL94_DEFAULT_STATES = {
+    'NHL941on1-Genesis-v0': 'PenguinsVsSenators.start',
+    'NHL942on2-Genesis-v0': 'PenguinsVsWhalers.start',
+    'NHL94-Genesis-v0': 'PenguinsVsSenators.start',
+}
+
+
 def isMLP(name):
     return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy' \
           or name == 'AttentionMLPPolicy' or name == 'EntityAttentionPolicy' or name == 'HockeyMultiHeadPolicy' \
@@ -29,6 +36,12 @@ def resolve_backend_action_type(args, num_players):
     ):
         return 'FILTERED'
     return requested_action_type
+
+
+def resolve_default_state(game, state):
+    if state is not None:
+        return state
+    return NHL94_DEFAULT_STATES.get(game, state)
 
 
 def resolve_retro_state_name(game, state, num_players, inttype):
@@ -63,6 +76,7 @@ def make_retro(
     **kwargs,
 ):
     import stable_retro as retro  # pylint: disable=import-outside-toplevel,reimported
+    state = resolve_default_state(game, state)
     if state is None:
         state = retro.State.DEFAULT
 
@@ -118,6 +132,9 @@ def init_env(
     start_method = os.environ.get('RETRO_VECENV_START_METHOD')
     allow_early_resets=True
     env_num_players = 2 if getattr(args, 'selfplay', False) else num_players
+    state = resolve_default_state(args.env, state)
+    if getattr(args, 'state', None) is None and state is not None:
+        args.state = state
 
     # N64 cores/plugins are commonly unsafe under Linux's default multiprocessing start method (fork).
     # Prefer spawn unless the user explicitly overrides via RETRO_VECENV_START_METHOD.
@@ -176,10 +193,13 @@ def get_button_names(args):
     }
     backend_action_type = resolve_backend_action_type(args, 2 if getattr(args, 'selfplay', False) else args.num_players)
     action_enum = action_map.get(backend_action_type.upper(), retro.Actions.FILTERED)
+    state = resolve_default_state(args.env, args.state)
+    if getattr(args, 'state', None) is None and state is not None:
+        args.state = state
 
     env = retro.make(
         game=args.env,
-        state=args.state,
+        state=state,
         use_restricted_actions=action_enum,
         players=2 if getattr(args, 'selfplay', False) else args.num_players,
         inttype=retro.data.Integrations.ALL,

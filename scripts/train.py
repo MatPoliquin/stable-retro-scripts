@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Train a Model on NHL 94
 """
