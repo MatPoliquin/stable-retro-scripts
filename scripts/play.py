@@ -61,8 +61,8 @@ def parse_cmdline(argv):
     parser.add_argument('--load_p2_model', type=str, default='', help='Model path for player 2 in model_vs_model mode')
 
     parser.add_argument('--action_type', type=str, default='FILTERED',
-                       choices=['FILTERED', 'DISCRETE', 'MULTI_DISCRETE'],
-                       help='Action type: FILTERED, DISCRETE, or MULTI_DISCRETE')
+                       choices=['FILTERED', 'DISCRETE', 'MULTI_DISCRETE', 'HOCKEY_INTENT_DPAD'],
+                       help='Action type: FILTERED, DISCRETE, MULTI_DISCRETE, or HOCKEY_INTENT_DPAD')
 
     args = parser.parse_args(argv)
 

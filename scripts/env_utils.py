@@ -28,6 +28,8 @@ def isMLP(name):
 
 def resolve_backend_action_type(args, num_players):
     requested_action_type = getattr(args, 'action_type', 'FILTERED').upper()
+    if requested_action_type == 'HOCKEY_INTENT_DPAD':
+        return 'FILTERED'
     if (
         getattr(args, 'env', '') == 'MortalKombatII-Genesis-v0'
         and isMLP(getattr(args, 'nn', ''))
@@ -189,7 +191,8 @@ def get_button_names(args):
     action_map = {
         'FILTERED': retro.Actions.FILTERED,
         'DISCRETE': retro.Actions.DISCRETE,
-        'MULTI_DISCRETE': retro.Actions.MULTI_DISCRETE
+        'MULTI_DISCRETE': retro.Actions.MULTI_DISCRETE,
+        'HOCKEY_INTENT_DPAD': retro.Actions.FILTERED,
     }
     backend_action_type = resolve_backend_action_type(args, 2 if getattr(args, 'selfplay', False) else args.num_players)
     action_enum = action_map.get(backend_action_type.upper(), retro.Actions.FILTERED)

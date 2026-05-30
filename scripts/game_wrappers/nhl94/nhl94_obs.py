@@ -14,6 +14,30 @@ from game_wrappers.nhl94.nhl94_gamestate import NHL94GameState
 from models_utils import load_model_for_inference
 
 
+HOCKEY_INTENT_DPAD_ACTIONS = (
+    'NOOP',
+    'NORMAL_SHOOT',
+    'SLAPSHOT',
+    'ONE_TIMER',
+    'POKE_CHECK',
+    'PASS_TEAMMATE_1',
+    'PASS_TEAMMATE_2',
+    'PASS_TEAMMATE_3',
+    'PASS_TEAMMATE_4',
+)
+HOCKEY_INTENT_DPAD_ACTION_SPACE = [len(HOCKEY_INTENT_DPAD_ACTIONS), 2, 2, 2, 2, 2]
+HOCKEY_INTENT_NORMAL_SHOOT = HOCKEY_INTENT_DPAD_ACTIONS.index('NORMAL_SHOOT')
+HOCKEY_INTENT_SLAPSHOT = HOCKEY_INTENT_DPAD_ACTIONS.index('SLAPSHOT')
+HOCKEY_INTENT_ONE_TIMER = HOCKEY_INTENT_DPAD_ACTIONS.index('ONE_TIMER')
+HOCKEY_INTENT_POKE_CHECK = HOCKEY_INTENT_DPAD_ACTIONS.index('POKE_CHECK')
+HOCKEY_INTENT_PASS_START = HOCKEY_INTENT_DPAD_ACTIONS.index('PASS_TEAMMATE_1')
+HOCKEY_PASS_RELEASE_FRAMES = 5
+HOCKEY_ONE_TIMER_SHOT_DELAY_FRAMES = 1
+HOCKEY_ONE_TIMER_SHOT_FRAMES = 12
+HOCKEY_SLAPSHOT_HOLD_FRAMES = 18
+HOCKEY_POKE_DISTANCE = 18.0
+
+
 class NHL94Observation2PEnv(gym.Wrapper):
     def __init__(self, env, args, num_players, rf_name):
         gym.Wrapper.__init__(self, env)
@@ -73,6 +97,11 @@ class NHL94Observation2PEnv(gym.Wrapper):
             raise ValueError('Self-play requires a two-player emulator environment.')
         if self.selfplay_enabled and self.action_type == 'DISCRETE':
             raise NotImplementedError('Self-play does not yet support DISCRETE action_type.')
+        if self.action_type == 'HOCKEY_INTENT_DPAD':
+            if self.env_name != 'NHL94-Genesis-v0' or self.num_players_per_team != 5:
+                raise ValueError('HOCKEY_INTENT_DPAD is only supported for NHL94-Genesis-v0 full 5v5.')
+            if self.num_players != 1:
+                raise ValueError('HOCKEY_INTENT_DPAD currently supports one learner controller only.')
 
         self.action_space = self._build_action_space()
 
@@ -98,24 +127,51 @@ class NHL94Observation2PEnv(gym.Wrapper):
             return gym.spaces.MultiBinary(GameConsts.INPUT_MAX)
         if self.action_type == 'MULTI_DISCRETE':
             return gym.spaces.MultiDiscrete([3, 3, 3])
+        if self.action_type == 'HOCKEY_INTENT_DPAD':
+            return gym.spaces.MultiDiscrete(HOCKEY_INTENT_DPAD_ACTION_SPACE)
         return self.env.action_space
 
     def _default_env_action(self):
         if self.action_type == 'MULTI_DISCRETE':
             return np.zeros(3, dtype=np.int8)
+        if self.action_type == 'HOCKEY_INTENT_DPAD':
+            return np.zeros(len(HOCKEY_INTENT_DPAD_ACTION_SPACE), dtype=np.int8)
         return np.zeros(GameConsts.INPUT_MAX, dtype=np.int8)
+
+    def _default_controller_action(self):
+        return np.zeros(GameConsts.INPUT_MAX, dtype=np.int8)
+
+    def _default_reset_action(self):
+        if self.action_type == 'HOCKEY_INTENT_DPAD':
+            return self._default_controller_action()
+        return self._default_env_action()
+
+    def get_action_names(self):
+        if self.action_type == 'HOCKEY_INTENT_DPAD':
+            return ['INTENT', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'BOOST']
+        return getattr(self.env, 'buttons', [])
 
     def _new_action_state(self):
         return {
             'slapshot_frames': 0,
             'last_env_action': self._default_env_action(),
             'last_gamestate_action': [0] * 6,
+            'hockey_macro': 'none',
+            'pass_release_frames': 0,
+            'one_timer_shot_delay': 0,
+            'one_timer_shot_frames': 0,
+            'slapshot_charge_frames': 0,
         }
 
     def _reset_action_state(self, action_state):
         action_state['slapshot_frames'] = 0
         action_state['last_env_action'] = self._default_env_action()
         action_state['last_gamestate_action'] = [0] * 6
+        action_state['hockey_macro'] = 'none'
+        action_state['pass_release_frames'] = 0
+        action_state['one_timer_shot_delay'] = 0
+        action_state['one_timer_shot_frames'] = 0
+        action_state['slapshot_charge_frames'] = 0
 
     def set_selfplay_role(self, role):
         if role not in ('offense', 'defense'):
@@ -166,7 +222,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         self.init_function(self.env, self.env_name)
 
-        reset_action = self._default_env_action()
+        reset_action = self._default_reset_action()
         if self.num_players == 2:
             reset_action = np.concatenate([reset_action, reset_action])
 
@@ -186,11 +242,186 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         return self._get_obs(state), info
 
+    def _team_has_puck(self, team):
+        return bool(getattr(team, 'player_haspuck', False) or getattr(team, 'goalie_haspuck', False))
+
+    def _player_has_puck(self, team):
+        return bool(getattr(team, 'player_haspuck', False))
+
+    def _opponent_has_puck(self):
+        return self._team_has_puck(self.game_state.team2)
+
+    def _hockey_controlled_player(self, team):
+        return team.get_controlled_player()
+
+    def _hockey_distance(self, first, second):
+        return GameConsts.Distance(
+            (getattr(first, 'x', 0) or 0, getattr(first, 'y', 0) or 0),
+            (getattr(second, 'x', 0) or 0, getattr(second, 'y', 0) or 0),
+        )
+
+    def _set_controller_gamestate(self, processed_ac, gamestate_ac):
+        gamestate_ac[0] = bool(processed_ac[GameConsts.INPUT_UP])
+        gamestate_ac[1] = bool(processed_ac[GameConsts.INPUT_DOWN])
+        gamestate_ac[2] = bool(processed_ac[GameConsts.INPUT_LEFT])
+        gamestate_ac[3] = bool(processed_ac[GameConsts.INPUT_RIGHT])
+        gamestate_ac[4] = bool(processed_ac[GameConsts.INPUT_B])
+        gamestate_ac[5] = bool(processed_ac[GameConsts.INPUT_C])
+
+    def _steer_hockey_toward(self, processed_ac, player, target, deadzone=4):
+        target_x, target_y = target
+        delta_x = target_x - (getattr(player, 'x', 0) or 0)
+        delta_y = target_y - (getattr(player, 'y', 0) or 0)
+
+        if delta_x <= -deadzone:
+            processed_ac[GameConsts.INPUT_LEFT] = 1
+            processed_ac[GameConsts.INPUT_RIGHT] = 0
+        elif delta_x >= deadzone:
+            processed_ac[GameConsts.INPUT_RIGHT] = 1
+            processed_ac[GameConsts.INPUT_LEFT] = 0
+
+        if delta_y <= -deadzone:
+            processed_ac[GameConsts.INPUT_DOWN] = 1
+            processed_ac[GameConsts.INPUT_UP] = 0
+        elif delta_y >= deadzone:
+            processed_ac[GameConsts.INPUT_UP] = 1
+            processed_ac[GameConsts.INPUT_DOWN] = 0
+
+    def _hockey_pass_target(self, intent):
+        target_index = intent - HOCKEY_INTENT_PASS_START
+        players = list(getattr(self.game_state.team1, 'players', []) or [])
+        if target_index < 0 or target_index >= len(players):
+            return None
+
+        controlled_index = getattr(self.game_state.team1, 'control', 0) - 1
+        if target_index == controlled_index:
+            return None
+        return players[target_index]
+
+    def _best_one_timer_target(self):
+        team = self.game_state.team1
+        opponents = self.game_state.team2
+        controlled = self._hockey_controlled_player(team)
+        controlled_index = getattr(team, 'control', 0) - 1
+        opponent_group = list(getattr(opponents, 'players', []) or []) + [getattr(opponents, 'goalie', None)]
+        opponent_group = [player for player in opponent_group if player is not None]
+
+        best_player = None
+        best_score = -float('inf')
+        for index, player in enumerate(team.players):
+            if index == controlled_index:
+                continue
+            if getattr(player, 'is_falling', 0.0) or getattr(player, 'is_dive', 0.0):
+                continue
+
+            receiver_space = min(
+                [self._hockey_distance(player, opponent) for opponent in opponent_group] or [999.0]
+            )
+            lateral_separation = abs((getattr(player, 'x', 0) or 0) - (getattr(controlled, 'x', 0) or 0))
+            vertical_separation = abs((getattr(player, 'y', 0) or 0) - (getattr(controlled, 'y', 0) or 0))
+            score = receiver_space + lateral_separation * 0.45 + vertical_separation * 0.20
+            if getattr(player, 'passing_lane_clear', False):
+                score += 24.0
+            if abs(getattr(player, 'x', 0) or 0) > 96:
+                score -= 18.0
+
+            if score > best_score:
+                best_score = score
+                best_player = player
+
+        return best_player
+
+    def _apply_pending_hockey_macro(self, processed_ac, action_state):
+        if self._opponent_has_puck():
+            action_state['one_timer_shot_delay'] = 0
+            action_state['one_timer_shot_frames'] = 0
+
+        if action_state['pass_release_frames'] > 0:
+            action_state['pass_release_frames'] -= 1
+
+        if action_state['one_timer_shot_frames'] <= 0:
+            return False
+
+        action_state['hockey_macro'] = 'one_timer_wait'
+        if action_state['one_timer_shot_delay'] > 0:
+            action_state['one_timer_shot_delay'] -= 1
+            return True
+
+        processed_ac[GameConsts.INPUT_C] = 1
+        action_state['one_timer_shot_frames'] -= 1
+        action_state['hockey_macro'] = 'one_timer_shoot'
+        return True
+
+    def _apply_hockey_intent(self, intent_ac, processed_ac, gamestate_ac, action_state):
+        action_state['hockey_macro'] = 'none'
+
+        if self._apply_pending_hockey_macro(processed_ac, action_state):
+            self._set_controller_gamestate(processed_ac, gamestate_ac)
+            return
+
+        intent = int(np.clip(intent_ac[0], 0, len(HOCKEY_INTENT_DPAD_ACTIONS) - 1))
+        boost = bool(intent_ac[5])
+        team = self.game_state.team1
+        controlled = self._hockey_controlled_player(team)
+        own_player_has_puck = self._player_has_puck(team)
+        own_team_has_puck = self._team_has_puck(team)
+
+        if intent == HOCKEY_INTENT_NORMAL_SHOOT:
+            if own_player_has_puck:
+                processed_ac[GameConsts.INPUT_C] = 1
+                action_state['hockey_macro'] = 'normal_shoot'
+
+        elif intent == HOCKEY_INTENT_SLAPSHOT:
+            if own_player_has_puck and action_state['slapshot_charge_frames'] < HOCKEY_SLAPSHOT_HOLD_FRAMES:
+                processed_ac[GameConsts.INPUT_C] = 1
+                action_state['slapshot_charge_frames'] += 1
+                action_state['hockey_macro'] = 'slapshot_charge'
+            else:
+                if action_state['slapshot_charge_frames'] > 0:
+                    action_state['hockey_macro'] = 'slapshot_release'
+                action_state['slapshot_charge_frames'] = 0
+        else:
+            action_state['slapshot_charge_frames'] = 0
+
+        if intent == HOCKEY_INTENT_POKE_CHECK:
+            distance_to_puck = self._hockey_distance(controlled, self.game_state.puck)
+            if not own_team_has_puck and (self._opponent_has_puck() or distance_to_puck <= HOCKEY_POKE_DISTANCE):
+                processed_ac[GameConsts.INPUT_B] = 1
+                action_state['hockey_macro'] = 'poke_check'
+
+        elif intent >= HOCKEY_INTENT_PASS_START:
+            target = self._hockey_pass_target(intent)
+            if target is not None:
+                self._steer_hockey_toward(processed_ac, controlled, (target.x, target.y), deadzone=3)
+                if own_team_has_puck and action_state['pass_release_frames'] <= 0:
+                    processed_ac[GameConsts.INPUT_B] = 1
+                    action_state['pass_release_frames'] = HOCKEY_PASS_RELEASE_FRAMES
+                    action_state['hockey_macro'] = HOCKEY_INTENT_DPAD_ACTIONS[intent].lower()
+
+        elif intent == HOCKEY_INTENT_ONE_TIMER:
+            target = self._best_one_timer_target()
+            if target is not None:
+                self._steer_hockey_toward(processed_ac, controlled, (target.x, target.y), deadzone=3)
+                if own_team_has_puck and action_state['pass_release_frames'] <= 0:
+                    processed_ac[GameConsts.INPUT_B] = 1
+                    action_state['pass_release_frames'] = HOCKEY_PASS_RELEASE_FRAMES
+                    action_state['one_timer_shot_delay'] = HOCKEY_ONE_TIMER_SHOT_DELAY_FRAMES
+                    action_state['one_timer_shot_frames'] = HOCKEY_ONE_TIMER_SHOT_FRAMES
+                    action_state['hockey_macro'] = 'one_timer_pass'
+
+        if boost and not own_team_has_puck and not processed_ac[GameConsts.INPUT_C]:
+            processed_ac[GameConsts.INPUT_C] = 1
+            if action_state['hockey_macro'] == 'none':
+                action_state['hockey_macro'] = 'boost'
+
+        self._set_controller_gamestate(processed_ac, gamestate_ac)
+
     def _process_action(self, ac, action_state):
         gamestate_ac = [0] * 6
 
         if isinstance(ac, (list, np.ndarray)) and len(ac) == GameConsts.INPUT_MAX:
             processed_ac = np.asarray(ac, dtype=np.int8).copy()
+            recorded_ac = processed_ac
 
             gamestate_ac[0] = bool(processed_ac[GameConsts.INPUT_UP])
             gamestate_ac[1] = bool(processed_ac[GameConsts.INPUT_DOWN])
@@ -201,6 +432,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         elif isinstance(ac, (list, np.ndarray)) and len(ac) == 3:
             processed_ac = np.asarray(ac, dtype=np.int8).copy()
+            recorded_ac = processed_ac
 
             gamestate_ac[0] = processed_ac[0] == 1
             gamestate_ac[1] = processed_ac[0] == 2
@@ -208,6 +440,23 @@ class NHL94Observation2PEnv(gym.Wrapper):
             gamestate_ac[3] = processed_ac[1] == 2
             gamestate_ac[4] = processed_ac[2] == 1
             gamestate_ac[5] = processed_ac[2] == 2
+
+        elif self.action_type == 'HOCKEY_INTENT_DPAD' and isinstance(ac, (list, np.ndarray)) and len(ac) == 6:
+            intent_ac = np.asarray(ac, dtype=np.int8).copy()
+            recorded_ac = intent_ac
+            processed_ac = np.zeros(GameConsts.INPUT_MAX, dtype=np.int8)
+
+            up = bool(intent_ac[1])
+            down = bool(intent_ac[2])
+            left = bool(intent_ac[3])
+            right = bool(intent_ac[4])
+
+            if up != down:
+                processed_ac[GameConsts.INPUT_UP if up else GameConsts.INPUT_DOWN] = 1
+            if left != right:
+                processed_ac[GameConsts.INPUT_LEFT if left else GameConsts.INPUT_RIGHT] = 1
+
+            self._apply_hockey_intent(intent_ac, processed_ac, gamestate_ac, action_state)
         else:
             raise ValueError(f"Unsupported action format: {ac}")
 
@@ -215,7 +464,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
             action_state['slapshot_frames'] += 1
         else:
             action_state['slapshot_frames'] = 0
-        action_state['last_env_action'] = processed_ac.copy()
+        action_state['last_env_action'] = recorded_ac.copy()
         action_state['last_gamestate_action'] = list(gamestate_ac)
         return processed_ac, gamestate_ac
 

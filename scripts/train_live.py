@@ -1198,8 +1198,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--action_type",
         type=str,
         default="FILTERED",
-        choices=["FILTERED", "DISCRETE", "MULTI_DISCRETE"],
-        help="Action type: FILTERED, DISCRETE, or MULTI_DISCRETE",
+        choices=["FILTERED", "DISCRETE", "MULTI_DISCRETE", "HOCKEY_INTENT_DPAD"],
+        help="Action type: FILTERED, DISCRETE, MULTI_DISCRETE, or HOCKEY_INTENT_DPAD",
     )
     parser.add_argument("--fullscreen", default=False, action="store_true")
 

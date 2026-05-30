@@ -57,7 +57,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--state", type=str, default=None,
                         help="Specific environment state to load (default: None)")
     parser.add_argument("--action-type", type=str, default="FILTERED",
-                        choices=["FILTERED", "DISCRETE", "MULTI_DISCRETE"],
+                        choices=["FILTERED", "DISCRETE", "MULTI_DISCRETE", "HOCKEY_INTENT_DPAD"],
                         help="Action space type to use (default: FILTERED)")
     parser.add_argument("--timesteps", type=int, default=1_000_000,
                         help="Number of environment timesteps to train each model (default: 1_000_000)")

@@ -40,8 +40,8 @@ def parse_cmdline(argv):
                        help='Frame history length for temporal policies such as HybridMambaPolicy or GRUMlpPolicy')
 
     parser.add_argument('--action_type', type=str, default='FILTERED',
-                       choices=['FILTERED', 'DISCRETE', 'MULTI_DISCRETE'],
-                       help='Action type: FILTERED, DISCRETE, or MULTI_DISCRETE')
+                       choices=['FILTERED', 'DISCRETE', 'MULTI_DISCRETE', 'HOCKEY_INTENT_DPAD'],
+                       help='Action type: FILTERED, DISCRETE, MULTI_DISCRETE, or HOCKEY_INTENT_DPAD')
 
     print(argv)
     args = parser.parse_args(argv)
