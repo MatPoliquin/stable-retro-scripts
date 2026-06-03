@@ -20,6 +20,8 @@ HOCKEY_INTENT_DPAD_ACTIONS = (
     'SLAPSHOT',
     'ONE_TIMER',
     'POKE_CHECK',
+    'CHANGE_PLAYER',
+    'CATCH_PUCK',
     'PASS_TEAMMATE_1',
     'PASS_TEAMMATE_2',
     'PASS_TEAMMATE_3',
@@ -30,12 +32,17 @@ HOCKEY_INTENT_NORMAL_SHOOT = HOCKEY_INTENT_DPAD_ACTIONS.index('NORMAL_SHOOT')
 HOCKEY_INTENT_SLAPSHOT = HOCKEY_INTENT_DPAD_ACTIONS.index('SLAPSHOT')
 HOCKEY_INTENT_ONE_TIMER = HOCKEY_INTENT_DPAD_ACTIONS.index('ONE_TIMER')
 HOCKEY_INTENT_POKE_CHECK = HOCKEY_INTENT_DPAD_ACTIONS.index('POKE_CHECK')
+HOCKEY_INTENT_CHANGE_PLAYER = HOCKEY_INTENT_DPAD_ACTIONS.index('CHANGE_PLAYER')
+HOCKEY_INTENT_CATCH_PUCK = HOCKEY_INTENT_DPAD_ACTIONS.index('CATCH_PUCK')
 HOCKEY_INTENT_PASS_START = HOCKEY_INTENT_DPAD_ACTIONS.index('PASS_TEAMMATE_1')
 HOCKEY_PASS_RELEASE_FRAMES = 5
 HOCKEY_ONE_TIMER_SHOT_DELAY_FRAMES = 1
 HOCKEY_ONE_TIMER_SHOT_FRAMES = 12
 HOCKEY_SLAPSHOT_HOLD_FRAMES = 18
 HOCKEY_POKE_DISTANCE = 18.0
+HOCKEY_CATCH_MAX_LOOKAHEAD_FRAMES = 36
+HOCKEY_CATCH_PLAYER_SPEED_ESTIMATE = 7.2
+HOCKEY_CATCH_BURST_DISTANCE = 22.0
 
 
 class NHL94Observation2PEnv(gym.Wrapper):
@@ -260,6 +267,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
             (getattr(second, 'x', 0) or 0, getattr(second, 'y', 0) or 0),
         )
 
+    def _hockey_distance_xy(self, first_x, first_y, second_x, second_y):
+        return GameConsts.Distance((first_x, first_y), (second_x, second_y))
+
     def _set_controller_gamestate(self, processed_ac, gamestate_ac):
         gamestate_ac[0] = bool(processed_ac[GameConsts.INPUT_UP])
         gamestate_ac[1] = bool(processed_ac[GameConsts.INPUT_DOWN])
@@ -286,6 +296,113 @@ class NHL94Observation2PEnv(gym.Wrapper):
         elif delta_y >= deadzone:
             processed_ac[GameConsts.INPUT_UP] = 1
             processed_ac[GameConsts.INPUT_DOWN] = 0
+
+    def _hockey_predict_puck_position(self, puck_x, puck_y, puck_vx, puck_vy, frames):
+        predicted_x = puck_x + puck_vx * frames * 0.45
+        predicted_y = puck_y + puck_vy * frames * 0.45
+
+        if predicted_x < -GameConsts.MAX_PLAYER_X:
+            predicted_x = -GameConsts.MAX_PLAYER_X + (-GameConsts.MAX_PLAYER_X - predicted_x) * 0.65
+        elif predicted_x > GameConsts.MAX_PLAYER_X:
+            predicted_x = GameConsts.MAX_PLAYER_X - (predicted_x - GameConsts.MAX_PLAYER_X) * 0.65
+
+        if predicted_y < -GameConsts.MAX_PLAYER_Y:
+            predicted_y = -GameConsts.MAX_PLAYER_Y + (-GameConsts.MAX_PLAYER_Y - predicted_y) * 0.45
+        elif predicted_y > GameConsts.MAX_PLAYER_Y:
+            predicted_y = GameConsts.MAX_PLAYER_Y - (predicted_y - GameConsts.MAX_PLAYER_Y) * 0.45
+
+        return predicted_x, predicted_y
+
+    def _hockey_opponent_puck_carrier(self):
+        opponents = self.game_state.team2
+        if self._team_has_puck(opponents):
+            return opponents.get_controlled_player()
+        return None
+
+    def _hockey_carrier_stick_target(self, carrier, puck):
+        carrier_x = getattr(carrier, 'x', 0) or 0
+        carrier_y = getattr(carrier, 'y', 0) or 0
+        puck_x = getattr(puck, 'x', 0) or 0
+        puck_y = getattr(puck, 'y', 0) or 0
+        toward_puck_x = puck_x - carrier_x
+        toward_puck_y = puck_y - carrier_y
+        length = max(1.0, self._hockey_distance_xy(carrier_x, carrier_y, puck_x, puck_y))
+        stick_x = carrier_x + toward_puck_x / length * 10.0
+        stick_y = carrier_y + toward_puck_y / length * 10.0
+        return (
+            stick_x + (getattr(carrier, 'vx', 0) or 0) * 0.65,
+            stick_y + (getattr(carrier, 'vy', 0) or 0) * 0.65,
+        )
+
+    def _hockey_choose_intercept_target(self, controlled):
+        puck = self.game_state.puck
+        player_x = getattr(controlled, 'x', 0) or 0
+        player_y = getattr(controlled, 'y', 0) or 0
+        player_vx = getattr(controlled, 'vx', 0) or 0
+        player_vy = getattr(controlled, 'vy', 0) or 0
+        puck_x = getattr(puck, 'x', 0) or 0
+        puck_y = getattr(puck, 'y', 0) or 0
+        puck_vx = getattr(puck, 'vx', 0) or 0
+        puck_vy = getattr(puck, 'vy', 0) or 0
+
+        best_target = (puck_x, puck_y)
+        best_error = float('inf')
+        for frames in range(1, HOCKEY_CATCH_MAX_LOOKAHEAD_FRAMES + 1):
+            predicted_puck_x, predicted_puck_y = self._hockey_predict_puck_position(
+                puck_x, puck_y, puck_vx, puck_vy, frames,
+            )
+            desired_player_x = player_x + player_vx * min(frames, 8) * 0.20
+            desired_player_y = player_y + player_vy * min(frames, 8) * 0.20
+            distance = self._hockey_distance_xy(
+                desired_player_x, desired_player_y, predicted_puck_x, predicted_puck_y,
+            )
+            reachable_distance = HOCKEY_CATCH_PLAYER_SPEED_ESTIMATE * frames
+            error = abs(distance - reachable_distance) + frames * 0.15
+            if error < best_error:
+                best_error = error
+                best_target = (predicted_puck_x, predicted_puck_y)
+
+        carrier = self._hockey_opponent_puck_carrier()
+        if carrier is not None:
+            carrier_target = self._hockey_carrier_stick_target(carrier, puck)
+            carrier_weight = 0.65 if self._hockey_distance(controlled, carrier) < 42 else 0.35
+            best_target = (
+                best_target[0] * (1.0 - carrier_weight) + carrier_target[0] * carrier_weight,
+                best_target[1] * (1.0 - carrier_weight) + carrier_target[1] * carrier_weight,
+            )
+
+        return (
+            int(np.clip(best_target[0], -GameConsts.MAX_PLAYER_X, GameConsts.MAX_PLAYER_X)),
+            int(np.clip(best_target[1], -GameConsts.MAX_PLAYER_Y, GameConsts.MAX_PLAYER_Y)),
+        )
+
+    def _hockey_closing_speed(self, controlled):
+        puck = self.game_state.puck
+        delta_x = (getattr(puck, 'x', 0) or 0) - (getattr(controlled, 'x', 0) or 0)
+        delta_y = (getattr(puck, 'y', 0) or 0) - (getattr(controlled, 'y', 0) or 0)
+        distance = max(1.0, self._hockey_distance_xy(0, 0, delta_x, delta_y))
+        relative_vx = (getattr(controlled, 'vx', 0) or 0) - (getattr(puck, 'vx', 0) or 0)
+        relative_vy = (getattr(controlled, 'vy', 0) or 0) - (getattr(puck, 'vy', 0) or 0)
+        return (relative_vx * delta_x + relative_vy * delta_y) / distance
+
+    def _apply_hockey_catch_puck(self, processed_ac, action_state, controlled):
+        target = self._hockey_choose_intercept_target(controlled)
+        self._steer_hockey_toward(processed_ac, controlled, target, deadzone=4)
+
+        puck = self.game_state.puck
+        distance_to_target = self._hockey_distance_xy(
+            getattr(controlled, 'x', 0) or 0,
+            getattr(controlled, 'y', 0) or 0,
+            target[0],
+            target[1],
+        )
+        distance_to_puck = self._hockey_distance(controlled, puck)
+        closing_speed = self._hockey_closing_speed(controlled)
+
+        if distance_to_puck > 10 and (distance_to_target > HOCKEY_CATCH_BURST_DISTANCE or (closing_speed < 1.5 and distance_to_puck > 14)):
+            processed_ac[GameConsts.INPUT_C] = 1
+
+        action_state['hockey_macro'] = 'catch_puck'
 
     def _hockey_pass_target(self, intent):
         target_index = intent - HOCKEY_INTENT_PASS_START
@@ -388,6 +505,15 @@ class NHL94Observation2PEnv(gym.Wrapper):
             if not own_team_has_puck and (self._opponent_has_puck() or distance_to_puck <= HOCKEY_POKE_DISTANCE):
                 processed_ac[GameConsts.INPUT_B] = 1
                 action_state['hockey_macro'] = 'poke_check'
+
+        elif intent == HOCKEY_INTENT_CHANGE_PLAYER:
+            if not own_team_has_puck:
+                processed_ac[GameConsts.INPUT_B] = 1
+                action_state['hockey_macro'] = 'change_player'
+
+        elif intent == HOCKEY_INTENT_CATCH_PUCK:
+            if not own_team_has_puck:
+                self._apply_hockey_catch_puck(processed_ac, action_state, controlled)
 
         elif intent >= HOCKEY_INTENT_PASS_START:
             target = self._hockey_pass_target(intent)

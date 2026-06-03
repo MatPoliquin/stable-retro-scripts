@@ -663,8 +663,8 @@ def isdone_scoregoal(state):
     if t1.stats.score > t1.last_stats.score:
         return True
 
-    if t2.player_haspuck or t2.goalie_haspuck:
-        return True
+    #if t2.player_haspuck or t2.goalie_haspuck:
+    #    return True
 
     if state.puck.y < 100:
         return True
@@ -912,8 +912,8 @@ def isdone_scoregoal_v2(state):
     if state.time < 100:
         return True
     
-    if t2.player_haspuck or t2.goalie_haspuck:
-        return True
+    #if t2.player_haspuck or t2.goalie_haspuck:
+    #    return True
 
     tracker = getattr(state, "_scoregoal_v2_tracker", None)
     if tracker is None:
