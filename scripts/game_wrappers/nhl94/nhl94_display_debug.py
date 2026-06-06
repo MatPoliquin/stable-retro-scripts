@@ -106,20 +106,22 @@ class NHL94DebugDisplay:
         self.model_in_use = getattr(ai_sys, 'model_in_use', None)
 
     def _normalize_env_action(self, action):
+        expected_action_size = 6 if getattr(self.args, 'action_type', '').upper() == 'HOCKEY_INTENT_DPAD' else GameConsts.INPUT_MAX
+
         if action is None:
-            return [[0] * GameConsts.INPUT_MAX]
+            return [[0] * expected_action_size]
 
         if isinstance(action, np.ndarray):
             action = action.tolist()
 
-        if isinstance(action, list) and len(action) == GameConsts.INPUT_MAX and not isinstance(action[0], (list, np.ndarray)):
+        if isinstance(action, list) and len(action) == expected_action_size and not isinstance(action[0], (list, np.ndarray)):
             return [[int(a) for a in action]]
 
         if isinstance(action, list) and len(action) == 1:
             first = action[0]
             if isinstance(first, np.ndarray):
                 first = first.tolist()
-            if isinstance(first, list) and len(first) == GameConsts.INPUT_MAX:
+            if isinstance(first, list) and len(first) == expected_action_size:
                 return [[int(a) for a in first]]
 
         if isinstance(action, list) and len(action) == 2:
@@ -127,13 +129,13 @@ class NHL94DebugDisplay:
             for player_action in action:
                 if isinstance(player_action, np.ndarray):
                     player_action = player_action.tolist()
-                if not isinstance(player_action, list) or len(player_action) != GameConsts.INPUT_MAX:
+                if not isinstance(player_action, list) or len(player_action) != expected_action_size:
                     break
                 normalized.append([int(a) for a in player_action])
             if len(normalized) == 2:
                 return normalized
 
-        return [[0] * GameConsts.INPUT_MAX]
+        return [[0] * expected_action_size]
 
     def _flatten_action_for_display(self, action):
         normalized = self._normalize_env_action(action)

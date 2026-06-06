@@ -8,33 +8,24 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 from game_wrappers.nhl94.nhl94_const import GameConsts
+from game_wrappers.nhl94.nhl94_intents import (
+    HOCKEY_INTENT_DPAD_ACTIONS,
+    HOCKEY_INTENT_DPAD_ACTION_SPACE,
+    HOCKEY_INTENT_CARRY_PUCK,
+    HOCKEY_INTENT_NORMAL_SHOOT,
+    HOCKEY_INTENT_SLAPSHOT,
+    HOCKEY_INTENT_ONE_TIMER,
+    HOCKEY_INTENT_POKE_CHECK,
+    HOCKEY_INTENT_CHANGE_PLAYER,
+    HOCKEY_INTENT_CATCH_PUCK,
+    HOCKEY_INTENT_PASS_START,
+)
 from game_wrappers.nhl94.nhl94_rf import register_functions
 from game_wrappers.nhl94.nhl94_ai import NHL94AISystem
 from game_wrappers.nhl94.nhl94_gamestate import NHL94GameState
 from models_utils import load_model_for_inference
 
 
-HOCKEY_INTENT_DPAD_ACTIONS = (
-    'NOOP',
-    'NORMAL_SHOOT',
-    'SLAPSHOT',
-    'ONE_TIMER',
-    'POKE_CHECK',
-    'CHANGE_PLAYER',
-    'CATCH_PUCK',
-    'PASS_TEAMMATE_1',
-    'PASS_TEAMMATE_2',
-    'PASS_TEAMMATE_3',
-    'PASS_TEAMMATE_4',
-)
-HOCKEY_INTENT_DPAD_ACTION_SPACE = [len(HOCKEY_INTENT_DPAD_ACTIONS), 2, 2, 2, 2, 2]
-HOCKEY_INTENT_NORMAL_SHOOT = HOCKEY_INTENT_DPAD_ACTIONS.index('NORMAL_SHOOT')
-HOCKEY_INTENT_SLAPSHOT = HOCKEY_INTENT_DPAD_ACTIONS.index('SLAPSHOT')
-HOCKEY_INTENT_ONE_TIMER = HOCKEY_INTENT_DPAD_ACTIONS.index('ONE_TIMER')
-HOCKEY_INTENT_POKE_CHECK = HOCKEY_INTENT_DPAD_ACTIONS.index('POKE_CHECK')
-HOCKEY_INTENT_CHANGE_PLAYER = HOCKEY_INTENT_DPAD_ACTIONS.index('CHANGE_PLAYER')
-HOCKEY_INTENT_CATCH_PUCK = HOCKEY_INTENT_DPAD_ACTIONS.index('CATCH_PUCK')
-HOCKEY_INTENT_PASS_START = HOCKEY_INTENT_DPAD_ACTIONS.index('PASS_TEAMMATE_1')
 HOCKEY_PASS_RELEASE_FRAMES = 5
 HOCKEY_ONE_TIMER_SHOT_DELAY_FRAMES = 1
 HOCKEY_ONE_TIMER_SHOT_FRAMES = 12
@@ -407,13 +398,11 @@ class NHL94Observation2PEnv(gym.Wrapper):
     def _hockey_pass_target(self, intent):
         target_index = intent - HOCKEY_INTENT_PASS_START
         players = list(getattr(self.game_state.team1, 'players', []) or [])
-        if target_index < 0 or target_index >= len(players):
-            return None
-
         controlled_index = getattr(self.game_state.team1, 'control', 0) - 1
-        if target_index == controlled_index:
+        teammates = [player for index, player in enumerate(players) if index != controlled_index]
+        if target_index < 0 or target_index >= len(teammates):
             return None
-        return players[target_index]
+        return teammates[target_index]
 
     def _best_one_timer_target(self):
         team = self.game_state.team1
@@ -483,7 +472,11 @@ class NHL94Observation2PEnv(gym.Wrapper):
         own_player_has_puck = self._player_has_puck(team)
         own_team_has_puck = self._team_has_puck(team)
 
-        if intent == HOCKEY_INTENT_NORMAL_SHOOT:
+        if intent == HOCKEY_INTENT_CARRY_PUCK:
+            if own_player_has_puck:
+                action_state['hockey_macro'] = 'carry_puck'
+
+        elif intent == HOCKEY_INTENT_NORMAL_SHOOT:
             if own_player_has_puck:
                 processed_ac[GameConsts.INPUT_C] = 1
                 action_state['hockey_macro'] = 'normal_shoot'

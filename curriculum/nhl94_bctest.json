@@ -9,7 +9,7 @@
     "rf": "PostPlay",
     "num_players": 1,
     "hyperparams": "../hyperparams/nhl94_residual_mlp.json",
-    "action_type": "FILTERED",
+    "action_type": "HOCKEY_INTENT_DPAD",
     "seq_len": 16
   },
   "phases": [

@@ -22,6 +22,7 @@ from imitation_utils import (
     split_by_episode,
 )
 from game_wrappers.nhl94.nhl94_const import GameConsts
+from game_wrappers.nhl94.nhl94_intents import HOCKEY_INTENT_DPAD_ACTION_SPACE
 from models_utils import init_model
 from utils import load_hyperparams
 
@@ -51,7 +52,7 @@ def build_parser():
     parser.add_argument("--num_players", type=int, default=1)
     parser.add_argument("--hyperparams", type=str, default="../hyperparams/nhl94_residual_mlp.json")
     parser.add_argument("--seq_len", type=int, default=16)
-    parser.add_argument("--action_type", type=str, default="FILTERED", choices=["FILTERED", "DISCRETE", "MULTI_DISCRETE"])
+    parser.add_argument("--action_type", type=str, default="HOCKEY_INTENT_DPAD", choices=["FILTERED", "DISCRETE", "MULTI_DISCRETE", "HOCKEY_INTENT_DPAD"])
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch_size", type=int, default=1024)
     parser.add_argument("--learning_rate", type=float, default=1e-4)
@@ -126,7 +127,7 @@ def _compute_positive_weights(actions, max_weight):
     return np.clip(weights, 1.0, float(max_weight))
 
 
-def _evaluate(model, loader, criterion, device):
+def _evaluate_filtered(model, loader, criterion, device):
     model.policy.eval()
     total_loss = 0.0
     total_samples = 0
@@ -153,28 +154,113 @@ def _evaluate(model, loader, criterion, device):
     return metrics
 
 
+def _split_multidiscrete_logits(logits, action_space):
+    parts = []
+    start = 0
+    for size in action_space:
+        end = start + int(size)
+        parts.append(logits[:, start:end])
+        start = end
+    return parts
+
+
+def _hockey_intent_loss(logits, actions, weights):
+    targets = actions.long()
+    per_component_losses = []
+    for action_index, action_logits in enumerate(_split_multidiscrete_logits(logits, HOCKEY_INTENT_DPAD_ACTION_SPACE)):
+        per_component_losses.append(
+            th.nn.functional.cross_entropy(
+                action_logits,
+                targets[:, action_index],
+                reduction="none",
+            )
+        )
+    per_component_loss = th.stack(per_component_losses, dim=1)
+    per_sample_loss = per_component_loss.mean(dim=1)
+    return (per_sample_loss * weights).mean()
+
+
+def _hockey_intent_metrics(logits, actions):
+    targets = actions.long()
+    predictions = th.stack(
+        [action_logits.argmax(dim=1) for action_logits in _split_multidiscrete_logits(logits, HOCKEY_INTENT_DPAD_ACTION_SPACE)],
+        dim=1,
+    )
+    matches = predictions.eq(targets)
+    component_accuracy = matches.float().mean(dim=0)
+    return {
+        "exact_match": matches.all(dim=1).float().mean().item(),
+        "component_accuracy": component_accuracy.detach().cpu().tolist(),
+        "intent_accuracy": component_accuracy[0].item(),
+        "dpad_exact_match": matches[:, 1:5].all(dim=1).float().mean().item(),
+        "boost_accuracy": component_accuracy[5].item(),
+    }
+
+
+def _evaluate_hockey_intent(model, loader, device):
+    model.policy.eval()
+    total_loss = 0.0
+    total_samples = 0
+    all_logits = []
+    all_actions = []
+    with th.no_grad():
+        for obs_batch, action_batch, weight_batch, _ in loader:
+            obs_batch = obs_batch.to(device)
+            action_batch = action_batch.to(device)
+            weight_batch = weight_batch.to(device)
+            logits = policy_action_logits(model.policy, obs_batch)
+            loss = _hockey_intent_loss(logits, action_batch, weight_batch)
+            batch_size = obs_batch.shape[0]
+            total_loss += float(loss.item()) * batch_size
+            total_samples += batch_size
+            all_logits.append(logits.detach().cpu())
+            all_actions.append(action_batch.detach().cpu())
+
+    metrics = _hockey_intent_metrics(th.cat(all_logits, dim=0), th.cat(all_actions, dim=0))
+    metrics["loss"] = total_loss / max(total_samples, 1)
+    return metrics
+
+
+def _compute_hockey_intent_sample_weights(actions, rare_weight):
+    weights = np.ones(actions.shape[0], dtype=np.float32)
+    rare_mask = (actions[:, 0] != 0) | (actions[:, 5] != 0)
+    weights[rare_mask] = float(rare_weight)
+    weights /= max(float(weights.mean()), 1e-6)
+    return weights
+
+
 def train_bc(args, hyperparams):
-    if args.action_type != "FILTERED":
-        raise NotImplementedError("BC pretraining currently expects --action_type=FILTERED.")
+    args.action_type = args.action_type.upper()
+    if args.action_type not in ("FILTERED", "HOCKEY_INTENT_DPAD"):
+        raise NotImplementedError("BC pretraining currently supports FILTERED and HOCKEY_INTENT_DPAD.")
 
     th.manual_seed(args.seed)
     np.random.seed(args.seed)
 
     arrays = load_demo_arrays(args.datasets)
     observations = arrays["observations"].astype(np.float32)
-    actions = arrays["actions"].astype(np.float32)
+    actions = arrays["actions"].astype(np.int64 if args.action_type == "HOCKEY_INTENT_DPAD" else np.float32)
     episode_ids = arrays["episode_ids"]
 
-    if actions.ndim != 2 or actions.shape[1] != 12:
-        raise ValueError(f"Expected actions with shape (N, 12), got {actions.shape}")
+    if args.action_type == "FILTERED":
+        if actions.ndim != 2 or actions.shape[1] != 12:
+            raise ValueError(f"Expected FILTERED actions with shape (N, 12), got {actions.shape}")
+        weights = compute_sample_weights(actions, args.rare_weight)
+        element_weights = _compute_element_weights(
+            observations,
+            actions,
+            args.release_weight,
+            args.num_players,
+        )
+    else:
+        expected_shape = len(HOCKEY_INTENT_DPAD_ACTION_SPACE)
+        if actions.ndim != 2 or actions.shape[1] != expected_shape:
+            raise ValueError(f"Expected HOCKEY_INTENT_DPAD actions with shape (N, {expected_shape}), got {actions.shape}")
+        if not np.all((actions >= 0) & (actions < np.asarray(HOCKEY_INTENT_DPAD_ACTION_SPACE, dtype=np.int64))):
+            raise ValueError("HOCKEY_INTENT_DPAD dataset contains out-of-range action values.")
+        weights = _compute_hockey_intent_sample_weights(actions, args.rare_weight)
+        element_weights = np.ones_like(actions, dtype=np.float32)
 
-    weights = compute_sample_weights(actions, args.rare_weight)
-    element_weights = _compute_element_weights(
-        observations,
-        actions,
-        args.release_weight,
-        args.num_players,
-    )
     train_mask, val_mask = split_by_episode(episode_ids, args.validation_fraction, args.seed)
 
     train_loader = _make_loader(
@@ -211,12 +297,15 @@ def train_bc(args, hyperparams):
         model = _make_model(args, hyperparams, env, logger)
         device = model.policy.device
         optimizer = th.optim.Adam(model.policy.parameters(), lr=args.learning_rate)
-        pos_weight = th.as_tensor(
-            _compute_positive_weights(actions[train_mask], args.positive_weight_max),
-            dtype=th.float32,
-            device=device,
-        )
-        criterion = th.nn.BCEWithLogitsLoss(reduction="none", pos_weight=pos_weight)
+        pos_weight = None
+        criterion = None
+        if args.action_type == "FILTERED":
+            pos_weight = th.as_tensor(
+                _compute_positive_weights(actions[train_mask], args.positive_weight_max),
+                dtype=th.float32,
+                device=device,
+            )
+            criterion = th.nn.BCEWithLogitsLoss(reduction="none", pos_weight=pos_weight)
 
         best_val_loss = float("inf")
         best_model = output_model
@@ -234,9 +323,12 @@ def train_bc(args, hyperparams):
 
                 optimizer.zero_grad(set_to_none=True)
                 logits = policy_action_logits(model.policy, obs_batch)
-                per_button_loss = criterion(logits, action_batch) * element_weight_batch
-                per_sample_loss = per_button_loss.mean(dim=1)
-                loss = (per_sample_loss * weight_batch).mean()
+                if args.action_type == "FILTERED":
+                    per_button_loss = criterion(logits, action_batch) * element_weight_batch
+                    per_sample_loss = per_button_loss.mean(dim=1)
+                    loss = (per_sample_loss * weight_batch).mean()
+                else:
+                    loss = _hockey_intent_loss(logits, action_batch, weight_batch)
                 loss.backward()
                 optimizer.step()
 
@@ -244,9 +336,13 @@ def train_bc(args, hyperparams):
                 total_loss += float(loss.item()) * batch_size
                 total_samples += batch_size
 
-            train_metrics = _evaluate(model, train_loader, criterion, device)
+            if args.action_type == "FILTERED":
+                train_metrics = _evaluate_filtered(model, train_loader, criterion, device)
+                val_metrics = _evaluate_filtered(model, val_loader, criterion, device) if val_loader is not None else None
+            else:
+                train_metrics = _evaluate_hockey_intent(model, train_loader, device)
+                val_metrics = _evaluate_hockey_intent(model, val_loader, device) if val_loader is not None else None
             train_metrics["loss"] = total_loss / max(total_samples, 1)
-            val_metrics = _evaluate(model, val_loader, criterion, device) if val_loader is not None else None
             current_val_loss = val_metrics["loss"] if val_metrics else train_metrics["loss"]
 
             row = {
@@ -271,8 +367,9 @@ def train_bc(args, hyperparams):
                     "num_samples": int(actions.shape[0]),
                     "num_train_samples": int(train_mask.sum()),
                     "num_validation_samples": int(val_mask.sum()),
-                    "positive_weights": pos_weight.detach().cpu().tolist(),
-                    "release_weight": float(args.release_weight),
+                    "action_type": args.action_type,
+                    "positive_weights": pos_weight.detach().cpu().tolist() if pos_weight is not None else None,
+                    "release_weight": float(args.release_weight) if args.action_type == "FILTERED" else None,
                     "history": history,
                 },
                 handle,

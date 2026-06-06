@@ -15,6 +15,7 @@ from stable_baselines3 import PPO
 
 from classic_ai import ClassicAIModel
 from game_wrappers.nhl94.nhl94_const import GameConsts
+from game_wrappers.nhl94.nhl94_intents import HOCKEY_INTENT_DPAD_ACTIONS, HOCKEY_INTENT_DPAD_ACTION_SPACE
 from imitation_utils import (
     build_single_nhl94_env,
     ensure_box_observation,
@@ -40,7 +41,7 @@ def build_parser():
     parser.add_argument("--num_players", type=int, default=1)
     parser.add_argument("--hyperparams", type=str, default="../hyperparams/nhl94_residual_mlp.json")
     parser.add_argument("--seq_len", type=int, default=16)
-    parser.add_argument("--action_type", type=str, default="FILTERED", choices=["FILTERED", "DISCRETE", "MULTI_DISCRETE"])
+    parser.add_argument("--action_type", type=str, default="HOCKEY_INTENT_DPAD", choices=["FILTERED", "DISCRETE", "MULTI_DISCRETE", "HOCKEY_INTENT_DPAD"])
     parser.add_argument("--rounds", type=int, default=3)
     parser.add_argument("--episodes_per_round", type=int, default=5)
     parser.add_argument("--num_workers", type=int, default=1)
@@ -69,6 +70,18 @@ def _contradictory(action, a, b):
 
 
 def is_plausible_expert_action(action):
+    if len(action) == len(HOCKEY_INTENT_DPAD_ACTION_SPACE):
+        action = np.asarray(action, dtype=np.int64)
+        if np.any(action < 0):
+            return False
+        if np.any(action >= np.asarray(HOCKEY_INTENT_DPAD_ACTION_SPACE, dtype=np.int64)):
+            return False
+        if _contradictory(action, 1, 2):
+            return False
+        if _contradictory(action, 3, 4):
+            return False
+        return True
+
     if len(action) != GameConsts.INPUT_MAX:
         return False
     if _contradictory(action, GameConsts.INPUT_UP, GameConsts.INPUT_DOWN):
@@ -204,6 +217,7 @@ def collect_dagger_round(args, hyperparams, model_path, round_index):
         arrays = _concat_arrays([result["arrays"] for result in results])
         dropped = sum(int(result["dropped"]) for result in results)
 
+    action_counts = arrays["actions"].sum(axis=0).astype(int).tolist()
     metadata = {
         "round": round_index,
         "source_model": model_path,
@@ -217,8 +231,11 @@ def collect_dagger_round(args, hyperparams, model_path, round_index):
         "dropped_implausible": int(dropped),
         "observation_shape": list(arrays["observations"].shape[1:]),
         "action_shape": list(arrays["actions"].shape[1:]),
-        "button_counts": arrays["actions"].sum(axis=0).astype(int).tolist(),
+        "action_counts": action_counts,
+        "button_counts": action_counts if args.action_type == "FILTERED" else None,
     }
+    if args.action_type == "HOCKEY_INTENT_DPAD":
+        metadata["intent_counts"] = np.bincount(arrays["actions"][:, 0], minlength=len(HOCKEY_INTENT_DPAD_ACTIONS)).astype(int).tolist()
     return arrays, metadata
 
 
@@ -276,8 +293,9 @@ def run_bc_retrain(args, current_model, datasets, output_model):
 
 
 def run_dagger(args, hyperparams):
-    if args.action_type != "FILTERED":
-        raise NotImplementedError("DAgger currently expects --action_type=FILTERED.")
+    args.action_type = args.action_type.upper()
+    if args.action_type not in ("FILTERED", "HOCKEY_INTENT_DPAD"):
+        raise NotImplementedError("DAgger currently supports FILTERED and HOCKEY_INTENT_DPAD.")
 
     current_model = os.path.expanduser(args.model)
     all_datasets = [os.path.expanduser(path) for path in args.base_datasets]

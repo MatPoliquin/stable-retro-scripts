@@ -4,6 +4,16 @@ import os
 import numpy as np
 
 from game_wrappers.nhl94.nhl94_const import GameConsts
+from game_wrappers.nhl94.nhl94_intents import (
+    HOCKEY_INTENT_DPAD_ACTION_SPACE,
+    HOCKEY_INTENT_NOOP,
+    HOCKEY_INTENT_CARRY_PUCK,
+    HOCKEY_INTENT_ONE_TIMER,
+    HOCKEY_INTENT_POKE_CHECK,
+    HOCKEY_INTENT_CHANGE_PLAYER,
+    HOCKEY_INTENT_CATCH_PUCK,
+    HOCKEY_INTENT_PASS_START,
+)
 
 
 class ClassicAIModel:
@@ -48,7 +58,7 @@ class ClassicAIModel:
     def __init__(self, args=None, env=None):
         self.args = args
         self.env = env
-        self._last_action_preferences = np.zeros((1, GameConsts.INPUT_MAX), dtype=np.float32)
+        self._last_action_preferences = np.zeros((1, self._action_size()), dtype=np.float32)
         self._trace_path = os.environ.get("CLASSIC_AI_TRACE_PATH")
         self._trace_frame = 0
         self._last_decision = "init"
@@ -62,13 +72,24 @@ class ClassicAIModel:
         self._circle_phase = 0.0
         self._circle_direction = 1
 
+    def _uses_hockey_intents(self):
+        return getattr(self.args, "action_type", "FILTERED").upper() == "HOCKEY_INTENT_DPAD"
+
+    def _action_size(self):
+        if self._uses_hockey_intents():
+            return len(HOCKEY_INTENT_DPAD_ACTION_SPACE)
+        return GameConsts.INPUT_MAX
+
     def predict(self, state, deterministic=True):
-        action = np.zeros((1, GameConsts.INPUT_MAX), dtype=np.int8)
+        action = np.zeros((1, self._action_size()), dtype=np.int8)
         self._last_action_preferences = action.astype(np.float32)
         return action, None
 
     def predict_game_state(self, game_state, deterministic=True):
-        action = self._predict_actions(game_state)
+        if self._uses_hockey_intents():
+            action = self._predict_intent_actions(game_state)
+        else:
+            action = self._predict_actions(game_state)
         return np.asarray([action], dtype=np.int8)
 
     def get_action_preferences(self, _state=None):
@@ -80,8 +101,7 @@ class ClassicAIModel:
     def save(self, *args, **kwargs):
         raise NotImplementedError("ClassicAI does not produce a trainable checkpoint.")
 
-    def _predict_actions(self, game_state):
-        self._trace_frame += 1
+    def _tick_cooldowns(self):
         if self._poke_cooldown > 0:
             self._poke_cooldown -= 1
         if self._switch_cooldown > 0:
@@ -90,6 +110,10 @@ class ClassicAIModel:
             self._goalie_pass_cooldown -= 1
         if self._one_timer_pass_cooldown > 0:
             self._one_timer_pass_cooldown -= 1
+
+    def _predict_actions(self, game_state):
+        self._trace_frame += 1
+        self._tick_cooldowns()
 
         action = np.zeros(GameConsts.INPUT_MAX, dtype=np.int8)
         team = game_state.team1
@@ -149,6 +173,87 @@ class ClassicAIModel:
 
         return self._finalize(action)
 
+    def _predict_intent_actions(self, game_state):
+        self._trace_frame += 1
+        self._tick_cooldowns()
+
+        action = np.zeros(len(HOCKEY_INTENT_DPAD_ACTION_SPACE), dtype=np.int8)
+        action[0] = HOCKEY_INTENT_NOOP
+        team = game_state.team1
+        opponents = game_state.team2
+        controlled = team.get_controlled_player()
+        puck = game_state.puck
+
+        if team.player_haspuck:
+            one_timer_target = self._choose_one_timer_target(controlled, team, opponents)
+            if one_timer_target is not None:
+                action[0] = HOCKEY_INTENT_ONE_TIMER
+                self._steer_intent_toward(action, controlled, one_timer_target[0], one_timer_target[1], deadzone=3)
+                self._one_timer_pass_cooldown = self.ONE_TIMER_PASS_RETRY_FRAMES
+                self._last_target = one_timer_target
+                self._last_decision = "one_timer"
+                return self._finalize(action)
+
+            target = self._choose_puck_control_target(controlled, opponents)
+            self._last_target = target
+            action[0] = HOCKEY_INTENT_CARRY_PUCK
+            self._steer_intent_toward(action, controlled, target[0], target[1], deadzone=5)
+            return self._finalize(action)
+
+        if team.goalie_haspuck:
+            goalie = team.goalie
+            target_player = self._choose_goalie_pass_player(goalie, team.players, opponents.players)
+            target = self._lead_player_target(target_player, self.GOALIE_PASS_LEAD_FRAMES) if target_player is not None else (0, self.ATTACK_ENTRY_Y)
+            self._last_target = target
+            self._steer_intent_toward(action, goalie, target[0], target[1], deadzone=3)
+            if target_player is not None and self._goalie_pass_cooldown <= 0:
+                pass_intent = self._pass_intent_for_player(team, target_player)
+                if pass_intent is not None:
+                    action[0] = pass_intent
+                    self._goalie_pass_cooldown = self.GOALIE_PASS_RETRY_FRAMES
+                    self._last_decision = "goalie_pass_teammate"
+                else:
+                    self._last_decision = "goalie_pass_no_slot"
+            else:
+                self._last_decision = "goalie_pass_release"
+            return self._finalize(action)
+
+        self._goalie_pass_cooldown = 0
+
+        if opponents.player_haspuck or opponents.goalie_haspuck:
+            self._one_timer_shot_delay = 0
+            self._one_timer_shot_frames = 0
+
+        if self._should_switch_player(team, controlled, puck, opponents):
+            action[0] = HOCKEY_INTENT_CHANGE_PLAYER
+            self._switch_cooldown = self.SWITCH_COOLDOWN_FRAMES
+            self._last_decision = "switch_to_interceptor"
+            return self._finalize(action)
+
+        target = self._choose_intercept_target(controlled, puck, opponents)
+        self._last_target = target
+        self._steer_intent_toward(action, controlled, target[0], target[1])
+
+        distance_to_target = self._distance_xy(self._x(controlled), self._y(controlled), target[0], target[1])
+        distance_to_puck = self._distance_between(controlled, puck)
+        closing_speed = self._closing_speed(controlled, puck)
+
+        if self._should_burst(distance_to_target, distance_to_puck, closing_speed):
+            action[5] = 1
+
+        if self._should_poke(controlled, puck, opponents):
+            action[0] = HOCKEY_INTENT_POKE_CHECK
+            self._poke_cooldown = self.POKE_COOLDOWN_FRAMES
+            self._last_decision = "intercept_poke"
+        elif opponents.player_haspuck or opponents.goalie_haspuck:
+            action[0] = HOCKEY_INTENT_CATCH_PUCK
+            self._last_decision = "intercept_carrier"
+        else:
+            action[0] = HOCKEY_INTENT_CATCH_PUCK
+            self._last_decision = "intercept_loose_puck"
+
+        return self._finalize(action)
+
     def _predict_puck_control(self, controlled, team, opponents):
         action = np.zeros(GameConsts.INPUT_MAX, dtype=np.int8)
         one_timer_target = self._choose_one_timer_target(controlled, team, opponents)
@@ -188,8 +293,15 @@ class ClassicAIModel:
         return action
 
     def _choose_goalie_pass_target(self, goalie, teammates, opponents):
-        if not teammates:
+        best_player = self._choose_goalie_pass_player(goalie, teammates, opponents)
+        if best_player is None:
             return (0, self.ATTACK_ENTRY_Y)
+
+        return self._lead_player_target(best_player, self.GOALIE_PASS_LEAD_FRAMES)
+
+    def _choose_goalie_pass_player(self, goalie, teammates, opponents):
+        if not teammates:
+            return None
 
         goalie_y = self._y(goalie)
         attack_sign = 1 if goalie_y <= 0 else -1
@@ -217,12 +329,24 @@ class ClassicAIModel:
                 best_score = score
                 best_player = player
 
-        lead_x = self._x(best_player) + self._vx(best_player) * self.GOALIE_PASS_LEAD_FRAMES * 0.20
-        lead_y = self._y(best_player) + self._vy(best_player) * self.GOALIE_PASS_LEAD_FRAMES * 0.20
+        return best_player
+
+    def _lead_player_target(self, player, frames):
+        lead_x = self._x(player) + self._vx(player) * frames * 0.20
+        lead_y = self._y(player) + self._vy(player) * frames * 0.20
         return (
             int(np.clip(lead_x, -96, 96)),
             int(np.clip(lead_y, self.MIN_Y + 28, self.MAX_Y - 28)),
         )
+
+    def _pass_intent_for_player(self, team, target_player):
+        players = list(getattr(team, "players", []) or [])
+        controlled_index = int(getattr(team, "control", 0) or 0) - 1
+        teammates = [player for index, player in enumerate(players) if index != controlled_index]
+        for teammate_index, teammate in enumerate(teammates[:4]):
+            if teammate is target_player:
+                return HOCKEY_INTENT_PASS_START + teammate_index
+        return None
 
     def _choose_one_timer_target(self, controlled, team, opponents):
         attack_sign = self._attack_sign(opponents)
@@ -675,6 +799,20 @@ class ClassicAIModel:
         elif delta_y >= deadzone:
             action[GameConsts.INPUT_UP] = 1
 
+    def _steer_intent_toward(self, action, player, target_x, target_y, deadzone=4):
+        delta_x = target_x - self._x(player)
+        delta_y = target_y - self._y(player)
+
+        if delta_y <= -deadzone:
+            action[2] = 1
+        elif delta_y >= deadzone:
+            action[1] = 1
+
+        if delta_x <= -deadzone:
+            action[3] = 1
+        elif delta_x >= deadzone:
+            action[4] = 1
+
     def _x(self, obj):
         return int(getattr(obj, "x", 0) or 0)
 
@@ -731,6 +869,16 @@ class ClassicAIModel:
 
         needs_header = not os.path.exists(self._trace_path)
         with open(self._trace_path, "a", encoding="utf-8") as trace_file:
+            if len(action) == len(HOCKEY_INTENT_DPAD_ACTION_SPACE):
+                if needs_header:
+                    trace_file.write("frame,decision,target_x,target_y,intent,up,down,left,right,boost,poke_cooldown,switch_cooldown\n")
+                trace_file.write(
+                    f"{self._trace_frame},{self._last_decision},{self._last_target[0]},{self._last_target[1]},"
+                    f"{int(action[0])},{int(action[1])},{int(action[2])},{int(action[3])},{int(action[4])},{int(action[5])},"
+                    f"{self._poke_cooldown},{self._switch_cooldown}\n"
+                )
+                return
+
             if needs_header:
                 trace_file.write("frame,decision,target_x,target_y,a,b,c,up,down,left,right,poke_cooldown,switch_cooldown\n")
             trace_file.write(

@@ -52,7 +52,11 @@ def get_model_probabilities(model, state):
     #obs = obs_as_tensor(state, model.policy.device)
     obs = model.policy.obs_to_tensor(state)[0]
     dis = model.policy.get_distribution(obs)
-    probs = dis.distribution.probs
+    distribution = dis.distribution
+    if isinstance(distribution, list):
+        probs = th.cat([dist.probs for dist in distribution], dim=1)
+    else:
+        probs = distribution.probs
     probs_np = probs.detach().cpu().numpy()
     return probs_np
 

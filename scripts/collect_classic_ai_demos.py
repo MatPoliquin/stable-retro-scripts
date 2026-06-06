@@ -12,6 +12,7 @@ from datetime import datetime
 import numpy as np
 
 from classic_ai import ClassicAIModel
+from game_wrappers.nhl94.nhl94_intents import HOCKEY_INTENT_DPAD_ACTIONS
 from imitation_utils import (
     build_single_nhl94_env,
     ensure_box_observation,
@@ -40,7 +41,7 @@ def build_parser():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--hyperparams", type=str, default="../hyperparams/nhl94_residual_mlp.json")
     parser.add_argument("--seq_len", type=int, default=16)
-    parser.add_argument("--action_type", type=str, default="FILTERED", choices=["FILTERED", "DISCRETE", "MULTI_DISCRETE"])
+    parser.add_argument("--action_type", type=str, default="HOCKEY_INTENT_DPAD", choices=["FILTERED", "DISCRETE", "MULTI_DISCRETE", "HOCKEY_INTENT_DPAD"])
     parser.add_argument("--opponent", type=str, default="game", choices=["game", "noop"])
     parser.add_argument("--no_frame_skip", default=False, action="store_true")
     parser.add_argument("--clip_reward", default=None, action="store_true")
@@ -53,8 +54,13 @@ def parse_cmdline(argv):
 
 
 def _validate_args(args):
-    if args.action_type != "FILTERED":
-        raise NotImplementedError("ClassicAI cloning currently expects --action_type=FILTERED.")
+    args.action_type = args.action_type.upper()
+    if args.action_type not in ("FILTERED", "HOCKEY_INTENT_DPAD"):
+        raise NotImplementedError("ClassicAI cloning currently supports FILTERED and HOCKEY_INTENT_DPAD.")
+    if args.action_type == "HOCKEY_INTENT_DPAD" and args.opponent == "noop":
+        raise ValueError("HOCKEY_INTENT_DPAD currently supports --opponent=game only.")
+    if args.action_type == "HOCKEY_INTENT_DPAD" and args.num_players != 1:
+        raise ValueError("HOCKEY_INTENT_DPAD currently expects --num_players=1.")
     if args.opponent == "noop" and args.num_players != 2:
         args.num_players = 2
     if args.opponent == "game" and args.num_players != 1:
@@ -183,6 +189,7 @@ def collect_demos(args, hyperparams):
             "targets",
         )
     }
+    action_counts = arrays["actions"].sum(axis=0).astype(int).tolist()
     metadata = {
         "env": args.env,
         "state": args.state,
@@ -196,8 +203,11 @@ def collect_demos(args, hyperparams):
         "num_samples": int(arrays["actions"].shape[0]),
         "observation_shape": list(arrays["observations"].shape[1:]),
         "action_shape": list(arrays["actions"].shape[1:]),
-        "button_counts": arrays["actions"].sum(axis=0).astype(int).tolist(),
+        "action_counts": action_counts,
+        "button_counts": action_counts if args.action_type == "FILTERED" else None,
     }
+    if args.action_type == "HOCKEY_INTENT_DPAD":
+        metadata["intent_counts"] = np.bincount(arrays["actions"][:, 0], minlength=len(HOCKEY_INTENT_DPAD_ACTIONS)).astype(int).tolist()
     return arrays, metadata
 
 
