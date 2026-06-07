@@ -587,6 +587,54 @@ class NHL94Observation2PEnv(gym.Wrapper):
         action_state['last_gamestate_action'] = list(gamestate_ac)
         return processed_ac, gamestate_ac
 
+    def _gamestate_action_from_env_action(self, env_action):
+        gamestate_ac = [0] * 6
+
+        if isinstance(env_action, (list, np.ndarray)) and len(env_action) == GameConsts.INPUT_MAX:
+            env_action = np.asarray(env_action, dtype=np.int8)
+            gamestate_ac[0] = bool(env_action[GameConsts.INPUT_UP])
+            gamestate_ac[1] = bool(env_action[GameConsts.INPUT_DOWN])
+            gamestate_ac[2] = bool(env_action[GameConsts.INPUT_LEFT])
+            gamestate_ac[3] = bool(env_action[GameConsts.INPUT_RIGHT])
+            gamestate_ac[4] = bool(env_action[GameConsts.INPUT_B])
+            gamestate_ac[5] = bool(env_action[GameConsts.INPUT_C])
+            return gamestate_ac
+
+        if isinstance(env_action, (list, np.ndarray)) and len(env_action) == 3:
+            env_action = np.asarray(env_action, dtype=np.int8)
+            gamestate_ac[0] = env_action[0] == 1
+            gamestate_ac[1] = env_action[0] == 2
+            gamestate_ac[2] = env_action[1] == 1
+            gamestate_ac[3] = env_action[1] == 2
+            gamestate_ac[4] = env_action[2] == 1
+            gamestate_ac[5] = env_action[2] == 2
+            return gamestate_ac
+
+        raise ValueError(f"Unsupported env action format: {env_action}")
+
+    def _finalize_masked_action(self, env_action, action_state):
+        masked_gamestate_ac = self._gamestate_action_from_env_action(env_action)
+
+        if not masked_gamestate_ac[5]:
+            action_state['slapshot_frames'] = 0
+            action_state['slapshot_charge_frames'] = 0
+            action_state['one_timer_shot_delay'] = 0
+            action_state['one_timer_shot_frames'] = 0
+            if action_state['hockey_macro'] in {
+                'normal_shoot',
+                'slapshot_charge',
+                'slapshot_release',
+                'one_timer_wait',
+                'one_timer_shoot',
+                'boost',
+                'catch_puck',
+            }:
+                action_state['hockey_macro'] = 'none'
+
+        action_state['last_env_action'] = np.asarray(env_action, dtype=np.int8).copy()
+        action_state['last_gamestate_action'] = list(masked_gamestate_ac)
+        return masked_gamestate_ac
+
     def _mirror_env_action(self, ac):
         mirrored = np.asarray(ac, dtype=np.int8).copy()
         if len(mirrored) == GameConsts.INPUT_MAX:
@@ -739,6 +787,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
     def step(self, ac):
         learner_action, gamestate_ac = self._process_action(ac, self.learner_action_state)
         self.input_overide(learner_action)
+        gamestate_ac = self._finalize_masked_action(learner_action, self.learner_action_state)
 
         ac2 = learner_action
         if self.num_players == 2:
@@ -746,6 +795,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
                 opponent_action = self._compute_opponent_action()
                 opponent_action, _ = self._process_action(opponent_action, self.opponent_action_state)
                 self.opponent_input_overide(opponent_action)
+                self._finalize_masked_action(opponent_action, self.opponent_action_state)
             else:
                 opponent_action = np.zeros_like(learner_action)
 
