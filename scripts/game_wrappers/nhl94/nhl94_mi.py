@@ -401,13 +401,13 @@ def set_model_input_rel_dist_buttons_v2(game_state) -> Tuple[float, ...]:
     controlled_idx = t1.control - 1 if t1.control > 0 else -1
 
     teammate_one_timer = 0.0
-    teammate_one_timer_lane = 0.0
+    teammate_one_timer_good = 0.0
     for index, player in enumerate(t1.players):
         if index == controlled_idx:
             continue
         teammate_one_timer = max(teammate_one_timer, player.is_one_timer)
-        if player.is_one_timer and player.passing_lane_clear:
-            teammate_one_timer_lane = 1.0
+        if player.one_timer_lane_good:
+            teammate_one_timer_good = 1.0
 
     hidden_features = [
         controlled_player.is_one_timer,
@@ -416,7 +416,7 @@ def set_model_input_rel_dist_buttons_v2(game_state) -> Tuple[float, ...]:
         min(abs(controlled_player.anim_frame) / 32.0, 1.0),
         float(controlled_player.anim != 0),
         teammate_one_timer,
-        teammate_one_timer_lane,
+        teammate_one_timer_good,
         opponent_goalie.is_pad_stack,
         opponent_goalie.is_dive,
         min(abs(opponent_goalie.anim_frame) / 32.0, 1.0),

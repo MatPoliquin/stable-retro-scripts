@@ -44,6 +44,7 @@ class Player:
     dist_to_controlled_opp: float = 0.0  # New: Distance to controlled opponent player
     dist_to_puck: float = 0.0  # New: Distance to puck
     passing_lane_clear: bool = False
+    one_timer_lane_good: bool = False
     is_one_timer: float = 0.0
     is_breakaway: float = 0.0
     is_falling: float = 0.0
@@ -63,7 +64,8 @@ class Player:
             f"dist_to_puck: {self.dist_to_puck:.1f}\n"
             f"  one_timer: {self.is_one_timer}, breakaway: {self.is_breakaway}, "
             f"falling: {self.is_falling}, pad_stack: {self.is_pad_stack}, dive: {self.is_dive}\n"
-            f"  passing_lane_clear: {self.passing_lane_clear}")
+            f"  passing_lane_clear: {self.passing_lane_clear}, "
+            f"one_timer_lane_good: {self.one_timer_lane_good}")
 
 @dataclass
 class Stats:
@@ -160,6 +162,37 @@ class Team():
             return 5 if self.controller == 1 else 11
         base_scnum = 0 if self.controller == 1 else 6
         return base_scnum + (self.control - 1)
+
+    def skater_scnum_base(self) -> int:
+        return 0 if self.controller == 1 else 6
+
+    def goalie_scnum(self) -> int:
+        return 5 if self.controller == 1 else 11
+
+    def owns_scnum(self, scnum: int) -> bool:
+        skater_base = self.skater_scnum_base()
+        return skater_base <= scnum < (skater_base + self.num_players) or scnum == self.goalie_scnum()
+
+    def get_player_by_scnum(self, scnum: int) -> Player | None:
+        if scnum == self.goalie_scnum():
+            return self.goalie
+
+        skater_base = self.skater_scnum_base()
+        skater_index = scnum - skater_base
+        if 0 <= skater_index < self.num_players:
+            return self.players[skater_index]
+
+        return None
+
+    def get_possession_player(self) -> Player | None:
+        if self.goalie_haspuck:
+            return self.goalie
+
+        for player in self.players:
+            if self.has_puck(player.x, player.y):
+                return player
+
+        return None
 
     def _load_hidden_player_fields(self, player: Player, info: Dict[str, Any], prefix: str) -> None:
         player.anim = info.get(f"{prefix}anim", 0) or 0
@@ -358,6 +391,7 @@ class Team():
         for p in range(0, self.num_players):
             self.nz_players[p].dist_to_controlled_opp = self.players[p].dist_to_controlled_opp / GameConsts.MAX_PLAYER_X
             self.nz_players[p].passing_lane_clear = float(self.players[p].passing_lane_clear)  # Convert bool to 0.0/1.0
+            self.nz_players[p].one_timer_lane_good = float(self.players[p].one_timer_lane_good)
 
         # Normalize net positions
         # Absolute positions
@@ -452,6 +486,67 @@ class NHL94GameState():
         self.team1, self.team2 = self.team2, self.team1
         return
 
+    @staticmethod
+    def _player_attacking_top(player: Player) -> bool:
+        return bool(player.state_flags & (1 << 7))
+
+    def _normalized_attack_y(self, player: Player) -> int:
+        return player.y if self._player_attacking_top(player) else -player.y
+
+    def _is_receiver_in_attack_band(self, player: Player) -> bool:
+        normalized_y = self._normalized_attack_y(player)
+        return GameConsts.ATACKZONE_POS_Y <= normalized_y <= GameConsts.P2_NET_Y
+
+    @staticmethod
+    def _is_receiver_in_central_lane(player: Player) -> bool:
+        return GameConsts.SLOT_BAND_MIN_X <= player.x <= GameConsts.SLOT_BAND_MAX_X
+
+    def _get_passer_for_team(self, team: Team) -> Player | None:
+        puck_owner = self.engine.puck_owner
+        if team.owns_scnum(puck_owner):
+            return team.get_player_by_scnum(puck_owner)
+
+        return team.get_possession_player()
+
+    def _is_goalie_player(self, player: Player) -> bool:
+        return player is self.team1.goalie or player is self.team2.goalie
+
+    def _passing_intercept_radius(self, player: Player) -> int:
+        if not self._is_goalie_player(player):
+            return 14
+
+        if player.is_pad_stack:
+            return 18
+
+        goalie_radius = self.engine.goalie_chk_body if self.engine.goalie_chk_body > 0 else 12
+        return max(12, min(goalie_radius, 18))
+
+    @staticmethod
+    def _receiver_catch_point(player: Player) -> tuple[int, int]:
+        catch_offset = 10
+        return (
+            player.x + round(player.ori_x * catch_offset),
+            player.y + round(player.ori_y * catch_offset),
+        )
+
+    def _pass_direction_matches_target(self, passer: Player, target_point: tuple[int, int]) -> bool:
+        if not 0 <= self.engine.pass_dir <= 7:
+            return True
+
+        delta_x = target_point[0] - passer.x
+        delta_y = target_point[1] - passer.y
+        distance = math.hypot(delta_x, delta_y)
+        if distance == 0:
+            return False
+
+        target_x = delta_x / distance
+        target_y = delta_y / distance
+        pass_angle = self.engine.pass_dir * (2 * math.pi / 8)
+        pass_dir_x = math.cos(pass_angle)
+        pass_dir_y = math.sin(pass_angle)
+        dot_product = (target_x * pass_dir_x) + (target_y * pass_dir_y)
+        return dot_product >= math.cos(math.pi / 4)
+
     def _is_passing_lane_clear(self, start_pos, end_pos, opponents):
         """
         Check if a straight-line path between two points is obstructed.
@@ -464,12 +559,14 @@ class NHL94GameState():
         Using radius=18 (14 + 4 buffer for moving stick hotspot)
         """
         for opponent in opponents:
+            radius = self._passing_intercept_radius(opponent)
+
             # Broad-phase: skip if Y difference is too large (ROM optimization)
             min_y_dist = min(abs(opponent.y - start_pos[1]), abs(opponent.y - end_pos[1]))
-            if min_y_dist > 22:
+            if min_y_dist > radius + 8:
                 continue
                 
-            if self._line_intersects_circle(start_pos, end_pos, (opponent.x, opponent.y), radius=18):
+            if self._line_intersects_circle(start_pos, end_pos, (opponent.x, opponent.y), radius=radius):
                 return False
         return True
 
@@ -539,12 +636,16 @@ class NHL94GameState():
         """Compute passing lanes for all players in both teams, considering:
         - Opponent players
         - Opponent goalie
-        - Both nets (as impassable objects)
         """
         for team in [self.team1, self.team2]:
+            for player in team.players:
+                player.passing_lane_clear = False
+                player.one_timer_lane_good = False
+
             opponents = self.team2 if team.controller == 1 else self.team1
-            controlled_idx = max(0, team.control - 1) if team.control > 0 else 0
-            controlled_player = team.players[controlled_idx] if team.control > 0 else team.goalie
+            passer = self._get_passer_for_team(team)
+            if passer is None:
+                continue
 
             # Get all potential obstacles
             obstacles = []
@@ -552,58 +653,27 @@ class NHL94GameState():
             # 1. Add opponent players
             obstacles.extend(opponents.players)
 
-            # 2. Add opponent goalie (unless they're the same as controlled player)
-            if not (team.controller != opponents.controller and team.control == 0):
+            # 2. Add opponent goalie
+            if passer is not opponents.goalie:
                 obstacles.append(opponents.goalie)
 
-            # 3. Add both nets as rectangular obstacles
-            # Each net is represented as 4 line segments (left, right, top, bottom)
-            net_obstacles = []
-            for net_team in [self.team1, self.team2]:
-                net = net_team.net
-                # Create net boundary points (left post, right post, and depth)
-                net_left_front = (net.left, net.y)
-                net_right_front = (net.right, net.y)
-                net_left_back = (net.left, net.y - net.depth)
-                net_right_back = (net.right, net.y - net.depth)
-
-                # Add the 4 net boundaries as line segments
-                net_obstacles.extend([
-                    (net_left_front, net_right_front),  # Front line
-                    (net_left_front, net_left_back),    # Left side
-                    (net_right_front, net_right_back), # Right side
-                    (net_left_back, net_right_back)     # Back line
-                ])
-
             for i, player in enumerate(team.players):
-                if i != controlled_idx:  # Skip controlled player
-                    # First check if path is blocked by players/goalie
-                    path_clear = True
-
-                    # Check against moving obstacles (players/goalie)
-                    for obstacle in obstacles:
-                        if self._line_intersects_circle(
-                            (controlled_player.x, controlled_player.y),
-                            (player.x, player.y),
-                            (obstacle.x, obstacle.y),
-                            radius=10  # Player collision radius
-                        ):
-                            path_clear = False
-                            break
-
-                    # If still clear, check against net boundaries
+                if player is not passer:
+                    catch_point = self._receiver_catch_point(player)
+                    path_clear = self._pass_direction_matches_target(passer, catch_point)
                     if path_clear:
-                         for net_segment in net_obstacles:
-                             if self._line_intersects_line(
-                                 (controlled_player.x, controlled_player.y),
-                                 (player.x, player.y),
-                                 net_segment[0],  # Segment start
-                                 net_segment[1]   # Segment end
-                             ):
-                                 path_clear = False
-                                 break
+                        path_clear = self._is_passing_lane_clear(
+                            (passer.x, passer.y),
+                            catch_point,
+                            obstacles,
+                        )
 
                     player.passing_lane_clear = path_clear
+                    player.one_timer_lane_good = (
+                        path_clear
+                        and self._is_receiver_in_attack_band(player)
+                        and self._is_receiver_in_central_lane(player)
+                    )
 
     def _update_opponent_controlled_distances(self):
         """Update distances to the opponent's controlled player for all players."""

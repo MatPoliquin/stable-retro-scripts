@@ -31,8 +31,23 @@ class GameConsts():
     SHOOT_POS_X = 0
     SHOOT_POS_Y = 120
 
-    ATACKZONE_POS_Y = 100
-    DEFENSEZONE_POS_Y = -80
+    # ROM-backed rink thresholds from nhl94.bin.lst AI routines.
+    # The game normalizes Y by attack direction in several checks, so these
+    # values represent the canonical attack-up view used by the AI.
+    # ATACKZONE_POS_Y comes from the offensive blue-line threshold used by
+    # setSlotBit and multiple assignment routines. DEFENSEZONE_POS_Y is the
+    # mirrored defensive-side threshold used by offensive/defensive role logic.
+    ATACKZONE_POS_Y = 88
+    DEFENSEZONE_POS_Y = -88
+
+    # Exact central-lane trigger used by the in-game AI slot check in
+    # setSlotBit from nhl94.bin.lst. The slot flag is set when the puck carrier
+    # is inside this X band, at or beyond SLOT_BAND_MIN_Y in normalized Y,
+    # and not carried behind the offensive goal line.
+    SLOT_BAND_MIN_X = -71
+    SLOT_BAND_MAX_X = 71
+    SLOT_BAND_MIN_Y = 88
+    SLOT_BAND_MAX_Y = P2_NET_Y
 
     MAX_PLAYER_X = 120
     MAX_PLAYER_Y = 270

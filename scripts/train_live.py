@@ -41,6 +41,16 @@ SIM_STEPS_PER_SECOND = 60
 NHL94_ENVS = {"NHL941on1-Genesis-v0", "NHL942on2-Genesis-v0", "NHL94-Genesis-v0"}
 
 
+def resolve_nhl94_players_per_team(env_name: str, fallback_num_players: int) -> int:
+    if env_name == "NHL941on1-Genesis-v0":
+        return 1
+    if env_name == "NHL942on2-Genesis-v0":
+        return 2
+    if env_name == "NHL94-Genesis-v0":
+        return 5
+    return fallback_num_players
+
+
 @dataclass
 class LiveTrainingState:
     """Shared state between the training process and the display thread."""
@@ -144,7 +154,8 @@ def evaluate_policy_with_totals(
     team1_totals = LiveTeamTotals()
     team2_totals = LiveTeamTotals()
     uses_nhl94_gamestate = env_name in NHL94_ENVS
-    game_state = NHL94GameState(num_players) if uses_nhl94_gamestate else None
+    nhl94_players_per_team = resolve_nhl94_players_per_team(env_name, num_players)
+    game_state = NHL94GameState(nhl94_players_per_team) if uses_nhl94_gamestate else None
 
     observation = eval_env.reset()
     episode_reward = 0.0
@@ -170,7 +181,7 @@ def evaluate_policy_with_totals(
         if game_state is not None:
             team1_totals.add_delta(None, LiveTeamTotals.from_game_stats(game_state.team1.stats))
             team2_totals.add_delta(None, LiveTeamTotals.from_game_stats(game_state.team2.stats))
-            game_state = NHL94GameState(num_players)
+            game_state = NHL94GameState(nhl94_players_per_team)
 
         episodes_completed += 1
         if episode_reporter is not None:
@@ -470,7 +481,8 @@ class LiveTrainingDisplay(threading.Thread):
         self.button_probs: Optional[np.ndarray] = None
         self.button_actions: Optional[np.ndarray] = None
         self.uses_nhl94_gamestate = args.env in NHL94_ENVS
-        self.game_state = NHL94GameState(args.num_players) if self.uses_nhl94_gamestate else None
+        nhl94_players_per_team = resolve_nhl94_players_per_team(args.env, args.num_players)
+        self.game_state = NHL94GameState(nhl94_players_per_team) if self.uses_nhl94_gamestate else None
         self.total_sessions_played = 0
         self.total_team1_stats = LiveTeamTotals()
         self.total_team2_stats = LiveTeamTotals()
