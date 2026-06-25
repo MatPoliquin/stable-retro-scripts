@@ -17,7 +17,6 @@ from game_wrappers.nhl94.nhl94_intents import (
     HOCKEY_INTENT_ONE_TIMER,
     HOCKEY_INTENT_POKE_CHECK,
     HOCKEY_INTENT_CHANGE_PLAYER,
-    HOCKEY_INTENT_CATCH_PUCK,
     HOCKEY_INTENT_PASS_START,
 )
 from game_wrappers.nhl94.nhl94_rf import register_functions
@@ -376,25 +375,6 @@ class NHL94Observation2PEnv(gym.Wrapper):
         relative_vy = (getattr(controlled, 'vy', 0) or 0) - (getattr(puck, 'vy', 0) or 0)
         return (relative_vx * delta_x + relative_vy * delta_y) / distance
 
-    def _apply_hockey_catch_puck(self, processed_ac, action_state, controlled):
-        target = self._hockey_choose_intercept_target(controlled)
-        self._steer_hockey_toward(processed_ac, controlled, target, deadzone=4)
-
-        puck = self.game_state.puck
-        distance_to_target = self._hockey_distance_xy(
-            getattr(controlled, 'x', 0) or 0,
-            getattr(controlled, 'y', 0) or 0,
-            target[0],
-            target[1],
-        )
-        distance_to_puck = self._hockey_distance(controlled, puck)
-        closing_speed = self._hockey_closing_speed(controlled)
-
-        if distance_to_puck > 10 and (distance_to_target > HOCKEY_CATCH_BURST_DISTANCE or (closing_speed < 1.5 and distance_to_puck > 14)):
-            processed_ac[GameConsts.INPUT_C] = 1
-
-        action_state['hockey_macro'] = 'catch_puck'
-
     def _hockey_pass_target(self, intent):
         target_index = intent - HOCKEY_INTENT_PASS_START
         players = list(getattr(self.game_state.team1, 'players', []) or [])
@@ -503,10 +483,6 @@ class NHL94Observation2PEnv(gym.Wrapper):
             if not own_team_has_puck:
                 processed_ac[GameConsts.INPUT_B] = 1
                 action_state['hockey_macro'] = 'change_player'
-
-        elif intent == HOCKEY_INTENT_CATCH_PUCK:
-            if not own_team_has_puck:
-                self._apply_hockey_catch_puck(processed_ac, action_state, controlled)
 
         elif intent >= HOCKEY_INTENT_PASS_START:
             target = self._hockey_pass_target(intent)
@@ -627,7 +603,6 @@ class NHL94Observation2PEnv(gym.Wrapper):
                 'one_timer_wait',
                 'one_timer_shoot',
                 'boost',
-                'catch_puck',
             }:
                 action_state['hockey_macro'] = 'none'
 
