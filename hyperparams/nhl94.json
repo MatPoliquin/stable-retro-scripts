@@ -74,6 +74,7 @@
       "opponent": ["rel_controlled_x", "rel_controlled_y", "rel_controlled_vx", "rel_controlled_vy", "ori_x", "ori_y", "dist_to_controlled_opp", "clear_shot_lane", "open_net_shot"],
       "puck": ["x", "y", "rel_controlled_x", "rel_controlled_y", "rel_controlled_vx", "rel_controlled_vy", "dist_to_controlled"],
       "goalie": ["x", "y"],
+      "goalie_stats": ["team1_glove_left", "team1_glove_right", "team1_stick_left", "team1_stick_right", "team1_puck_control", "team1_agility", "team1_speed", "team1_passing", "team1_endurance", "team1_weight", "team2_glove_left", "team2_glove_right", "team2_stick_left", "team2_stick_right", "team2_puck_control", "team2_agility", "team2_speed", "team2_passing", "team2_endurance", "team2_weight"],
       "possession": ["team1_player_haspuck", "team2_goalie_haspuck"],
       "net": ["y", "left", "right", "rel_controlled_y", "rel_controlled_left", "rel_controlled_right"],
       "buttons": ["up", "down", "left", "right", "b", "c", "slapshot_frames_held"],

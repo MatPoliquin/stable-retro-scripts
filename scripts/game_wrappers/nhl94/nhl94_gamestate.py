@@ -92,6 +92,28 @@ class Stats:
 
 
 @dataclass
+class GoalieStats:
+    glove_left: float = 0.0
+    glove_right: float = 0.0
+    stick_left: float = 0.0
+    stick_right: float = 0.0
+    puck_control: float = 0.0
+    agility: float = 0.0
+    speed: float = 0.0
+    passing: float = 0.0
+    endurance: float = 0.0
+    weight: float = 0.0
+
+    def debug_print(self, prefix="GoalieStats"):
+        print(
+            f"{prefix} - glove_left: {self.glove_left}, glove_right: {self.glove_right}, "
+            f"stick_left: {self.stick_left}, stick_right: {self.stick_right}, "
+            f"puck_control: {self.puck_control}, agility: {self.agility}, speed: {self.speed}, "
+            f"passing: {self.passing}, endurance: {self.endurance}, weight: {self.weight}"
+        )
+
+
+@dataclass
 class EngineState:
     puck_owner: int = -1
     shot_player: int = -1
@@ -131,6 +153,7 @@ class Team():
         self.controller = controller
         self.stats = Stats()
         self.last_stats = Stats()
+        self.goalie_stats = GoalieStats()
         self.num_players = num_players
 
         self.players = [Player() for _ in range(num_players)]
@@ -147,6 +170,7 @@ class Team():
         self.nz_goalie = Player()
         self.nz_player_haspuck = 0.0
         self.nz_goalie_haspuck = 0.0
+        self.nz_goalie_stats = GoalieStats()
 
         self.net = Net()
         self.nz_net = Net()
@@ -216,6 +240,19 @@ class Team():
         nz_net_right_rel: tuple = (0.0, 0.0)
         nz_net_center_rel: tuple = (0.0, 0.0)
 
+    def _load_goalie_stats(self, info: Dict[str, Any]) -> None:
+        prefix = f"{self.ram_var_goalie_prefix}goalie_"
+        self.goalie_stats.glove_left = info.get(f"{prefix}glove_left", 0) or 0
+        self.goalie_stats.glove_right = info.get(f"{prefix}glove_right", 0) or 0
+        self.goalie_stats.stick_left = info.get(f"{prefix}stick_left", 0) or 0
+        self.goalie_stats.stick_right = info.get(f"{prefix}stick_right", 0) or 0
+        self.goalie_stats.puck_control = info.get(f"{prefix}puck_control", 0) or 0
+        self.goalie_stats.agility = info.get(f"{prefix}agility", 0) or 0
+        self.goalie_stats.speed = info.get(f"{prefix}speed", 0) or 0
+        self.goalie_stats.passing = info.get(f"{prefix}passing", 0) or 0
+        self.goalie_stats.endurance = info.get(f"{prefix}endurance", 0) or 0
+        self.goalie_stats.weight = info.get(f"{prefix}weight", 0) or 0
+
     def has_puck(self, pos_x, pos_y):
         return (abs(pos_x - self.stats.fullstar_x) < self.HAS_PUCK_TRESHOLD and abs(pos_y - self.stats.fullstar_y) < self.HAS_PUCK_TRESHOLD)
 
@@ -242,6 +279,7 @@ class Team():
 
         self.stats.emptystar_x = info.get(f"{self.ram_var_prefix}emptystar_x", 0)
         self.stats.emptystar_y = info.get(f"{self.ram_var_prefix}emptystar_y", 0)
+        self._load_goalie_stats(info)
 
         # Goalie
         self.goalie.x = info.get(f"{self.ram_var_goalie_prefix}x")
@@ -387,6 +425,17 @@ class Team():
         self.nz_goalie.dist_to_controlled = self.goalie.dist_to_controlled / GameConsts.MAX_PLAYER_X
         self.nz_goalie.dist_to_puck = self.goalie.dist_to_puck / GameConsts.MAX_PUCK_X
 
+        self.nz_goalie_stats.glove_left = self.goalie_stats.glove_left / GameConsts.MAX_GOALIE_GLOVE_LEFT
+        self.nz_goalie_stats.glove_right = self.goalie_stats.glove_right / GameConsts.MAX_GOALIE_RATING
+        self.nz_goalie_stats.stick_left = self.goalie_stats.stick_left / GameConsts.MAX_GOALIE_RATING
+        self.nz_goalie_stats.stick_right = self.goalie_stats.stick_right / GameConsts.MAX_GOALIE_RATING
+        self.nz_goalie_stats.puck_control = self.goalie_stats.puck_control / GameConsts.MAX_GOALIE_RATING
+        self.nz_goalie_stats.agility = self.goalie_stats.agility / GameConsts.MAX_GOALIE_RATING
+        self.nz_goalie_stats.speed = self.goalie_stats.speed / GameConsts.MAX_GOALIE_RATING
+        self.nz_goalie_stats.passing = self.goalie_stats.passing / GameConsts.MAX_GOALIE_RATING
+        self.nz_goalie_stats.endurance = self.goalie_stats.endurance / GameConsts.MAX_GOALIE_RATING
+        self.nz_goalie_stats.weight = self.goalie_stats.weight / GameConsts.MAX_GOALIE_WEIGHT
+
         # 0.0 and 1.0 switched around due to current models trained that way
         self.nz_player_haspuck = 1.0 if self.player_haspuck else 0.0
         self.nz_goalie_haspuck = 1.0 if self.goalie_haspuck else 0.0
@@ -419,6 +468,7 @@ class Team():
         print(f"Team player prefix: {self.ram_var_prefix}")
         self.stats.debug_print("Stats")
         self.last_stats.debug_print("Last Stats")
+        self.goalie_stats.debug_print("Goalie Stats")
         print(f"Number of players: {self.num_players}")
         print(f"Control: {self.control}")
         print(f"Player has puck: {self.player_haspuck}")

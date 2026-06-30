@@ -12,6 +12,19 @@ FeatureVector = Tuple[float, ...]
 ModelInputConfig = Optional[Dict[str, Any]]
 FieldGetter = Callable[[Any, Any], float]
 
+GOALIE_STAT_FIELDS = [
+    "glove_left",
+    "glove_right",
+    "stick_left",
+    "stick_right",
+    "puck_control",
+    "agility",
+    "speed",
+    "passing",
+    "endurance",
+    "weight",
+]
+
 DEFAULT_MODEL_INPUT_GROUPS = {
     "controlled_player": ["x", "y", "vx", "vy", "ori_x", "ori_y", "clear_shot_lane", "open_net_shot"],
     "teammate": [
@@ -47,6 +60,10 @@ DEFAULT_MODEL_INPUT_GROUPS = {
         "dist_to_controlled",
     ],
     "goalie": ["x", "y"],
+    "goalie_stats": [
+        *(f"team1_{field_name}" for field_name in GOALIE_STAT_FIELDS),
+        *(f"team2_{field_name}" for field_name in GOALIE_STAT_FIELDS),
+    ],
     "possession": ["team1_player_haspuck", "team2_goalie_haspuck"],
     "net": ["y", "left", "right", "rel_controlled_y", "rel_controlled_left", "rel_controlled_right"],
     "buttons": ["up", "down", "left", "right", "b", "c", "slapshot_frames_held"],
@@ -100,6 +117,16 @@ GOALIE_FIELD_GETTERS: Dict[str, FieldGetter] = {
     "x": lambda game_state, source: game_state.team2.nz_goalie.x,
     "y": lambda game_state, source: game_state.team2.nz_goalie.y,
 }
+GOALIE_STATS_FIELD_GETTERS: Dict[str, FieldGetter] = {
+    **{
+        f"team1_{field_name}": (lambda game_state, source, name=field_name: getattr(game_state.team1.nz_goalie_stats, name))
+        for field_name in GOALIE_STAT_FIELDS
+    },
+    **{
+        f"team2_{field_name}": (lambda game_state, source, name=field_name: getattr(game_state.team2.nz_goalie_stats, name))
+        for field_name in GOALIE_STAT_FIELDS
+    },
+}
 POSSESSION_FIELD_GETTERS: Dict[str, FieldGetter] = {
     "team1_player_haspuck": lambda game_state, source: game_state.team1.nz_player_haspuck,
     "team2_goalie_haspuck": lambda game_state, source: game_state.team2.nz_goalie_haspuck,
@@ -129,6 +156,7 @@ MODEL_INPUT_FIELD_GETTERS: Dict[str, Dict[str, FieldGetter]] = {
     "opponent": OPPONENT_FIELD_GETTERS,
     "puck": PUCK_FIELD_GETTERS,
     "goalie": GOALIE_FIELD_GETTERS,
+    "goalie_stats": GOALIE_STATS_FIELD_GETTERS,
     "possession": POSSESSION_FIELD_GETTERS,
     "net": NET_FIELD_GETTERS,
     "buttons": BUTTON_FIELD_GETTERS,
@@ -201,6 +229,7 @@ def init_model(num_players: int, model_input_config: ModelInputConfig = None) ->
         + (num_players * len(groups["opponent"]))
         + len(groups["puck"])
         + len(groups["goalie"])
+        + len(groups["goalie_stats"])
         + len(groups["possession"])
         + len(groups["net"])
         + len(groups["buttons"])
@@ -232,6 +261,7 @@ def _base_features(game_state, model_input_config: ModelInputConfig) -> FeatureL
 
     _append_fields(features, game_state, controlled_player, "puck", groups["puck"])
     _append_fields(features, game_state, t2.nz_goalie, "goalie", groups["goalie"])
+    _append_fields(features, game_state, None, "goalie_stats", groups["goalie_stats"])
     _append_fields(features, game_state, None, "possession", groups["possession"])
     _append_fields(features, game_state, t2.nz_net, "net", groups["net"])
     return features

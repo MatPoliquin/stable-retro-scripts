@@ -61,6 +61,9 @@ class GameConsts():
     MAX_PUCK_Y = 270
 
     MAX_VEL_XY = 50
+    MAX_GOALIE_RATING = 30
+    MAX_GOALIE_GLOVE_LEFT = 15
+    MAX_GOALIE_WEIGHT = 120
 
     # Used for Reward Functions
     SPAWNABLE_AREA_WIDTH = 235
