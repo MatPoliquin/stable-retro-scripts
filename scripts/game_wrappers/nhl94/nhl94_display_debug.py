@@ -13,6 +13,11 @@ class NHL94DebugDisplay:
     DEBUG_HEIGHT = 800
     GAME_WIDTH = 320 * 2  # Half size of original display
     GAME_HEIGHT = 240 * 2
+    RINK_SIDE_PADDING = 10
+    HUD_PADDING = 20
+    HUD_LINE_HEIGHT = 20
+    HUD_HEADER_HEIGHT = 30
+    HUD_SECTION_GAP = 10
 
     # Colors
     COLOR_WHITE = (255, 255, 255)
@@ -25,6 +30,7 @@ class NHL94DebugDisplay:
     COLOR_LINE = (150, 150, 150)
     COLOR_BLACK = (0, 0, 0)
     COLOR_PURPLE = (128, 0, 128)
+    COLOR_ORANGE = (255, 165, 0)
 
     # Display parameters
     PLAYER_RADIUS = 10
@@ -39,18 +45,28 @@ class NHL94DebugDisplay:
         self.game_state = env.get_attr("game_state")[0]
 
         pygame.init()
+        self.screen_height = max(self.DEBUG_HEIGHT, self.GAME_HEIGHT + self._hud_required_height())
+        self.DEBUG_HEIGHT = self.screen_height
+
+        self.scale_x = self.DEBUG_HEIGHT / (2 * GameConsts.MAX_PUCK_Y)
+        self.scale_y = self.scale_x
+        self.rink_pixel_width = int(round(2 * GameConsts.MAX_PUCK_X * self.scale_x))
+        self.DEBUG_WIDTH = self.rink_pixel_width + (2 * self.RINK_SIDE_PADDING)
+        self.rink_rect = pygame.Rect(
+            self.RINK_SIDE_PADDING,
+            0,
+            self.rink_pixel_width,
+            self.DEBUG_HEIGHT
+        )
+
         self.screen = pygame.display.set_mode((self.DEBUG_WIDTH + self.GAME_WIDTH,
-                                             max(self.DEBUG_HEIGHT, self.GAME_HEIGHT)))
+                             self.screen_height))
         self.font = pygame.font.SysFont('Arial', 16)
         self.big_font = pygame.font.SysFont('Arial', 24)
 
         # Create surfaces
         self.debug_surf = pygame.Surface((self.DEBUG_WIDTH, self.DEBUG_HEIGHT))
         self.game_surf = pygame.Surface((self.GAME_WIDTH, self.GAME_HEIGHT))
-
-        # Scale factors
-        self.scale_x = self.DEBUG_WIDTH / (2 * GameConsts.MAX_PUCK_X)
-        self.scale_y = self.DEBUG_HEIGHT / (2 * GameConsts.MAX_PUCK_Y)
 
         # Input state
         self.player_actions = [0] * GameConsts.INPUT_MAX
@@ -86,17 +102,33 @@ class NHL94DebugDisplay:
             "F1: Toggle AI/Human Control",
             "ESC: Quit",
             "1: Toggle Passing Lanes",
-            "2: Toggle Velocities",
-            "3: Toggle Orientations",
-            "4: Toggle Distances",
+            "2: Toggle One-Timer Lanes",
+            "3: Toggle Velocities",
+            "4: Toggle Orientations",
+            "5: Toggle Distances",
             "F2: Save Screenshot"
         ]
 
         # Visualization toggles
         self.show_passing_lanes = True
+        self.show_one_timer_lanes = True
         self.show_velocities = True
         self.show_orientations = True
-        self.show_distances = True
+        self.show_distances = False
+
+    def _hud_required_height(self):
+        team_stats_lines = 9
+        toggle_lines = 6
+        return (
+            self.HUD_PADDING
+            + self.HUD_HEADER_HEIGHT
+            + team_stats_lines * self.HUD_LINE_HEIGHT
+            + self.HUD_SECTION_GAP
+            + toggle_lines * self.HUD_LINE_HEIGHT
+            + self.HUD_SECTION_GAP
+            + self.HUD_LINE_HEIGHT
+            + self.HUD_PADDING
+        )
 
     def set_ai_sys_info(self, ai_sys):
         if ai_sys is None:
@@ -163,14 +195,13 @@ class NHL94DebugDisplay:
     def step(self, action=None):
         """Step the environment with either AI or human input"""
 
-        self.game_state = self.env.get_attr("game_state")[0]
-
         if self.human_control:
             action = self.get_human_input()
 
         env_action = self._normalize_env_action(action)
 
         obs, rew, done, info = self.env.step(env_action)
+        self.game_state = self.env.get_attr("game_state")[0]
 
         # Draw the frame
         framebuffer = self.env.render()
@@ -192,46 +223,49 @@ class NHL94DebugDisplay:
                 elif event.key == pygame.K_1:
                     self.show_passing_lanes = not self.show_passing_lanes
                 elif event.key == pygame.K_2:
-                    self.show_velocities = not self.show_velocities
+                    self.show_one_timer_lanes = not self.show_one_timer_lanes
                 elif event.key == pygame.K_3:
-                    self.show_orientations = not self.show_orientations
+                    self.show_velocities = not self.show_velocities
                 elif event.key == pygame.K_4:
+                    self.show_orientations = not self.show_orientations
+                elif event.key == pygame.K_5:
                     self.show_distances = not self.show_distances
 
         return obs, rew, done, info
 
     def _transform_coords(self, x, y):
         """Transform game coordinates to debug display coordinates with proper bounds checking"""
-        tx = self.DEBUG_WIDTH/2 + x * self.scale_x
-        ty = self.DEBUG_HEIGHT/2 - y * self.scale_y
+        tx = self.rink_rect.centerx + x * self.scale_x
+        ty = self.rink_rect.centery - y * self.scale_y
 
-        return int(tx), int(ty)
+        return int(round(tx)), int(round(ty))
 
     def _draw_rink(self):
         """Draw the hockey rink with center lines and zones"""
         self.debug_surf.fill(self.COLOR_ICE)
 
-        # Rink boundaries - use PLAYER bounds since they're larger than PUCK bounds
-        rink_rect = pygame.Rect(
-            self.DEBUG_WIDTH/2 - GameConsts.MAX_PUCK_X * self.scale_x,
-            self.DEBUG_HEIGHT/2 - GameConsts.MAX_PUCK_Y * self.scale_y,
-            2 * GameConsts.MAX_PUCK_X * self.scale_x,
-            2 * GameConsts.MAX_PUCK_Y * self.scale_y
-        )
+        rink_rect = self.rink_rect
         pygame.draw.rect(self.debug_surf, self.COLOR_LINE, rink_rect, 2)
 
-        # Center line
-        pygame.draw.line(
-            self.debug_surf, self.COLOR_LINE,
-            (self.DEBUG_WIDTH/2, rink_rect.top),
-            (self.DEBUG_WIDTH/2, rink_rect.bottom),
-            2
+        # Draw horizontal rink markings using the same Y thresholds as game logic.
+        rink_lines = (
+            (GameConsts.DEFENSEZONE_POS_Y, self.COLOR_BLUE),
+            (0, self.COLOR_RED),
+            (GameConsts.ATACKZONE_POS_Y, self.COLOR_BLUE),
         )
+        for line_y, color in rink_lines:
+            _, screen_y = self._transform_coords(0, line_y)
+            pygame.draw.line(
+                self.debug_surf, color,
+                (rink_rect.left, screen_y),
+                (rink_rect.right, screen_y),
+                2
+            )
 
         # Faceoff circles (simplified)
         pygame.draw.circle(
             self.debug_surf, self.COLOR_LINE,
-            (int(self.DEBUG_WIDTH/2), int(self.DEBUG_HEIGHT/2)), 30, 1
+            rink_rect.center, 30, 1
         )
 
         # Draw nets at opposite ends
@@ -312,29 +346,60 @@ class NHL94DebugDisplay:
 
     def _draw_passing_lanes(self, team, color):
         """Draw passing lanes only for the player controlling the puck"""
-        if not self.show_passing_lanes:
+        if not (self.show_passing_lanes or self.show_one_timer_lanes):
             return
 
-        # Only draw if this team has puck control and it's a player (not goalie)
-        if not (team.player_haspuck and team.control > 0):
+        passer = self.game_state._get_passer_for_team(team)
+        if passer is None:
             return
 
-        controlled_player = team.players[team.control - 1]  # Get the controlled player
+        opponents = self.game_state.team2 if team.controller == 1 else self.game_state.team1
 
         # Draw line to each teammate
-        for i, player in enumerate(team.players):
-            if i != (team.control - 1):  # Skip the controlled player itself
-                start_x, start_y = self._transform_coords(controlled_player.x, controlled_player.y)
-                end_x, end_y = self._transform_coords(player.x, player.y)
+        for player in team.players:
+            if player is not passer:
+                start_x, start_y = self._transform_coords(passer.x, passer.y)
+                catch_x, catch_y = self.game_state._receiver_catch_point(player)
+                end_x, end_y = self._transform_coords(catch_x, catch_y)
 
-                # Thicker passing lanes (3px width)
-                lane_color = self.COLOR_GREEN if player.passing_lane_clear else self.COLOR_RED
-                pygame.draw.line(self.debug_surf, lane_color, (start_x, start_y), (end_x, end_y), 3)
+                if player.one_timer_lane_good and self.show_one_timer_lanes:
+                    lane_color = self.COLOR_ORANGE
+                    lane_width = 5
+                    marker_color = self.COLOR_YELLOW
+                    marker_radius = 7
+                elif self.show_passing_lanes:
+                    lane_color = self.COLOR_GREEN if player.passing_lane_clear else self.COLOR_RED
+                    lane_width = 3
+                    marker_color = color
+                    marker_radius = 5
+                else:
+                    continue
 
-                # Larger midpoint indicator (5px radius)
+                pygame.draw.line(self.debug_surf, lane_color, (start_x, start_y), (end_x, end_y), lane_width)
+
+                # Mark strong one-timer options distinctly from generic passing lanes.
                 mid_x = (start_x + end_x) // 2
                 mid_y = (start_y + end_y) // 2
-                pygame.draw.circle(self.debug_surf, color, (mid_x, mid_y), 5)
+                pygame.draw.circle(self.debug_surf, marker_color, (mid_x, mid_y), marker_radius)
+
+                if player.one_timer_lane_good and self.show_one_timer_lanes:
+                    shot_target = self.game_state._get_clear_one_timer_shot_target(player, team, opponents)
+                    if shot_target is not None:
+                        shot_start_x, shot_start_y = self._transform_coords(player.x, player.y)
+                        shot_end_x, shot_end_y = self._transform_coords(*shot_target)
+                        pygame.draw.line(
+                            self.debug_surf,
+                            self.COLOR_YELLOW,
+                            (shot_start_x, shot_start_y),
+                            (shot_end_x, shot_end_y),
+                            3,
+                        )
+                        pygame.draw.circle(
+                            self.debug_surf,
+                            self.COLOR_YELLOW,
+                            (shot_end_x, shot_end_y),
+                            4,
+                        )
 
     def _draw_controlled_distances(self, team, color):
         """Draw distances from controlled player to teammates"""
@@ -370,8 +435,8 @@ class NHL94DebugDisplay:
     def _draw_stats(self, team1, team2):
         """Draw all game statistics under the game frame"""
         # Position under game frame (right side of screen)
-        info_x = self.DEBUG_WIDTH + 20
-        info_y = self.GAME_HEIGHT + 20
+        info_x = self.DEBUG_WIDTH + self.HUD_PADDING
+        info_y = self.GAME_HEIGHT + self.HUD_PADDING
 
         # Team colors
         color1 = self.COLOR_RED
@@ -383,7 +448,7 @@ class NHL94DebugDisplay:
         self.screen.blit(text_surface, (info_x, info_y))
 
         # Draw team stats (full details)
-        stats_y = info_y + 30  # Below header
+        stats_y = info_y + self.HUD_HEADER_HEIGHT
 
         # Team 1 stats (left column)
         team1_stats = [
@@ -401,7 +466,7 @@ class NHL94DebugDisplay:
         for i, text in enumerate(team1_stats):
             color = color1 if i > 0 else self.COLOR_WHITE  # Header white
             text_surface = self.font.render(text, True, color)
-            self.screen.blit(text_surface, (info_x, stats_y + i * 20))
+            self.screen.blit(text_surface, (info_x, stats_y + i * self.HUD_LINE_HEIGHT))
 
         # Team 2 stats (right column)
         team2_stats = [
@@ -419,30 +484,33 @@ class NHL94DebugDisplay:
         for i, text in enumerate(team2_stats):
             color = color2 if i > 0 else self.COLOR_WHITE  # Header white
             text_surface = self.font.render(text, True, color)
-            self.screen.blit(text_surface, (info_x + 150, stats_y + i * 20))  # Right column
+            self.screen.blit(text_surface, (info_x + 150, stats_y + i * self.HUD_LINE_HEIGHT))  # Right column
 
         # Draw visualization toggle status below stats
-        toggle_y = stats_y + len(team1_stats) * 20 + 10
+        toggle_y = stats_y + len(team1_stats) * self.HUD_LINE_HEIGHT + self.HUD_SECTION_GAP
 
         toggle_text = [
             "VISUALIZATION TOGGLES:",
             f"[1] Passing Lanes: {'ON' if self.show_passing_lanes else 'OFF'}",
-            f"[2] Velocities: {'ON' if self.show_velocities else 'OFF'}",
-            f"[3] Orientations: {'ON' if self.show_orientations else 'OFF'}",
-            f"[4] Distances: {'ON' if self.show_distances else 'OFF'}"
+            f"[2] One-Timer Lanes: {'ON' if self.show_one_timer_lanes else 'OFF'}",
+            f"[3] Velocities: {'ON' if self.show_velocities else 'OFF'}",
+            f"[4] Orientations: {'ON' if self.show_orientations else 'OFF'}",
+            f"[5] Distances: {'ON' if self.show_distances else 'OFF'}"
         ]
 
         for i, text in enumerate(toggle_text):
             text_surface = self.font.render(text, True, self.COLOR_CYAN if i == 0 else self.COLOR_WHITE)
-            self.screen.blit(text_surface, (info_x, toggle_y + i * 20))
+            self.screen.blit(text_surface, (info_x, toggle_y + i * self.HUD_LINE_HEIGHT))
 
         # Draw controls help at the very bottom
-        controls_y = toggle_y + len(toggle_text) * 20 + 10
+        controls_y = toggle_y + len(toggle_text) * self.HUD_LINE_HEIGHT + self.HUD_SECTION_GAP
         help_text = "CONTROLS: Arrows=Move, X=Slap, C=Wrist, Z=Pass, F1=AI/Human"
         text_surface = self.font.render(help_text, True, self.COLOR_YELLOW)
         self.screen.blit(text_surface, (info_x, controls_y))
 
     def draw_frame(self, frame_img, info, action=None):
+        self.screen.fill(self.COLOR_BLACK)
+
         # Clear surfaces
         self.debug_surf.fill(self.COLOR_BLACK)
         self.game_surf.fill(self.COLOR_BLACK)
@@ -458,7 +526,7 @@ class NHL94DebugDisplay:
         for player in team1.players:
             self._draw_player(player, self.COLOR_RED)
         self._draw_player(team1.goalie, self.COLOR_RED, is_goalie=True)
-        if self.show_passing_lanes:
+        if self.show_passing_lanes or self.show_one_timer_lanes:
             self._draw_passing_lanes(team1, self.COLOR_RED)
         if self.show_distances:
             self._draw_controlled_distances(team1, self.COLOR_RED)
@@ -467,7 +535,7 @@ class NHL94DebugDisplay:
         for player in team2.players:
             self._draw_player(player, self.COLOR_BLUE)
         self._draw_player(team2.goalie, self.COLOR_BLUE, is_goalie=True)
-        if self.show_passing_lanes:
+        if self.show_passing_lanes or self.show_one_timer_lanes:
             self._draw_passing_lanes(team2, self.COLOR_BLUE)
         if self.show_distances:
             self._draw_controlled_distances(team2, self.COLOR_BLUE)
@@ -485,7 +553,7 @@ class NHL94DebugDisplay:
             active_actions = [name for name, val in zip(action_names, flat_action) if val]
             action_text = "Active: " + ", ".join(active_actions) if active_actions else "No actions"
             text_surface = self.font.render(action_text, True, self.COLOR_WHITE)
-            self.debug_surf.blit(text_surface, (self.DEBUG_WIDTH/2 - text_surface.get_width()/2, 120))
+            self.debug_surf.blit(text_surface, (self.rink_rect.centerx - text_surface.get_width()/2, 120))
 
         # Draw the actual game frame
         emu_screen = np.transpose(frame_img, (1, 0, 2))

@@ -6,9 +6,7 @@ import random
 import numpy as np
 from typing import Tuple, Callable
 from game_wrappers.nhl94.nhl94_const import GameConsts
-from game_wrappers.nhl94.nhl94_mi import init_model, init_model_rel, init_model_rel_dist, init_model_rel_dist_buttons, init_model_1p, init_model_2p, \
-      set_model_input, set_model_input_1p, set_model_input_2p, set_model_input_rel, set_model_input_rel_dist, set_model_input_rel_dist_buttons, \
-    init_model_invariant, set_model_input_invariant, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2
+from game_wrappers.nhl94.nhl94_mi import init_model, set_model_input
 
 # =====================================================================
 # Common functions
@@ -343,7 +341,7 @@ def init_general(env, env_name):
         _set_team1_puck_state(env, env_name, team1_positions[puck_owner_index], puck_owner_index)
 
 
-from game_wrappers.nhl94.nhl94_rf_createopportunity import isdone_createopportunity, rf_createopportunity
+from game_wrappers.nhl94.nhl94_rf_createopp import input_overide_createopp, isdone_createopp, rf_createopp
 from game_wrappers.nhl94.nhl94_rf_defensezone import init_defensezone, isdone_defensezone, rf_defensezone
 from game_wrappers.nhl94.nhl94_rf_general import isdone_general, init_general_v2, isdone_general_v2, rf_general, rf_general_v2
 from game_wrappers.nhl94.nhl94_rf_getpuck import (
@@ -365,11 +363,13 @@ from game_wrappers.nhl94.nhl94_rf_scoregoal import (
     isdone_scoregoal,
     isdone_scoregoal_cc,
     isdone_scoregoal_ot,
+    isdone_scoregoal_v4,
     isdone_scoregoal_v2,
     rf_crosscrease_v2,
     rf_scoregoal,
     rf_scoregoal_cc,
     rf_scoregoal_ot,
+    rf_scoregoal_v4,
     rf_scoregoal_v2,
 )
 from game_wrappers.nhl94.nhl94_rf_selfplay import (
@@ -387,29 +387,32 @@ from game_wrappers.nhl94.nhl94_rf_selfplay import (
 # =====================================================================
 # Register Functions
 # =====================================================================
+MODEL_INPUT_FUNCTIONS = (init_model, set_model_input)
+
 _reward_function_map = {
-    "GetPuck": (init_getpuck, rf_getpuck, isdone_getpuck, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "GetPuckAZ": (init_getpuck_az, rf_getpuck, isdone_getpuck_az, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "GetPuckNZ": (init_getpuck_nz, rf_getpuck, isdone_getpuck_nz, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "GetPuckDZ": (init_getpuck_dz, rf_getpuck, isdone_getpuck_dz, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons, input_overide_empty),
-    "CrossCreaseV2": (init_attackzone, rf_crosscrease_v2, isdone_crosscrease_v2, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "ScoreGoalV2": (init_attackzone, rf_scoregoal_v2, isdone_scoregoal_v2, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "CreateOpportunity": (init_attackzone, rf_createopportunity, isdone_createopportunity, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_no_shoot),
-    "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "Passing": (init_attackzone, rf_passing, isdone_passing, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_no_shoot),
-    "General": (init_general, rf_general, isdone_general, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "GeneralV2": (init_general_v2, rf_general_v2, isdone_general_v2, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "PostPlay": (init_postplay, rf_postplay, isdone_postplay, init_model_rel_dist_buttons_v2, set_model_input_rel_dist_buttons_v2, input_overide_empty),
-    "SelfPlay": (init_selfplay, rf_selfplay, isdone_selfplay, init_model_invariant, set_model_input_invariant, input_overide_empty),
-    "SelfPlayOffenseFinetune": (init_selfplay_offense, rf_selfplay_offense, isdone_selfplay_offense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
-    "SelfPlayDefenseFinetune": (init_selfplay_defense, rf_selfplay_defense, isdone_selfplay_defense, init_model_rel_dist_buttons, set_model_input_rel_dist_buttons, input_overide_empty),
+    "GetPuck": (init_getpuck, rf_getpuck, isdone_getpuck, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "GetPuckAZ": (init_getpuck_az, rf_getpuck, isdone_getpuck_az, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "GetPuckNZ": (init_getpuck_nz, rf_getpuck, isdone_getpuck_nz, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "GetPuckDZ": (init_getpuck_dz, rf_getpuck, isdone_getpuck_dz, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "CrossCreaseV2": (init_attackzone, rf_crosscrease_v2, isdone_crosscrease_v2, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "ScoreGoalV2": (init_attackzone, rf_scoregoal_v2, isdone_scoregoal_v2, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "ScoreGoalV4": (init_attackzone, rf_scoregoal_v4, isdone_scoregoal_v4, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "CreateOpp": (init_attackzone, rf_createopp, isdone_createopp, *MODEL_INPUT_FUNCTIONS, input_overide_createopp),
+    "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "Passing": (init_attackzone, rf_passing, isdone_passing, *MODEL_INPUT_FUNCTIONS, input_overide_no_shoot),
+    "General": (init_general, rf_general, isdone_general, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "GeneralV2": (init_general_v2, rf_general_v2, isdone_general_v2, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "PostPlay": (init_postplay, rf_postplay, isdone_postplay, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "SelfPlay": (init_selfplay, rf_selfplay, isdone_selfplay, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "SelfPlayOffenseFinetune": (init_selfplay_offense, rf_selfplay_offense, isdone_selfplay_offense, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "SelfPlayDefenseFinetune": (init_selfplay_defense, rf_selfplay_defense, isdone_selfplay_defense, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
 }
 
-def register_functions(name: str) -> Tuple[Callable, Callable, Callable]:
+def register_functions(name: str) -> Tuple[Callable, Callable, Callable, Callable, Callable, Callable]:
     if name not in _reward_function_map:
         raise ValueError(f"Unsupported Reward Function: {name}")
     return _reward_function_map[name]

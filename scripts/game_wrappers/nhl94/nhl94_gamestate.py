@@ -487,14 +487,14 @@ class NHL94GameState():
         return
 
     @staticmethod
-    def _player_attacking_top(player: Player) -> bool:
-        return bool(player.state_flags & (1 << 7))
+    def _team_attacking_top(team: Team) -> bool:
+        return team.controller == 1
 
-    def _normalized_attack_y(self, player: Player) -> int:
-        return player.y if self._player_attacking_top(player) else -player.y
+    def _normalized_attack_y(self, player: Player, team: Team) -> int:
+        return player.y if self._team_attacking_top(team) else -player.y
 
-    def _is_receiver_in_attack_band(self, player: Player) -> bool:
-        normalized_y = self._normalized_attack_y(player)
+    def _is_receiver_in_attack_band(self, player: Player, team: Team) -> bool:
+        normalized_y = self._normalized_attack_y(player, team)
         return GameConsts.ATACKZONE_POS_Y <= normalized_y <= GameConsts.P2_NET_Y
 
     @staticmethod
@@ -528,6 +528,32 @@ class NHL94GameState():
             player.x + round(player.ori_x * catch_offset),
             player.y + round(player.ori_y * catch_offset),
         )
+
+    def _attacking_net_for_team(self, team: Team) -> Net:
+        return self.team2.net if self._team_attacking_top(team) else self.team1.net
+
+    @staticmethod
+    def _shot_target_points_for_net(net: Net) -> list[tuple[int, int]]:
+        center_x = (net.left + net.right) // 2
+        post_inset = 6
+        return [
+            (center_x, net.y),
+            (net.left + post_inset, net.y),
+            (net.right - post_inset, net.y),
+        ]
+
+    def _get_clear_one_timer_shot_target(self, shooter: Player, team: Team, opponents: Team) -> tuple[int, int] | None:
+        shot_start = (shooter.x, shooter.y)
+        attacking_net = self._attacking_net_for_team(team)
+
+        for target_point in self._shot_target_points_for_net(attacking_net):
+            if self._is_passing_lane_clear(shot_start, target_point, opponents.players):
+                return target_point
+
+        return None
+
+    def _has_clear_one_timer_shot_lane(self, shooter: Player, team: Team, opponents: Team) -> bool:
+        return self._get_clear_one_timer_shot_target(shooter, team, opponents) is not None
 
     def _pass_direction_matches_target(self, passer: Player, target_point: tuple[int, int]) -> bool:
         if not 0 <= self.engine.pass_dir <= 7:
@@ -633,10 +659,7 @@ class NHL94GameState():
         return ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D)
 
     def _update_passing_lanes(self):
-        """Compute passing lanes for all players in both teams, considering:
-        - Opponent players
-        - Opponent goalie
-        """
+        """Compute pass lanes and one-timer lanes for both teams."""
         for team in [self.team1, self.team2]:
             for player in team.players:
                 player.passing_lane_clear = False
@@ -646,6 +669,8 @@ class NHL94GameState():
             passer = self._get_passer_for_team(team)
             if passer is None:
                 continue
+
+            passer_in_attack_band = self._is_receiver_in_attack_band(passer, team)
 
             # Get all potential obstacles
             obstacles = []
@@ -668,11 +693,19 @@ class NHL94GameState():
                             obstacles,
                         )
 
+                    in_attack_band = self._is_receiver_in_attack_band(player, team)
+                    in_central_lane = self._is_receiver_in_central_lane(player)
+                    shot_lane_clear = False
+                    if path_clear and in_attack_band and in_central_lane:
+                        shot_lane_clear = self._has_clear_one_timer_shot_lane(player, team, opponents)
+
                     player.passing_lane_clear = path_clear
                     player.one_timer_lane_good = (
                         path_clear
-                        and self._is_receiver_in_attack_band(player)
-                        and self._is_receiver_in_central_lane(player)
+                        and passer_in_attack_band
+                        and in_attack_band
+                        and in_central_lane
+                        and shot_lane_clear
                     )
 
     def _update_opponent_controlled_distances(self):

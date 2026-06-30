@@ -8,7 +8,7 @@
     "state": "PenguinsVsSenators.start",
     "rf": "PostPlay",
     "num_players": 1,
-    "hyperparams": "../hyperparams/nhl94_residual_mlp.json",
+    "hyperparams": "../hyperparams/nhl94.json",
     "action_type": "HOCKEY_INTENT_DPAD",
     "seq_len": 16
   },

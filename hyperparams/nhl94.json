@@ -1,20 +1,83 @@
 {
-  "learning_rate": 0.00025,
-  "batch_size": 512,
-  "n_steps": 2048,
-  "n_epochs": 4,
-  "gamma":0.99,
-  "clip_range": 0.2,
-  "vf_coef": 0.5,
-  "ent_coef": 0.01,
-  "max_grad_norm": 0.5,
-  "clip_range_vf": null,
-  "net_arch": {
-    "pi": [512, 512, 256],
-    "vf": [512, 512, 256]
+  "common": {
+    "learning_rate": 0.00025,
+    "batch_size": 512,
+    "n_steps": 2048,
+    "n_epochs": 4,
+    "gamma": 0.99,
+    "clip_range": 0.2,
+    "vf_coef": 0.5,
+    "ent_coef": 0.01,
+    "max_grad_norm": 0.5,
+    "clip_range_vf": null,
+    "net_arch": {
+      "pi": [512, 512, 256],
+      "vf": [512, 512, 256]
+    },
+    "features_dim": 128,
+    "frame_skip": 10,
+    "sticky_actions": false,
+    "sticky_action_prob": 0.25,
+    "clip_reward": true
   },
-  "features_dim": 128,
-  "sticky_actions": false,
-  "sticky_action_prob": 0.25,
-  "clip_reward": true
+  "model_overrides": {
+    "ResidualMlpPolicy": {
+      "residual_mlp": {
+        "hidden_dim": 256,
+        "num_blocks": 4,
+        "head_dim": 256,
+        "activation": "relu"
+      }
+    },
+    "HybridMambaPolicy": {
+      "learning_rate": 0.0003,
+      "batch_size": 64,
+      "n_epochs": 10,
+      "gae_lambda": 0.95,
+      "features_dim": 256,
+      "net_arch": {
+        "pi": [128, 128],
+        "vf": [128, 128]
+      },
+      "hybrid_mamba": {
+        "features_dim": 256,
+        "mamba_dim": 128,
+        "d_state": 64,
+        "d_conv": 4,
+        "expand": 2,
+        "gru_layers": 2
+      }
+    },
+    "GRUMlpPolicy": {
+      "learning_rate": 0.0003,
+      "batch_size": 64,
+      "n_epochs": 10,
+      "gae_lambda": 0.95,
+      "features_dim": 256,
+      "net_arch": {
+        "pi": [128, 128],
+        "vf": [128, 128]
+      },
+      "gru_mlp": {
+        "features_dim": 256,
+        "hidden_dim": 128,
+        "gru_layers": 2
+      }
+    }
+  },
+  "model_input": {
+    "schema_version": 1,
+    "strict": true,
+    "groups": {
+      "controlled_player": ["x", "y", "vx", "vy", "ori_x", "ori_y"],
+      "teammate": ["rel_controlled_x", "rel_controlled_y", "rel_controlled_vx", "rel_controlled_vy", "ori_x", "ori_y", "dist_to_controlled", "passing_lane_clear"],
+      "opponent": ["rel_controlled_x", "rel_controlled_y", "rel_controlled_vx", "rel_controlled_vy", "ori_x", "ori_y", "dist_to_controlled_opp"],
+      "puck": ["x", "y", "rel_controlled_x", "rel_controlled_y", "rel_controlled_vx", "rel_controlled_vy", "dist_to_controlled"],
+      "goalie": ["x", "y"],
+      "possession": ["team1_player_haspuck", "team2_goalie_haspuck"],
+      "net": ["y", "left", "right", "rel_controlled_y", "rel_controlled_left", "rel_controlled_right"],
+      "buttons": ["up", "down", "left", "right", "b", "c", "slapshot_frames_held"],
+      "hidden_state": ["controlled_player.is_one_timer", "controlled_player.is_breakaway", "controlled_player.is_falling", "controlled_player.anim_frame", "controlled_player.has_anim", "teammate.is_one_timer", "teammate.one_timer_lane_good", "opponent_goalie.is_pad_stack", "opponent_goalie.is_dive", "opponent_goalie.anim_frame", "engine.shot_mode_active", "engine.shot_taken", "engine.in_close_top_shelf", "engine.one_timer_collision_mode", "engine.breakaway_context", "engine.controlled_is_shooter", "engine.goalie_box_small", "engine.pass_dir", "engine.pass_speed"]
+    }
+  }
 }

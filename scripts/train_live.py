@@ -32,7 +32,7 @@ from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 from common import com_print, create_output_dir, get_model_file_name, init_logger
 from env_utils import get_button_names, init_env
 from models_utils import get_model_probabilities, init_model
-from utils import load_hyperparams
+from utils import load_hyperparams, resolve_hyperparams_for_model
 import game_wrappers_mgr as games
 from game_wrappers.nhl94.nhl94_gamestate import NHL94GameState
 
@@ -1240,11 +1240,11 @@ def parse_cmdline(argv: Sequence[str]) -> argparse.Namespace:
 
 def prepare_args(args: argparse.Namespace, *, hyperparams_base_dir: Optional[str] = None) -> argparse.Namespace:
     if getattr(args, "hyperparams_dict", None) is None:
-        args.hyperparams_dict = load_hyperparams(
+        args.hyperparams_dict = resolve_hyperparams_for_model(load_hyperparams(
             args.hyperparams,
             required=True,
             base_dir=hyperparams_base_dir or os.path.dirname(__file__),
-        )
+        ), args.nn)
 
     if getattr(args, "selfplay", False):
         if not getattr(args, "rf", ""):

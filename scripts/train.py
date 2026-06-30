@@ -9,7 +9,7 @@ import argparse
 from common import get_model_file_name, com_print, init_logger, create_output_dir
 from models_utils import init_model
 from env_utils import init_env
-from utils import load_hyperparams
+from utils import load_hyperparams, resolve_hyperparams_for_model
 
 
 def parse_cmdline(argv):
@@ -132,11 +132,11 @@ def main(argv):
     com_print("=========== Params ===========")
     com_print(args)
 
-    args.hyperparams_dict = load_hyperparams(
+    args.hyperparams_dict = resolve_hyperparams_for_model(load_hyperparams(
         args.hyperparams,
         required=True,
         base_dir=os.path.dirname(__file__),
-    )
+    ), args.nn)
 
     if args.selfplay:
         if not args.rf:

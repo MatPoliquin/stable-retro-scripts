@@ -49,6 +49,7 @@ def build_single_nhl94_env(
     use_sticky_action=False,
     use_frame_skip=True,
 ):
+    args.hyperparams_dict = hyperparams
     games.wrappers.init(args)
     resolve_default_state(args)
     backend_action_type = resolve_backend_action_type(args, num_players)

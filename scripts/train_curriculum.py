@@ -16,7 +16,7 @@ import bc_pretrain as bc_pretrain_script
 import collect_classic_ai_demos as collect_demos_script
 import dagger_loop as dagger_script
 import train_live
-from utils import load_curriculum, load_hyperparams
+from utils import load_curriculum, load_hyperparams, resolve_hyperparams_for_model
 
 
 RUNNER_PHASE_METADATA = {
@@ -542,10 +542,13 @@ def build_post_play_args(config: Dict[str, Any]) -> argparse.Namespace:
     for key, value in config.items():
         setattr(args, key, value)
 
-    args.hyperparams_dict = load_hyperparams(
-        args.hyperparams,
-        required=True,
-        base_dir=os.path.dirname(play_script.__file__),
+    args.hyperparams_dict = resolve_hyperparams_for_model(
+        load_hyperparams(
+            args.hyperparams,
+            required=True,
+            base_dir=os.path.dirname(play_script.__file__),
+        ),
+        args.nn,
     )
     return args
 
@@ -703,7 +706,14 @@ def run_curriculum(curriculum_path: str, *, dry_run: bool = False) -> Tuple[str,
                 if terminal_display is not None:
                     terminal_display.activate_phase(display_index)
                     terminal_display.clear_test_totals()
-                hyperparams = load_hyperparams(args.hyperparams, required=True, base_dir=os.path.dirname(collect_demos_script.__file__))
+                hyperparams = resolve_hyperparams_for_model(
+                    load_hyperparams(
+                        args.hyperparams,
+                        required=True,
+                        base_dir=os.path.dirname(collect_demos_script.__file__),
+                    ),
+                    args.nn,
+                )
                 arrays, metadata = collect_demos_script.collect_demos(args, hyperparams)
                 dataset_path = collect_demos_script._make_output_path(args)
                 collect_demos_script.save_demo_shard(dataset_path, arrays, metadata)
@@ -731,7 +741,14 @@ def run_curriculum(curriculum_path: str, *, dry_run: bool = False) -> Tuple[str,
                 if terminal_display is not None:
                     terminal_display.activate_phase(display_index)
                     terminal_display.clear_test_totals()
-                hyperparams = load_hyperparams(args.hyperparams, required=True, base_dir=os.path.dirname(bc_pretrain_script.__file__))
+                hyperparams = resolve_hyperparams_for_model(
+                    load_hyperparams(
+                        args.hyperparams,
+                        required=True,
+                        base_dir=os.path.dirname(bc_pretrain_script.__file__),
+                    ),
+                    args.nn,
+                )
                 model_path = bc_pretrain_script.train_bc(args, hyperparams)
                 previous_model_path = model_path
                 last_model_config = phase_config
@@ -752,7 +769,14 @@ def run_curriculum(curriculum_path: str, *, dry_run: bool = False) -> Tuple[str,
                 if terminal_display is not None:
                     terminal_display.activate_phase(display_index)
                     terminal_display.clear_test_totals()
-                hyperparams = load_hyperparams(args.hyperparams, required=True, base_dir=os.path.dirname(dagger_script.__file__))
+                hyperparams = resolve_hyperparams_for_model(
+                    load_hyperparams(
+                        args.hyperparams,
+                        required=True,
+                        base_dir=os.path.dirname(dagger_script.__file__),
+                    ),
+                    args.nn,
+                )
                 model_path = dagger_script.run_dagger(args, hyperparams)
                 previous_model_path = model_path
                 last_model_config = phase_config

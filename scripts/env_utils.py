@@ -116,6 +116,7 @@ def init_env(
     use_display=False,
     use_frame_skip=True,
 ):
+    args.hyperparams_dict = hyperparams
     wrapper_kwargs = {}
 
     if getattr(args, 'selfplay', False) and not isMLP(args.nn):

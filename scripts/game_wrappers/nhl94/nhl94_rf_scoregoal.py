@@ -89,10 +89,11 @@ def isdone_scoregoal_ot(state):
 
 def rf_scoregoal_ot(state):
     t1 = state.team1
+    controlled_player = t1.get_controlled_player()
     rew = 0.0
 
-    if t1.stats.passing > t1.last_stats.passing:
-        rew = 0.01
+    if controlled_player.one_timer_lane_good:
+        rew = 0.7
 
     if t1.stats.onetimer > t1.last_stats.onetimer:
         rew = 0.1
@@ -114,6 +115,7 @@ def isdone_scoregoal(state):
 
     if state.time < 100:
         return True
+    
 
     return False
 
@@ -132,6 +134,8 @@ def rf_scoregoal(state):
         rew = 1.0
 
     return rew
+
+
 
 
 def _ensure_attack_tracker(state, attr_name):
@@ -547,5 +551,51 @@ def rf_crosscrease_v2(state):
     tracker["prev_top_shelf"] = bool(engine.in_close_top_shelf)
     tracker["last_puck_x"] = state.puck.x
     tracker["last_puck_y"] = state.puck.y
+
+    return rew
+
+
+
+
+
+
+def isdone_scoregoal_v4(state):
+    return isdone_scoregoal(state)
+
+
+def _ensure_scoregoal_v4_tracker(state):
+    tracker = getattr(state, "_scoregoal_v4_tracker", None)
+    if tracker is None:
+        tracker = {
+            "prev_good_one_timer_lane": False,
+        }
+        setattr(state, "_scoregoal_v4_tracker", tracker)
+    return tracker
+
+
+def rf_scoregoal_v4(state):
+    t1 = state.team1
+    tracker = _ensure_scoregoal_v4_tracker(state)
+    rew = 0.0
+
+    has_good_one_timer_lane = t1.player_haspuck and any(
+        player.one_timer_lane_good for player in t1.players
+    )
+
+    if has_good_one_timer_lane and not tracker["prev_good_one_timer_lane"]:
+        rew += 0.05
+
+    if t1.stats.passing > t1.last_stats.passing:
+        rew += 0.05
+        if tracker["prev_good_one_timer_lane"]:
+            rew += 0.15
+
+    if t1.stats.onetimer > t1.last_stats.onetimer:
+        rew += 0.35
+
+    if t1.stats.score > t1.last_stats.score:
+        rew = 1.0
+
+    tracker["prev_good_one_timer_lane"] = has_good_one_timer_lane
 
     return rew

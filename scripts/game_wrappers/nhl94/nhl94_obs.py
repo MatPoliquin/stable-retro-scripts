@@ -46,6 +46,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
         self.selfplay_role = self._resolve_selfplay_role(args, rf_name)
         self.deterministic = bool(getattr(args, 'deterministic', True))
         self.opponent_model_alg = getattr(args, 'alg', 'ppo2')
+        self.model_input_config = (getattr(args, 'hyperparams_dict', {}) or {}).get('model_input')
 
         self.rf_name = rf_name
         self.init_function, self.reward_function, self.done_function, self.init_model, self.set_model_input, self.input_overide = register_functions(self.rf_name)
@@ -62,7 +63,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
         elif args.env == 'NHL94-Genesis-v0':
             self.num_players_per_team = 5
 
-        self.NUM_PARAMS = self.init_model(self.num_players_per_team)
+        self.NUM_PARAMS = self.init_model(self.num_players_per_team, self.model_input_config)
 
         self.game_state = NHL94GameState(self.num_players_per_team)
         self.uses_sequence_obs = self.nn in ('HybridMambaPolicy', 'GRUMlpPolicy')
@@ -195,6 +196,9 @@ class NHL94Observation2PEnv(gym.Wrapper):
     def _get_scalar_state_array(self):
         return np.asarray(self.state, dtype=np.float32)
 
+    def _set_model_input(self, game_state):
+        return self.set_model_input(game_state, self.model_input_config)
+
     def _reset_frame_buffer(self):
         if not self.uses_sequence_obs:
             return
@@ -232,7 +236,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         self.game_state.BeginFrame(info, [0] * 6)
         self.game_state.EndFrame()
-        self.state = self.set_model_input(self.game_state)
+        self.state = self._set_model_input(self.game_state)
         self._reset_frame_buffer()
         if self.uses_sequence_obs:
             self.frame_buffer.append(self._get_scalar_state_array().copy())
@@ -785,7 +789,7 @@ class NHL94Observation2PEnv(gym.Wrapper):
 
         self.game_state.EndFrame()
 
-        self.state = self.set_model_input(self.game_state)
+        self.state = self._set_model_input(self.game_state)
         if self.uses_sequence_obs:
             self.frame_buffer.append(self._get_scalar_state_array().copy())
 

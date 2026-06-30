@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 from typing import Any, Dict, Optional, Tuple
@@ -41,6 +42,54 @@ def load_hyperparams(path: Optional[str], *, required: bool = True, base_dir: Op
         raise TypeError(f"Hyperparameters file must contain a JSON object: {resolved}")
 
     return hyperparams
+
+
+def _deep_merge_dicts(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    merged = copy.deepcopy(base)
+    for key, value in override.items():
+        if (
+            key in merged
+            and isinstance(merged[key], dict)
+            and isinstance(value, dict)
+        ):
+            merged[key] = _deep_merge_dicts(merged[key], value)
+        else:
+            merged[key] = copy.deepcopy(value)
+    return merged
+
+
+def resolve_hyperparams_for_model(
+    hyperparams: Optional[Dict[str, Any]],
+    nn_type: Optional[str],
+) -> Dict[str, Any]:
+    if not hyperparams:
+        return {}
+
+    if "common" not in hyperparams and "model_overrides" not in hyperparams:
+        return copy.deepcopy(hyperparams)
+
+    common = hyperparams.get("common", {})
+    if common is None:
+        common = {}
+    if not isinstance(common, dict):
+        raise TypeError("hyperparams['common'] must be a JSON object when provided")
+
+    model_overrides = hyperparams.get("model_overrides", {})
+    if model_overrides is None:
+        model_overrides = {}
+    if not isinstance(model_overrides, dict):
+        raise TypeError("hyperparams['model_overrides'] must be a JSON object when provided")
+
+    model_override = model_overrides.get(nn_type, {}) if nn_type else {}
+    if model_override is None:
+        model_override = {}
+    if not isinstance(model_override, dict):
+        raise TypeError(f"hyperparams['model_overrides']['{nn_type}'] must be a JSON object when provided")
+
+    resolved = _deep_merge_dicts(common, model_override)
+    if "model_input" in hyperparams:
+        resolved["model_input"] = copy.deepcopy(hyperparams["model_input"])
+    return resolved
 
 
 def load_json_dict(path: Optional[str], *, required: bool = True, base_dir: Optional[str] = None, label: str = "JSON") -> Dict[str, Any]:

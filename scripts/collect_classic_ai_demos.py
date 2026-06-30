@@ -21,7 +21,7 @@ from imitation_utils import (
     normalize_step_result,
     save_demo_shard,
 )
-from utils import load_hyperparams
+from utils import load_hyperparams, resolve_hyperparams_for_model
 
 
 def build_parser():
@@ -39,7 +39,7 @@ def build_parser():
     parser.add_argument("--output", type=str, default="~/OUTPUT/classic_ai_demos")
     parser.add_argument("--shard_name", type=str, default="")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--hyperparams", type=str, default="../hyperparams/nhl94_residual_mlp.json")
+    parser.add_argument("--hyperparams", type=str, default="../hyperparams/nhl94.json")
     parser.add_argument("--seq_len", type=int, default=16)
     parser.add_argument("--action_type", type=str, default="HOCKEY_INTENT_DPAD", choices=["FILTERED", "DISCRETE", "MULTI_DISCRETE", "HOCKEY_INTENT_DPAD"])
     parser.add_argument("--opponent", type=str, default="game", choices=["game", "noop"])
@@ -213,11 +213,11 @@ def collect_demos(args, hyperparams):
 
 def main(argv):
     args = parse_cmdline(argv[1:])
-    hyperparams = load_hyperparams(
+    hyperparams = resolve_hyperparams_for_model(load_hyperparams(
         args.hyperparams,
         required=True,
         base_dir=os.path.dirname(__file__),
-    )
+    ), args.nn)
     arrays, metadata = collect_demos(args, hyperparams)
     output_path = _make_output_path(args)
     save_demo_shard(output_path, arrays, metadata)

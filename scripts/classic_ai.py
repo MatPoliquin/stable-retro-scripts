@@ -11,7 +11,6 @@ from game_wrappers.nhl94.nhl94_intents import (
     HOCKEY_INTENT_ONE_TIMER,
     HOCKEY_INTENT_POKE_CHECK,
     HOCKEY_INTENT_CHANGE_PLAYER,
-    HOCKEY_INTENT_CATCH_PUCK,
     HOCKEY_INTENT_PASS_START,
 )
 
@@ -246,10 +245,10 @@ class ClassicAIModel:
             self._poke_cooldown = self.POKE_COOLDOWN_FRAMES
             self._last_decision = "intercept_poke"
         elif opponents.player_haspuck or opponents.goalie_haspuck:
-            action[0] = HOCKEY_INTENT_CATCH_PUCK
+            action[0] = HOCKEY_INTENT_CARRY_PUCK
             self._last_decision = "intercept_carrier"
         else:
-            action[0] = HOCKEY_INTENT_CATCH_PUCK
+            action[0] = HOCKEY_INTENT_CARRY_PUCK
             self._last_decision = "intercept_loose_puck"
 
         return self._finalize(action)

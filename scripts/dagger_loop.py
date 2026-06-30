@@ -24,7 +24,7 @@ from imitation_utils import (
     normalize_step_result,
     save_demo_shard,
 )
-from utils import load_hyperparams
+from utils import load_hyperparams, resolve_hyperparams_for_model
 
 
 def build_parser():
@@ -39,7 +39,7 @@ def build_parser():
     parser.add_argument("--alg", type=str, default="ppo2")
     parser.add_argument("--nnsize", type=int, default=256)
     parser.add_argument("--num_players", type=int, default=1)
-    parser.add_argument("--hyperparams", type=str, default="../hyperparams/nhl94_residual_mlp.json")
+    parser.add_argument("--hyperparams", type=str, default="../hyperparams/nhl94.json")
     parser.add_argument("--seq_len", type=int, default=16)
     parser.add_argument("--action_type", type=str, default="HOCKEY_INTENT_DPAD", choices=["FILTERED", "DISCRETE", "MULTI_DISCRETE", "HOCKEY_INTENT_DPAD"])
     parser.add_argument("--rounds", type=int, default=3)
@@ -331,11 +331,11 @@ def run_dagger(args, hyperparams):
 
 def main(argv):
     args = parse_cmdline(argv[1:])
-    hyperparams = load_hyperparams(
+    hyperparams = resolve_hyperparams_for_model(load_hyperparams(
         args.hyperparams,
         required=True,
         base_dir=os.path.dirname(__file__),
-    )
+    ), args.nn)
     run_dagger(args, hyperparams)
 
 

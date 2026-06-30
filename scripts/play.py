@@ -16,7 +16,7 @@ from common import com_print, init_logger
 from env_utils import init_env, init_play_env
 from models_utils import init_model, get_model_probabilities, get_num_parameters
 import game_wrappers_mgr as games
-from utils import load_hyperparams
+from utils import load_hyperparams, resolve_hyperparams_for_model
 
 def parse_cmdline(argv):
     parser = argparse.ArgumentParser(description='Play with your model in different modes')
@@ -221,11 +221,11 @@ def main(argv):
     args = parse_cmdline(argv[1:])
     if args.nn == 'ClassicAI' and args.env in ('NHL941on1-Genesis-v0', 'NHL942on2-Genesis-v0', 'NHL94-Genesis-v0') and not args.rf:
         args.rf = 'PostPlay'
-    args.hyperparams_dict = load_hyperparams(
+    args.hyperparams_dict = resolve_hyperparams_for_model(load_hyperparams(
         args.hyperparams,
         required=True,
         base_dir=os.path.dirname(__file__),
-    )
+    ), args.nn)
     logger = init_logger(args)
 
     if args.mode != 'model_vs_model' and args.mode != 'player_vs_game':

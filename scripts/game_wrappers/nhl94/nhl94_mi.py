@@ -1,397 +1,246 @@
+"""NHL94 model input helpers.
+
+The current wrapper uses a single observation layout: relative skater features,
+current button state, and decoded shot / goalie state.
 """
-NHL94 Model Input function
-"""
 
-import random
-from typing import Tuple, Callable
-from game_wrappers.nhl94.nhl94_const import GameConsts
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 
+FeatureList = List[float]
+FeatureVector = Tuple[float, ...]
+ModelInputConfig = Optional[Dict[str, Any]]
+FieldGetter = Callable[[Any, Any], float]
 
-def init_model_1p(num_players):
-    # Original 16 + 2 orientation components for each player (1 controlled + 1 opponent)
-    return 16 + 2 + 2  # 20 total
+DEFAULT_MODEL_INPUT_GROUPS = {
+    "controlled_player": ["x", "y", "vx", "vy", "ori_x", "ori_y"],
+    "teammate": [
+        "rel_controlled_x",
+        "rel_controlled_y",
+        "rel_controlled_vx",
+        "rel_controlled_vy",
+        "ori_x",
+        "ori_y",
+        "dist_to_controlled",
+        "passing_lane_clear",
+    ],
+    "opponent": [
+        "rel_controlled_x",
+        "rel_controlled_y",
+        "rel_controlled_vx",
+        "rel_controlled_vy",
+        "ori_x",
+        "ori_y",
+        "dist_to_controlled_opp",
+    ],
+    "puck": [
+        "x",
+        "y",
+        "rel_controlled_x",
+        "rel_controlled_y",
+        "rel_controlled_vx",
+        "rel_controlled_vy",
+        "dist_to_controlled",
+    ],
+    "goalie": ["x", "y"],
+    "possession": ["team1_player_haspuck", "team2_goalie_haspuck"],
+    "net": ["y", "left", "right", "rel_controlled_y", "rel_controlled_left", "rel_controlled_right"],
+    "buttons": ["up", "down", "left", "right", "b", "c", "slapshot_frames_held"],
+    "hidden_state": [
+        "controlled_player.is_one_timer",
+        "controlled_player.is_breakaway",
+        "controlled_player.is_falling",
+        "controlled_player.anim_frame",
+        "controlled_player.has_anim",
+        "teammate.is_one_timer",
+        "teammate.one_timer_lane_good",
+        "opponent_goalie.is_pad_stack",
+        "opponent_goalie.is_dive",
+        "opponent_goalie.anim_frame",
+        "engine.shot_mode_active",
+        "engine.shot_taken",
+        "engine.in_close_top_shelf",
+        "engine.one_timer_collision_mode",
+        "engine.breakaway_context",
+        "engine.controlled_is_shooter",
+        "engine.goalie_box_small",
+        "engine.pass_dir",
+        "engine.pass_speed",
+    ],
+}
 
-def set_model_input_1p(game_state):
+
+def _attr(name: str) -> FieldGetter:
+    return lambda game_state, source: getattr(source, name)
+
+
+CONTROLLED_PLAYER_FIELD_GETTERS: Dict[str, FieldGetter] = {
+    field_name: _attr(field_name) for field_name in DEFAULT_MODEL_INPUT_GROUPS["controlled_player"]
+}
+TEAMMATE_FIELD_GETTERS: Dict[str, FieldGetter] = {
+    field_name: _attr(field_name) for field_name in DEFAULT_MODEL_INPUT_GROUPS["teammate"]
+}
+OPPONENT_FIELD_GETTERS: Dict[str, FieldGetter] = {
+    field_name: _attr(field_name) for field_name in DEFAULT_MODEL_INPUT_GROUPS["opponent"]
+}
+PUCK_FIELD_GETTERS: Dict[str, FieldGetter] = {
+    "x": lambda game_state, source: game_state.nz_puck.x,
+    "y": lambda game_state, source: game_state.nz_puck.y,
+    "rel_controlled_x": lambda game_state, source: source.rel_puck_x,
+    "rel_controlled_y": lambda game_state, source: source.rel_puck_y,
+    "rel_controlled_vx": lambda game_state, source: source.rel_puck_vx,
+    "rel_controlled_vy": lambda game_state, source: source.rel_puck_vy,
+    "dist_to_controlled": lambda game_state, source: source.dist_to_puck,
+}
+GOALIE_FIELD_GETTERS: Dict[str, FieldGetter] = {
+    "x": lambda game_state, source: game_state.team2.nz_goalie.x,
+    "y": lambda game_state, source: game_state.team2.nz_goalie.y,
+}
+POSSESSION_FIELD_GETTERS: Dict[str, FieldGetter] = {
+    "team1_player_haspuck": lambda game_state, source: game_state.team1.nz_player_haspuck,
+    "team2_goalie_haspuck": lambda game_state, source: game_state.team2.nz_goalie_haspuck,
+}
+NET_FIELD_GETTERS: Dict[str, FieldGetter] = {
+    "y": lambda game_state, source: game_state.team2.nz_net.y,
+    "left": lambda game_state, source: game_state.team2.nz_net.left,
+    "right": lambda game_state, source: game_state.team2.nz_net.right,
+    "rel_controlled_y": lambda game_state, source: game_state.team2.nz_net.rel_controlled_y,
+    "rel_controlled_left": lambda game_state, source: game_state.team2.nz_net.rel_controlled_left,
+    "rel_controlled_right": lambda game_state, source: game_state.team2.nz_net.rel_controlled_right,
+}
+BUTTON_FIELD_GETTERS: Dict[str, FieldGetter] = {
+    "up": lambda game_state, source: float(game_state.action[0]),
+    "down": lambda game_state, source: float(game_state.action[1]),
+    "left": lambda game_state, source: float(game_state.action[2]),
+    "right": lambda game_state, source: float(game_state.action[3]),
+    "b": lambda game_state, source: float(game_state.action[4]),
+    "c": lambda game_state, source: float(game_state.action[5]),
+    "slapshot_frames_held": lambda game_state, source: min(getattr(game_state, "slapshot_frames_held", 0) / 60.0, 1.0),
+}
+
+
+MODEL_INPUT_FIELD_GETTERS: Dict[str, Dict[str, FieldGetter]] = {
+    "controlled_player": CONTROLLED_PLAYER_FIELD_GETTERS,
+    "teammate": TEAMMATE_FIELD_GETTERS,
+    "opponent": OPPONENT_FIELD_GETTERS,
+    "puck": PUCK_FIELD_GETTERS,
+    "goalie": GOALIE_FIELD_GETTERS,
+    "possession": POSSESSION_FIELD_GETTERS,
+    "net": NET_FIELD_GETTERS,
+    "buttons": BUTTON_FIELD_GETTERS,
+}
+
+
+def _normalize_model_input_config(model_input_config: ModelInputConfig) -> Dict[str, List[str]]:
+    if model_input_config is None:
+        return {group: list(fields) for group, fields in DEFAULT_MODEL_INPUT_GROUPS.items()}
+    if not isinstance(model_input_config, dict):
+        raise TypeError("model_input must be a JSON object when provided")
+
+    groups_config = model_input_config.get("groups", model_input_config)
+    if not isinstance(groups_config, dict):
+        raise TypeError("model_input['groups'] must be a JSON object when provided")
+
+    strict = bool(model_input_config.get("strict", True))
+    normalized = {group: list(fields) for group, fields in DEFAULT_MODEL_INPUT_GROUPS.items()}
+
+    for group_name, fields in groups_config.items():
+        if group_name in ("schema_version", "strict", "groups"):
+            continue
+        if group_name not in DEFAULT_MODEL_INPUT_GROUPS:
+            if strict:
+                raise ValueError(f"Unsupported NHL94 model_input group: {group_name}")
+            continue
+        if fields is None:
+            normalized[group_name] = []
+            continue
+        if isinstance(fields, bool):
+            normalized[group_name] = list(DEFAULT_MODEL_INPUT_GROUPS[group_name]) if fields else []
+            continue
+        if not isinstance(fields, list):
+            raise TypeError(f"model_input group '{group_name}' must be a list, bool, or null")
+
+        known_fields = set(DEFAULT_MODEL_INPUT_GROUPS[group_name])
+        selected_fields = []
+        for field_name in fields:
+            if not isinstance(field_name, str):
+                raise TypeError(f"model_input group '{group_name}' field names must be strings")
+            if field_name not in known_fields:
+                if strict:
+                    raise ValueError(f"Unsupported NHL94 model_input field: {group_name}.{field_name}")
+                continue
+            selected_fields.append(field_name)
+        normalized[group_name] = selected_fields
+
+    return normalized
+
+
+def _append_fields(
+    features: FeatureList,
+    game_state,
+    source,
+    group_name: str,
+    field_names: Iterable[str],
+) -> None:
+    getters = MODEL_INPUT_FIELD_GETTERS[group_name]
+    for field_name in field_names:
+        features.append(getters[field_name](game_state, source))
+
+
+def init_model(num_players: int, model_input_config: ModelInputConfig = None) -> int:
+    """Return the size of the canonical scalar observation vector."""
+    groups = _normalize_model_input_config(model_input_config)
+    teammate_count = max(num_players - 1, 0)
+    return (
+        len(groups["controlled_player"])
+        + (teammate_count * len(groups["teammate"]))
+        + (num_players * len(groups["opponent"]))
+        + len(groups["puck"])
+        + len(groups["goalie"])
+        + len(groups["possession"])
+        + len(groups["net"])
+        + len(groups["buttons"])
+        + len(groups["hidden_state"])
+    )
+
+
+def _controlled_player_index(team) -> int:
+    return max(0, team.control - 1) if team.control > 0 else 0
+
+
+def _base_features(game_state, model_input_config: ModelInputConfig) -> FeatureList:
+    groups = _normalize_model_input_config(model_input_config)
     t1 = game_state.team1
     t2 = game_state.team2
-
-    return (t1.nz_players[0].x, t1.nz_players[0].y, \
-            t1.nz_players[0].vx, t1.nz_players[0].vy, \
-            t1.nz_players[0].ori_x, t1.nz_players[0].ori_y, \
-            t2.nz_players[0].x, t2.nz_players[0].y, \
-            t2.nz_players[0].vx, t2.nz_players[0].vy, \
-            t2.nz_players[0].ori_x, t2.nz_players[0].ori_y, \
-            game_state.nz_puck.x, game_state.nz_puck.y, \
-            game_state.nz_puck.vx, game_state.nz_puck.vy, \
-            t2.nz_goalie.x, t2.nz_goalie.y, \
-            t1.nz_player_haspuck, t2.nz_goalie_haspuck)
-
-def init_model_2p(num_players):
-    # Original 24 + 2 orientation components per player (2 controlled + 2 opponents)
-    return 24 + (4 * 2)  # 32 total
-
-def set_model_input_2p(game_state):
-    t1 = game_state.team1
-    t2 = game_state.team2
-
-    p1_x, p1_y = t1.nz_players[0].x, t1.nz_players[0].y
-    p1_vel_x, p1_vel_y = t1.nz_players[0].vx, t1.nz_players[0].vy
-    p1_ori_x, p1_ori_y = t1.nz_players[0].ori_x, t1.nz_players[0].ori_y
-    p1_2_x, p1_2_y = t1.nz_players[1].x, t1.nz_players[1].y
-    p1_2_vel_x, p1_2_vel_y = t1.nz_players[1].vx, t1.nz_players[1].vy
-    p1_2_ori_x, p1_2_ori_y = t1.nz_players[1].ori_x, t1.nz_players[1].ori_y
-
-    # Swap controlled player to first position if needed
-    if t1.control == 2:
-        p1_x, p1_2_x = p1_2_x, p1_x
-        p1_y, p1_2_y = p1_2_y, p1_y
-        p1_vel_x, p1_2_vel_x = p1_2_vel_x, p1_vel_x
-        p1_vel_y, p1_2_vel_y = p1_2_vel_y, p1_vel_y
-        p1_ori_x, p1_2_ori_x = p1_2_ori_x, p1_ori_x
-        p1_ori_y, p1_2_ori_y = p1_2_ori_y, p1_ori_y
-
-    return (p1_x, p1_y, \
-            p1_vel_x, p1_vel_y, \
-            p1_ori_x, p1_ori_y, \
-            p1_2_x, p1_2_y, \
-            p1_2_vel_x, p1_2_vel_y, \
-            p1_2_ori_x, p1_2_ori_y, \
-            t2.nz_players[0].x, t2.nz_players[0].y, \
-            t2.nz_players[0].vx, t2.nz_players[0].vy, \
-            t2.nz_players[0].ori_x, t2.nz_players[0].ori_y, \
-            t2.nz_players[1].x, t2.nz_players[1].y, \
-            t2.nz_players[1].vx, t2.nz_players[1].vy, \
-            t2.nz_players[1].ori_x, t2.nz_players[1].ori_y, \
-            game_state.nz_puck.x, game_state.nz_puck.y, \
-            game_state.nz_puck.vx, game_state.nz_puck.vy, \
-            t2.nz_goalie.x, t2.nz_goalie.y, \
-            t1.nz_player_haspuck, t2.nz_goalie_haspuck)
-
-
-def init_model(num_players: int) -> int:
-    """Initialize model input size based on number of players per team.
-
-    Args:
-        num_players: Number of players per team (1, 2, or 5)
-
-    Returns:
-        Total size of the model input vector
-    """
-    # Each player has 6 features (x, y, vx, vy, ori_x, ori_y)
-    # Puck has 4 features (x, y, vx, vy)
-    # Opponent goalie has 2 features (x, y)
-    # Plus 2 binary features for puck possession
-    return (num_players * 6 * 2) + 4 + 2 + 2
-
-def set_model_input(game_state) -> Tuple[float, ...]:
-    """Create unified model input vector for any number of players.
-
-    Args:
-        game_state: The current game state object
-
-    Returns:
-        Tuple of normalized values for model input
-    """
-    t1 = game_state.team1
-    t2 = game_state.team2
-    num_players = game_state.numPlayers
-
-    # Collect all player data - controlled team first
-    t1_players = []
-    t2_players = []
-
-    # Reorder controlled team so controlled player is first
-    controlled_idx = max(0, t1.control - 1) if t1.control > 0 else 0
-    player_order = list(range(num_players))
-    if controlled_idx != 0:
-        player_order[0], player_order[controlled_idx] = player_order[controlled_idx], player_order[0]
-
-    # Add controlled team players in order
-    for i in player_order:
-        player = t1.nz_players[i]
-        t1_players.extend([
-            player.x, player.y,
-            player.vx, player.vy,
-            player.ori_x, player.ori_y
-        ])
-
-    # Add opponent team players in original order
-    for i in range(num_players):
-        player = t2.nz_players[i]
-        t2_players.extend([
-            player.x, player.y,
-            player.vx, player.vy,
-            player.ori_x, player.ori_y
-        ])
-
-    # Combine all features
-    return tuple(t1_players + t2_players + [
-        game_state.nz_puck.x, game_state.nz_puck.y,
-        game_state.nz_puck.vx, game_state.nz_puck.vy,
-        t2.nz_goalie.x, t2.nz_goalie.y,
-        t1.nz_player_haspuck, t2.nz_goalie_haspuck
-    ])
-
-#==================================
-# Uses relative puck pos and remove puck vel
-#==================================
-def init_model_rel(num_players: int) -> int:
-    """Initialize model input size based on number of players per team.
-
-    Args:
-        num_players: Number of players per team (1, 2, or 5)
-
-    Returns:
-        Total size of the model input vector
-    """
-    # Each player has 6 features (x, y, vx, vy, ori_x, ori_y)
-    # Puck has 2 features (x, y) - position only
-    # Opponent goalie has 2 features (x, y)
-    # Plus 2 binary features for puck possession
-    # Plus 2 features for puck relative to controlled player
-    return (num_players * 6 * 2) + 2 + 2 + 2 + 2
-
-def set_model_input_rel(game_state) -> Tuple[float, ...]:
-    """Create unified model input vector for any number of players.
-
-    Args:
-        game_state: The current game state object
-
-    Returns:
-        Tuple of normalized values for model input
-    """
-    t1 = game_state.team1
-    t2 = game_state.team2
-    num_players = game_state.numPlayers
-
-    # Collect all player data - controlled team first
-    t1_players = []
-    t2_players = []
-
-    # Reorder controlled team so controlled player is first
-    controlled_idx = max(0, t1.control - 1) if t1.control > 0 else 0
-    player_order = list(range(num_players))
-    if controlled_idx != 0:
-        player_order[0], player_order[controlled_idx] = player_order[controlled_idx], player_order[0]
-
-    # Calculate puck position relative to controlled player
-    controlled_player = t1.players[controlled_idx] if t1.control > 0 else t1.players[0]
-    puck_rel_controlled_x = game_state.puck.x - controlled_player.x
-    puck_rel_controlled_y = game_state.puck.y - controlled_player.y
-
-    # Normalize relative puck position
-    nz_puck_rel_controlled_x = puck_rel_controlled_x / 30
-    nz_puck_rel_controlled_y = puck_rel_controlled_y / 30
-
-    # Add controlled team players in order (without relative puck position)
-    for i in player_order:
-        player = t1.nz_players[i]
-        if i == 0:
-            t1_players.extend([
-                player.x, player.y,
-                player.vx, player.vy,
-                player.ori_x, player.ori_y  # Removed rel_puck_x/y
-            ])
-        else:
-            t1_players.extend([
-                player.rel_controlled_x, player.rel_controlled_y,
-                player.rel_controlled_vx, player.rel_controlled_vy,
-                player.ori_x, player.ori_y  # Removed rel_puck_x/y
-            ])
-
-    # Add opponent team players in original order (without relative puck position)
-    for i in range(num_players):
-        player = t2.nz_players[i]
-        t2_players.extend([
-            player.rel_controlled_x, player.rel_controlled_y,
-            player.rel_controlled_vx, player.rel_controlled_vy,
-            player.ori_x, player.ori_y  # Removed rel_puck_x/y
-        ])
-
-    # Combine all features
-    return tuple(t1_players + t2_players + [
-        game_state.nz_puck.x, game_state.nz_puck.y,  # Absolute puck position
-        t2.nz_goalie.x, t2.nz_goalie.y,
-        t1.nz_player_haspuck, t2.nz_goalie_haspuck,
-        nz_puck_rel_controlled_x, nz_puck_rel_controlled_y  # Puck relative to controlled player
-    ])
-
-def init_model_rel_dist(num_players: int) -> int:
-    """Initialize model input size with relative positions and distances to controlled player.
-
-    Args:
-        num_players: Number of players per team (1, 2, or 5)
-
-    Returns:
-        Total size of the model input vector
-    """
-    # Features per controlled player: 6 (x,y,vx,vy,ori_x,ori_y)
-    # Features per teammate: 6 (rel_x,rel_y,rel_vx,rel_vy,ori_x,ori_y) + 1 distance + 1 passable
-    # Features per opponent: 6 (rel_x,rel_y,rel_vx,rel_vy,ori_x,ori_y) + 1 distance
-    # Puck features: 2 (x,y) + 2 (rel_x,rel_y) + 2 (rel_vx,rel_vy) + dist
-    # Goalie features: 2 (x,y)
-    # Possession flags: 2
-    # Net features: 6 per net (absolute y, left, right + relative y, left, right) * 1 net = 6
-    return (6 + ((num_players-1)*7) + (num_players*7) + 6 + 2 + 2 + 1 + (num_players - 1)) + 6
-
-def set_model_input_rel_dist(game_state) -> Tuple[float, ...]:
-    """Standalone version with relative positions and distances to controlled player.
-
-    Args:
-        game_state: The current game state object
-
-    Returns:
-        Tuple of normalized values for model input
-    """
-    t1 = game_state.team1
-    t2 = game_state.team2
-    num_players = game_state.numPlayers
-
-    # Find controlled player (default to first player if goalie is controlled)
-    controlled_idx = max(0, t1.control - 1) if t1.control > 0 else 0
+    controlled_idx = _controlled_player_index(t1)
     controlled_player = t1.nz_players[controlled_idx]
+    features: FeatureList = []
 
-    # Initialize feature list
-    features = []
+    _append_fields(features, game_state, controlled_player, "controlled_player", groups["controlled_player"])
 
-    # 1. Add controlled player's absolute position and orientation
-    features.extend([
-        controlled_player.x,
-        controlled_player.y,
-        controlled_player.vx,
-        controlled_player.vy,
-        controlled_player.ori_x,
-        controlled_player.ori_y
-    ])
+    for index in range(game_state.numPlayers):
+        if index == controlled_idx:
+            continue
+        _append_fields(features, game_state, t1.nz_players[index], "teammate", groups["teammate"])
 
-    # 2. Add teammates' relative positions and distances (skip controlled player)
-    for i in range(num_players):
-        if i != controlled_idx:
-            player = t1.nz_players[i]
-            features.extend([
-                player.rel_controlled_x,
-                player.rel_controlled_y,
-                player.rel_controlled_vx,
-                player.rel_controlled_vy,
-                player.ori_x,
-                player.ori_y,
-                player.dist_to_controlled,
-                player.passing_lane_clear
-            ])
+    for index in range(game_state.numPlayers):
+        _append_fields(features, game_state, t2.nz_players[index], "opponent", groups["opponent"])
 
-    # 3. Add opponents' relative positions and distances
-    for i in range(num_players):
-        player = t2.nz_players[i]
-        features.extend([
-            player.rel_controlled_x,
-            player.rel_controlled_y,
-            player.rel_controlled_vx,
-            player.rel_controlled_vy,
-            player.ori_x,
-            player.ori_y,
-            player.dist_to_controlled_opp  # Already normalized
-        ])
-
-    # 4. Add puck information (absolute and relative to controlled)
-    features.extend([
-        game_state.nz_puck.x,
-        game_state.nz_puck.y,
-        controlled_player.rel_puck_x,  # Relative to controlled player
-        controlled_player.rel_puck_y,   # Relative to controlled player
-        controlled_player.rel_puck_vx,   # ADD
-        controlled_player.rel_puck_vy,   # ADD
-        controlled_player.dist_to_puck  # Relative to controlled player
-    ])
-
-    # 5. Add opponent goalie position
-    features.extend([
-        t2.nz_goalie.x,
-        t2.nz_goalie.y
-    ])
-
-    # 6. Add possession flags
-    features.extend([
-        t1.nz_player_haspuck,
-        t2.nz_goalie_haspuck
-    ])
-
-    # 7. Add net coordinates (both absolute and relative to controlled player)
-    # Team 1 net (our net)
-    # features.extend([
-    #     t1.nz_net.y,                   # Absolute Y position
-    #     t1.nz_net.left,                 # Absolute left post
-    #     t1.nz_net.right,                # Absolute right post
-    #     t1.nz_net.rel_controlled_y,     # Relative Y to controlled player
-    #     t1.nz_net.rel_controlled_left,  # Relative left post
-    #     t1.nz_net.rel_controlled_right  # Relative right post
-    # ])
-
-    # Team 2 net (opponent net)
-    features.extend([
-        t2.nz_net.y,                   # Absolute Y position
-        t2.nz_net.left,                 # Absolute left post
-        t2.nz_net.right,                # Absolute right post
-        t2.nz_net.rel_controlled_y,     # Relative Y to controlled player
-        t2.nz_net.rel_controlled_left,  # Relative left post
-        t2.nz_net.rel_controlled_right  # Relative right post
-    ])
-
-    return tuple(features)
-
-def init_model_rel_dist_buttons(num_players: int) -> int:
-    """Initialize model input size with relative positions, distances, and button states.
-
-    Args:
-        num_players: Number of players per team (1, 2, or 5)
-
-    Returns:
-        Total size of the model input vector
-    """
-    # Same as rel_dist model but adds:
-    # - Current button states (6 buttons)
-    # - Slapshot frames held (1 value)
-    return init_model_rel_dist(num_players) + 6 + 1
-
-def set_model_input_rel_dist_buttons(game_state) -> Tuple[float, ...]:
-    """Model input with relative positions, distances, and button states for slapshots.
-
-    Args:
-        game_state: The current game state object
-
-    Returns:
-        Tuple of normalized values for model input including button states
-    """
-    # Get all features from the rel_dist version
-    features = list(set_model_input_rel_dist(game_state))
-
-    # Add button states (normalized to 0/1)
-    button_features = [
-        float(game_state.action[0]),  # Up
-        float(game_state.action[1]),  # Down
-        float(game_state.action[2]),  # Left
-        float(game_state.action[3]),  # Right
-        float(game_state.action[4]),  # B button
-        float(game_state.action[5]),  # C button
-    ]
-
-    # Add slapshot frames held (normalized 0-1)
-    slapshot_frames = getattr(game_state, 'slapshot_frames_held', 0)
-    normalized_slapshot = min(slapshot_frames / 60.0, 1.0)  # Normalize to 0-1 based on max hold frames
-
-    # Combine all features
-    return tuple(features + button_features + [normalized_slapshot])
+    _append_fields(features, game_state, controlled_player, "puck", groups["puck"])
+    _append_fields(features, game_state, t2.nz_goalie, "goalie", groups["goalie"])
+    _append_fields(features, game_state, None, "possession", groups["possession"])
+    _append_fields(features, game_state, t2.nz_net, "net", groups["net"])
+    return features
 
 
-def init_model_rel_dist_buttons_v2(num_players: int) -> int:
-    """V2 model input that augments the existing relative/button model with hidden shot-state features."""
-    hidden_feature_count = 19
-    return init_model_rel_dist_buttons(num_players) + hidden_feature_count
+def _button_features(game_state, model_input_config: ModelInputConfig) -> FeatureList:
+    groups = _normalize_model_input_config(model_input_config)
+    features: FeatureList = []
+    _append_fields(features, game_state, None, "buttons", groups["buttons"])
+    return features
 
 
-def set_model_input_rel_dist_buttons_v2(game_state) -> Tuple[float, ...]:
-    """Model input with the original relative/button features plus decoded shot and goalie state."""
-    features = list(set_model_input_rel_dist_buttons(game_state))
+def _all_hidden_state_features(game_state) -> Dict[str, float]:
     t1 = game_state.team1
     t2 = game_state.team2
     engine = game_state.engine
@@ -409,112 +258,39 @@ def set_model_input_rel_dist_buttons_v2(game_state) -> Tuple[float, ...]:
         if player.one_timer_lane_good:
             teammate_one_timer_good = 1.0
 
-    hidden_features = [
-        controlled_player.is_one_timer,
-        controlled_player.is_breakaway,
-        controlled_player.is_falling,
-        min(abs(controlled_player.anim_frame) / 32.0, 1.0),
-        float(controlled_player.anim != 0),
-        teammate_one_timer,
-        teammate_one_timer_good,
-        opponent_goalie.is_pad_stack,
-        opponent_goalie.is_dive,
-        min(abs(opponent_goalie.anim_frame) / 32.0, 1.0),
-        engine.shot_mode_active,
-        engine.shot_taken,
-        engine.in_close_top_shelf,
-        engine.one_timer_collision_mode,
-        engine.breakaway_context,
-        engine.controlled_is_shooter,
-        engine.goalie_box_small,
-        min(engine.pass_dir / 7.0, 1.0),
-        min(engine.pass_speed / 255.0, 1.0),
-    ]
-
-    return tuple(features + hidden_features)
-
-def init_model_invariant(num_players: int) -> int:
-    """
-    Same length as set_model_input_rel_dist.
-    7*(n+1)  Team-1  (n skaters + goalie)
-    7*(n+1)  Team-2  (n skaters + goalie)
-    4        puck
-    2        opponent-goalie
-    2        possession flags
-    6        both nets
-    (n-1)    passing lanes (Team-1 teammates)
-    2*(n+1)  one-hot control flags
-    7 = buttons
-    Total = 14*num_players + 14 + 7
-    """
-    return 14 * num_players + 14 + 7
+    return {
+        "controlled_player.is_one_timer": controlled_player.is_one_timer,
+        "controlled_player.is_breakaway": controlled_player.is_breakaway,
+        "controlled_player.is_falling": controlled_player.is_falling,
+        "controlled_player.anim_frame": min(abs(controlled_player.anim_frame) / 32.0, 1.0),
+        "controlled_player.has_anim": float(controlled_player.anim != 0),
+        "teammate.is_one_timer": teammate_one_timer,
+        "teammate.one_timer_lane_good": teammate_one_timer_good,
+        "opponent_goalie.is_pad_stack": opponent_goalie.is_pad_stack,
+        "opponent_goalie.is_dive": opponent_goalie.is_dive,
+        "opponent_goalie.anim_frame": min(abs(opponent_goalie.anim_frame) / 32.0, 1.0),
+        "engine.shot_mode_active": engine.shot_mode_active,
+        "engine.shot_taken": engine.shot_taken,
+        "engine.in_close_top_shelf": engine.in_close_top_shelf,
+        "engine.one_timer_collision_mode": engine.one_timer_collision_mode,
+        "engine.breakaway_context": engine.breakaway_context,
+        "engine.controlled_is_shooter": engine.controlled_is_shooter,
+        "engine.goalie_box_small": engine.goalie_box_small,
+        "engine.pass_dir": min(engine.pass_dir / 7.0, 1.0),
+        "engine.pass_speed": min(engine.pass_speed / 255.0, 1.0),
+    }
 
 
-def set_model_input_invariant(game_state) -> Tuple[float, ...]:
-    """
-    View-point invariant observation.
-    Fixed order, one-hot controlled-player flags.
-    """
-    t1, t2 = game_state.team1, game_state.team2
-    n = game_state.numPlayers
-    puck = game_state.nz_puck
-    vec = []
+def _hidden_state_features(game_state, model_input_config: ModelInputConfig) -> FeatureList:
+    groups = _normalize_model_input_config(model_input_config)
+    hidden_features = _all_hidden_state_features(game_state)
+    return [hidden_features[field_name] for field_name in groups["hidden_state"]]
 
-    # ============ 1. Team-1 skaters (0 … n-1) ============
-    for p in t1.nz_players:
-        vec.extend([
-            p.x, p.y, p.vx, p.vy, p.ori_x, p.ori_y, p.dist_to_puck
-        ])
 
-    # ============ 2. Team-1 goalie ============
-    g1 = t1.nz_goalie
-    vec.extend([g1.x, g1.y, g1.vx, g1.vy, g1.ori_x, g1.ori_y, g1.dist_to_puck])
-
-    # ============ 3. Team-2 skaters (0 … n-1) ============
-    for p in t2.nz_players:
-        vec.extend([
-            p.x, p.y, p.vx, p.vy, p.ori_x, p.ori_y, p.dist_to_puck
-        ])
-
-    # ============ 4. Team-2 goalie ============
-    g2 = t2.nz_goalie
-    vec.extend([g2.x, g2.y, g2.vx, g2.vy, g2.ori_x, g2.ori_y, g2.dist_to_puck])
-
-    # ============ 5. Puck ============
-    vec.extend([puck.x, puck.y, puck.vx, puck.vy])
-
-    # ============ 6. Opponent-goalie (only x, y like rel_dist) ============
-    vec.extend([t2.nz_goalie.x, t2.nz_goalie.y])
-
-    # ============ 7. Possession flags ============
-    vec.extend([t1.nz_player_haspuck, t2.nz_goalie_haspuck])
-
-    # ============ 8. Both nets (6 scalars) ============
-    vec.extend([
-        t1.nz_net.y, t1.nz_net.left, t1.nz_net.right,
-        t2.nz_net.y, t2.nz_net.left, t2.nz_net.right
-    ])
-
-    # ============ 9. Passing lanes (Team-1 teammates only, n-1 slots) ============
-    c1 = max(0, t1.control - 1) if t1.control > 0 else n   # goalie = n
-    lanes = [float(p.passing_lane_clear)
-             for i, p in enumerate(t1.nz_players)
-             if i != c1]
-    vec.extend(lanes)  # length = n-1
-
-    # ============ 10. One-hot control flags (2×(n+1) slots) ============
-    hot1 = [0.0] * (n + 1)
-    hot1[c1] = 1.0
-    hot2 = [0.0] * (n + 1)
-    c2 = max(0, t2.control - 1) if t2.control > 0 else n
-    hot2[c2] = 1.0
-    vec.extend(hot1 + hot2)
-
-    # buttons
-    button_state = [float(b) for b in game_state.action]            # 6 buttons
-    slap_timer   = min(game_state.slapshot_frames_held / 60.0, 1.0) # 0…1
-    vec.extend(button_state + [slap_timer])
-
-    # ---------- verify length ----------
-    assert len(vec) == init_model_invariant(n)
-    return tuple(vec)
+def set_model_input(game_state, model_input_config: ModelInputConfig = None) -> FeatureVector:
+    """Build the canonical scalar observation vector."""
+    features = _base_features(game_state, model_input_config)
+    features.extend(_button_features(game_state, model_input_config))
+    features.extend(_hidden_state_features(game_state, model_input_config))
+    assert len(features) == init_model(game_state.numPlayers, model_input_config)
+    return tuple(features)
