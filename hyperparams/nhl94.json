@@ -69,9 +69,9 @@
     "schema_version": 1,
     "strict": true,
     "groups": {
-      "controlled_player": ["x", "y", "vx", "vy", "ori_x", "ori_y"],
-      "teammate": ["rel_controlled_x", "rel_controlled_y", "rel_controlled_vx", "rel_controlled_vy", "ori_x", "ori_y", "dist_to_controlled", "passing_lane_clear"],
-      "opponent": ["rel_controlled_x", "rel_controlled_y", "rel_controlled_vx", "rel_controlled_vy", "ori_x", "ori_y", "dist_to_controlled_opp"],
+      "controlled_player": ["x", "y", "vx", "vy", "ori_x", "ori_y", "clear_shot_lane", "open_net_shot"],
+      "teammate": ["rel_controlled_x", "rel_controlled_y", "rel_controlled_vx", "rel_controlled_vy", "ori_x", "ori_y", "dist_to_controlled", "passing_lane_clear", "clear_shot_lane", "open_net_shot"],
+      "opponent": ["rel_controlled_x", "rel_controlled_y", "rel_controlled_vx", "rel_controlled_vy", "ori_x", "ori_y", "dist_to_controlled_opp", "clear_shot_lane", "open_net_shot"],
       "puck": ["x", "y", "rel_controlled_x", "rel_controlled_y", "rel_controlled_vx", "rel_controlled_vy", "dist_to_controlled"],
       "goalie": ["x", "y"],
       "possession": ["team1_player_haspuck", "team2_goalie_haspuck"],

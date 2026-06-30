@@ -106,19 +106,23 @@ class NHL94DebugDisplay:
             "3: Toggle Velocities",
             "4: Toggle Orientations",
             "5: Toggle Distances",
+            "6: Toggle Clear Shot Lanes",
+            "7: Toggle Open Net Shots",
             "F2: Save Screenshot"
         ]
 
         # Visualization toggles
         self.show_passing_lanes = True
         self.show_one_timer_lanes = True
+        self.show_clear_shot_lanes = True
+        self.show_open_net_shots = True
         self.show_velocities = True
         self.show_orientations = True
         self.show_distances = False
 
     def _hud_required_height(self):
         team_stats_lines = 9
-        toggle_lines = 6
+        toggle_lines = 8
         return (
             self.HUD_PADDING
             + self.HUD_HEADER_HEIGHT
@@ -230,6 +234,10 @@ class NHL94DebugDisplay:
                     self.show_orientations = not self.show_orientations
                 elif event.key == pygame.K_5:
                     self.show_distances = not self.show_distances
+                elif event.key == pygame.K_6:
+                    self.show_clear_shot_lanes = not self.show_clear_shot_lanes
+                elif event.key == pygame.K_7:
+                    self.show_open_net_shots = not self.show_open_net_shots
 
         return obs, rew, done, info
 
@@ -401,6 +409,72 @@ class NHL94DebugDisplay:
                             4,
                         )
 
+    def _draw_clear_shot_lane(self, team, color):
+        if not self.show_clear_shot_lanes:
+            return
+
+        shooter = self.game_state._get_puck_controlled_skater_for_team(team)
+        if shooter is None:
+            return
+
+        opponents = self.game_state.team2 if team.controller == 1 else self.game_state.team1
+        if shooter.clear_shot_lane:
+            shot_target = self.game_state._get_clear_shot_lane_target(shooter, team, opponents)
+            lane_color = self.COLOR_GREEN
+            lane_width = 4
+            marker_color = self.COLOR_YELLOW
+        else:
+            shot_target = self.game_state._get_preferred_shot_lane_target(shooter, team, opponents)
+            lane_color = self.COLOR_RED
+            lane_width = 2
+            marker_color = self.COLOR_RED
+
+        if shot_target is None:
+            return
+
+        start_x, start_y = self._transform_coords(shooter.x, shooter.y)
+        end_x, end_y = self._transform_coords(*shot_target)
+        pygame.draw.line(self.debug_surf, lane_color, (start_x, start_y), (end_x, end_y), lane_width)
+        pygame.draw.circle(self.debug_surf, marker_color, (end_x, end_y), 5)
+        pygame.draw.circle(self.debug_surf, color, (start_x, start_y), self.PLAYER_RADIUS + 3, 2)
+
+    def _draw_open_net_shot(self, team, color):
+        if not self.show_open_net_shots:
+            return
+
+        shooter = self.game_state._get_puck_controlled_skater_for_team(team)
+        if shooter is None:
+            return
+
+        opponents = self.game_state.team2 if team.controller == 1 else self.game_state.team1
+        goalie = opponents.goalie
+        goalie_x, goalie_y = self._transform_coords(goalie.x, goalie.y)
+        goalie_radius = int(round(self.game_state._goalie_shot_collision_radius(goalie) * self.scale_x))
+        pygame.draw.circle(self.debug_surf, self.COLOR_CYAN, (goalie_x, goalie_y), goalie_radius, 2)
+
+        if shooter.open_net_shot:
+            shot_target = self.game_state._get_open_net_shot_target(shooter, team, opponents)
+            lane_color = self.COLOR_GREEN
+            lane_width = 4
+            marker_color = self.COLOR_YELLOW
+        else:
+            shot_target = (
+                self.game_state._get_clear_shot_lane_target(shooter, team, opponents)
+                or self.game_state._get_preferred_shot_lane_target(shooter, team, opponents)
+            )
+            lane_color = self.COLOR_RED
+            lane_width = 2
+            marker_color = self.COLOR_RED
+
+        if shot_target is None:
+            return
+
+        start_x, start_y = self._transform_coords(shooter.x, shooter.y)
+        end_x, end_y = self._transform_coords(*shot_target)
+        pygame.draw.line(self.debug_surf, lane_color, (start_x, start_y), (end_x, end_y), lane_width)
+        pygame.draw.circle(self.debug_surf, marker_color, (end_x, end_y), 5)
+        pygame.draw.circle(self.debug_surf, color, (start_x, start_y), self.PLAYER_RADIUS + 6, 2)
+
     def _draw_controlled_distances(self, team, color):
         """Draw distances from controlled player to teammates"""
         if not self.show_distances:
@@ -495,7 +569,9 @@ class NHL94DebugDisplay:
             f"[2] One-Timer Lanes: {'ON' if self.show_one_timer_lanes else 'OFF'}",
             f"[3] Velocities: {'ON' if self.show_velocities else 'OFF'}",
             f"[4] Orientations: {'ON' if self.show_orientations else 'OFF'}",
-            f"[5] Distances: {'ON' if self.show_distances else 'OFF'}"
+            f"[5] Distances: {'ON' if self.show_distances else 'OFF'}",
+            f"[6] Clear Shot Lanes: {'ON' if self.show_clear_shot_lanes else 'OFF'}",
+            f"[7] Open Net Shots: {'ON' if self.show_open_net_shots else 'OFF'}"
         ]
 
         for i, text in enumerate(toggle_text):
@@ -528,6 +604,10 @@ class NHL94DebugDisplay:
         self._draw_player(team1.goalie, self.COLOR_RED, is_goalie=True)
         if self.show_passing_lanes or self.show_one_timer_lanes:
             self._draw_passing_lanes(team1, self.COLOR_RED)
+        if self.show_clear_shot_lanes:
+            self._draw_clear_shot_lane(team1, self.COLOR_RED)
+        if self.show_open_net_shots:
+            self._draw_open_net_shot(team1, self.COLOR_RED)
         if self.show_distances:
             self._draw_controlled_distances(team1, self.COLOR_RED)
 
@@ -537,6 +617,10 @@ class NHL94DebugDisplay:
         self._draw_player(team2.goalie, self.COLOR_BLUE, is_goalie=True)
         if self.show_passing_lanes or self.show_one_timer_lanes:
             self._draw_passing_lanes(team2, self.COLOR_BLUE)
+        if self.show_clear_shot_lanes:
+            self._draw_clear_shot_lane(team2, self.COLOR_BLUE)
+        if self.show_open_net_shots:
+            self._draw_open_net_shot(team2, self.COLOR_BLUE)
         if self.show_distances:
             self._draw_controlled_distances(team2, self.COLOR_BLUE)
 

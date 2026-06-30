@@ -45,6 +45,8 @@ class Player:
     dist_to_puck: float = 0.0  # New: Distance to puck
     passing_lane_clear: bool = False
     one_timer_lane_good: bool = False
+    clear_shot_lane: bool = False
+    open_net_shot: bool = False
     is_one_timer: float = 0.0
     is_breakaway: float = 0.0
     is_falling: float = 0.0
@@ -65,7 +67,9 @@ class Player:
             f"  one_timer: {self.is_one_timer}, breakaway: {self.is_breakaway}, "
             f"falling: {self.is_falling}, pad_stack: {self.is_pad_stack}, dive: {self.is_dive}\n"
             f"  passing_lane_clear: {self.passing_lane_clear}, "
-            f"one_timer_lane_good: {self.one_timer_lane_good}")
+            f"one_timer_lane_good: {self.one_timer_lane_good}, "
+            f"clear_shot_lane: {self.clear_shot_lane}, "
+            f"open_net_shot: {self.open_net_shot}")
 
 @dataclass
 class Stats:
@@ -392,6 +396,8 @@ class Team():
             self.nz_players[p].dist_to_controlled_opp = self.players[p].dist_to_controlled_opp / GameConsts.MAX_PLAYER_X
             self.nz_players[p].passing_lane_clear = float(self.players[p].passing_lane_clear)  # Convert bool to 0.0/1.0
             self.nz_players[p].one_timer_lane_good = float(self.players[p].one_timer_lane_good)
+            self.nz_players[p].clear_shot_lane = float(self.players[p].clear_shot_lane)
+            self.nz_players[p].open_net_shot = float(self.players[p].open_net_shot)
 
         # Normalize net positions
         # Absolute positions
@@ -508,6 +514,13 @@ class NHL94GameState():
 
         return team.get_possession_player()
 
+    def _get_puck_controlled_skater_for_team(self, team: Team) -> Player | None:
+        puck_controller = self._get_passer_for_team(team)
+        if any(puck_controller is player for player in team.players):
+            return puck_controller
+
+        return None
+
     def _is_goalie_player(self, player: Player) -> bool:
         return player is self.team1.goalie or player is self.team2.goalie
 
@@ -520,6 +533,9 @@ class NHL94GameState():
 
         goalie_radius = self.engine.goalie_chk_body if self.engine.goalie_chk_body > 0 else 12
         return max(12, min(goalie_radius, 18))
+
+    def _goalie_shot_collision_radius(self, goalie: Player) -> int:
+        return self._passing_intercept_radius(goalie)
 
     @staticmethod
     def _receiver_catch_point(player: Player) -> tuple[int, int]:
@@ -541,6 +557,103 @@ class NHL94GameState():
             (net.left + post_inset, net.y),
             (net.right - post_inset, net.y),
         ]
+
+    @staticmethod
+    def _shotdir_metric(
+        puck_x: float,
+        puck_y: float,
+        goalie_x: float,
+        goalie_y: float,
+        post_x: float,
+        post_y: float,
+        goalie_distance: float,
+    ) -> float:
+        return ((goalie_x - puck_x) * (post_y - puck_y) - (goalie_y - puck_y) * (post_x - puck_x)) / goalie_distance
+
+    def _shot_target_points_for_player(self, shooter: Player, team: Team, opponents: Team) -> list[tuple[int, int]]:
+        attacking_net = self._attacking_net_for_team(team)
+        fallback_targets = self._shot_target_points_for_net(attacking_net)
+        goalie = opponents.goalie
+        goalie_x = goalie.x + (goalie.vx / 2)
+        goalie_y = goalie.y + (goalie.vy / 2)
+        goalie_distance = math.hypot(goalie_x - shooter.x, goalie_y - shooter.y)
+        if goalie_distance == 0:
+            return fallback_targets
+
+        left_metric = self._shotdir_metric(
+            shooter.x,
+            shooter.y,
+            goalie_x,
+            goalie_y,
+            attacking_net.left,
+            attacking_net.y,
+            goalie_distance,
+        )
+        right_metric = self._shotdir_metric(
+            shooter.x,
+            shooter.y,
+            goalie_x,
+            goalie_y,
+            attacking_net.right,
+            attacking_net.y,
+            goalie_distance,
+        )
+        crease_metric = left_metric + right_metric
+
+        if abs(crease_metric) > 0x2C:
+            return fallback_targets
+
+        center_x = (attacking_net.left + attacking_net.right) // 2
+        post_inset = 6
+        side_target = (
+            attacking_net.right - post_inset
+            if crease_metric >= 0
+            else attacking_net.left + post_inset
+        )
+        opposite_target = (
+            attacking_net.left + post_inset
+            if crease_metric >= 0
+            else attacking_net.right - post_inset
+        )
+        return [
+            (side_target, attacking_net.y),
+            (center_x, attacking_net.y),
+            (opposite_target, attacking_net.y),
+        ]
+
+    def _get_preferred_shot_lane_target(self, shooter: Player, team: Team, opponents: Team) -> tuple[int, int] | None:
+        target_points = self._shot_target_points_for_player(shooter, team, opponents)
+        return target_points[0] if target_points else None
+
+    def _get_clear_shot_lane_target(self, shooter: Player, team: Team, opponents: Team) -> tuple[int, int] | None:
+        shot_start = (shooter.x, shooter.y)
+
+        for target_point in self._shot_target_points_for_player(shooter, team, opponents):
+            if self._is_passing_lane_clear(shot_start, target_point, opponents.players):
+                return target_point
+
+        return None
+
+    def _has_clear_shot_lane(self, shooter: Player, team: Team, opponents: Team) -> bool:
+        return self._get_clear_shot_lane_target(shooter, team, opponents) is not None
+
+    def _is_goalie_blocking_shot_path(self, shot_start: tuple[int, int], target_point: tuple[int, int], goalie: Player) -> bool:
+        radius = self._goalie_shot_collision_radius(goalie)
+        return self._line_intersects_circle(shot_start, target_point, (goalie.x, goalie.y), radius)
+
+    def _get_open_net_shot_target(self, shooter: Player, team: Team, opponents: Team) -> tuple[int, int] | None:
+        shot_start = (shooter.x, shooter.y)
+
+        for target_point in self._shot_target_points_for_player(shooter, team, opponents):
+            if not self._is_passing_lane_clear(shot_start, target_point, opponents.players):
+                continue
+            if not self._is_goalie_blocking_shot_path(shot_start, target_point, opponents.goalie):
+                return target_point
+
+        return None
+
+    def _has_open_net_shot(self, shooter: Player, team: Team, opponents: Team) -> bool:
+        return self._get_open_net_shot_target(shooter, team, opponents) is not None
 
     def _get_clear_one_timer_shot_target(self, shooter: Player, team: Team, opponents: Team) -> tuple[int, int] | None:
         shot_start = (shooter.x, shooter.y)
@@ -708,6 +821,22 @@ class NHL94GameState():
                         and shot_lane_clear
                     )
 
+    def _update_shot_lanes(self):
+        """Compute shot lane flags only for the skater controlling the puck."""
+        for team in [self.team1, self.team2]:
+            for player in team.players:
+                player.clear_shot_lane = False
+                player.open_net_shot = False
+
+            puck_controller = self._get_puck_controlled_skater_for_team(team)
+            if puck_controller is None:
+                continue
+
+            opponents = self.team2 if team.controller == 1 else self.team1
+            puck_controller.clear_shot_lane = self._has_clear_shot_lane(puck_controller, team, opponents)
+            if puck_controller.clear_shot_lane:
+                puck_controller.open_net_shot = self._has_open_net_shot(puck_controller, team, opponents)
+
     def _update_opponent_controlled_distances(self):
         """Update distances to the opponent's controlled player for all players."""
         for team in [self.team1, self.team2]:
@@ -782,6 +911,7 @@ class NHL94GameState():
 
         # Compute passing lanes AFTER both teams are updated
         self._update_passing_lanes()
+        self._update_shot_lanes()
 
         self._update_opponent_controlled_distances()
 

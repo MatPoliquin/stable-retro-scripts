@@ -13,7 +13,7 @@ ModelInputConfig = Optional[Dict[str, Any]]
 FieldGetter = Callable[[Any, Any], float]
 
 DEFAULT_MODEL_INPUT_GROUPS = {
-    "controlled_player": ["x", "y", "vx", "vy", "ori_x", "ori_y"],
+    "controlled_player": ["x", "y", "vx", "vy", "ori_x", "ori_y", "clear_shot_lane", "open_net_shot"],
     "teammate": [
         "rel_controlled_x",
         "rel_controlled_y",
@@ -23,6 +23,8 @@ DEFAULT_MODEL_INPUT_GROUPS = {
         "ori_y",
         "dist_to_controlled",
         "passing_lane_clear",
+        "clear_shot_lane",
+        "open_net_shot",
     ],
     "opponent": [
         "rel_controlled_x",
@@ -32,6 +34,8 @@ DEFAULT_MODEL_INPUT_GROUPS = {
         "ori_x",
         "ori_y",
         "dist_to_controlled_opp",
+        "clear_shot_lane",
+        "open_net_shot",
     ],
     "puck": [
         "x",

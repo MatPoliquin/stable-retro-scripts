@@ -89,14 +89,28 @@ def isdone_scoregoal_ot(state):
 
 def rf_scoregoal_ot(state):
     t1 = state.team1
+    t2 = state.team2
     controlled_player = t1.get_controlled_player()
+    opponent_goalie = t2.goalie
     rew = 0.0
 
     if controlled_player.one_timer_lane_good:
-        rew = 0.7
+        rew = max(rew, 1.0)
+
+    if controlled_player.clear_shot_lane:
+        rew = max(rew, 0.1)
+
+    if controlled_player.open_net_shot:
+        rew = max(rew, 1.0)
+
+    if opponent_goalie.is_dive or opponent_goalie.is_pad_stack:
+        rew = max(rew, 0.2)
+
+    if state.engine.goalie_box_small:
+        rew = max(rew, 0.2)
 
     if t1.stats.onetimer > t1.last_stats.onetimer:
-        rew = 0.1
+        rew = max(rew, 0.1)
 
     if t1.stats.score > t1.last_stats.score:
         rew = 1.0
@@ -406,6 +420,7 @@ def rf_crosscrease_v2(state):
             "best_attack_y": state.puck.y,
             "last_puck_x": state.puck.x,
             "last_puck_y": state.puck.y,
+            "prev_shot_mode_active": bool(engine.shot_mode_active),
             "prev_shot_taken": bool(engine.shot_taken),
             "prev_top_shelf": bool(engine.in_close_top_shelf),
             "setup_side": 0,
@@ -416,6 +431,8 @@ def rf_crosscrease_v2(state):
             "shot_taken_once": False,
         }
         setattr(state, "_crosscrease_v2_tracker", tracker)
+
+    tracker.setdefault("prev_shot_mode_active", bool(engine.shot_mode_active))
 
     if t1.stats.score > t1.last_stats.score:
         return 1.0
@@ -433,6 +450,7 @@ def rf_crosscrease_v2(state):
     control_side = _x_side(controlled_player.x)
     puck_side = _x_side(state.puck.x)
     goalie_committed = opponent_goalie.is_pad_stack or opponent_goalie.is_dive
+    shot_mode_started = bool(engine.shot_mode_active) and not tracker["prev_shot_mode_active"]
     shot_taken_now = bool(engine.shot_taken) and not tracker["prev_shot_taken"]
     top_shelf_started = bool(engine.in_close_top_shelf) and not tracker["prev_top_shelf"]
 
@@ -501,6 +519,11 @@ def rf_crosscrease_v2(state):
         rew += 0.18
         tracker["commit_window"] = max(tracker["commit_window"], 30)
 
+    if shot_mode_started and near_net and (goalie_committed or tracker["commit_window"] > 0):
+        rew += 0.25
+        if controlled_player.open_net_shot:
+            rew += 0.15
+
     if t1.stats.passing > t1.last_stats.passing:
         rew += 0.06
         if tracker["setup_side"] != 0 and puck_side != 0 and puck_side != tracker["setup_side"] and danger_receiver_area:
@@ -547,6 +570,7 @@ def rf_crosscrease_v2(state):
     if state.action[5] and not danger_receiver_area and tracker["cross_pass_window"] == 0:
         rew -= 0.03
 
+    tracker["prev_shot_mode_active"] = bool(engine.shot_mode_active)
     tracker["prev_shot_taken"] = bool(engine.shot_taken)
     tracker["prev_top_shelf"] = bool(engine.in_close_top_shelf)
     tracker["last_puck_x"] = state.puck.x
