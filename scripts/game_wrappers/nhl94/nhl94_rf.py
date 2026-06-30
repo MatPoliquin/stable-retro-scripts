@@ -341,6 +341,7 @@ def init_general(env, env_name):
         _set_team1_puck_state(env, env_name, team1_positions[puck_owner_index], puck_owner_index)
 
 
+from game_wrappers.nhl94.nhl94_rf_breakaway import init_breakaway, isdone_breakaway, rf_breakaway
 from game_wrappers.nhl94.nhl94_rf_createopp import input_overide_createopp, isdone_createopp, rf_createopp
 from game_wrappers.nhl94.nhl94_rf_defensezone import init_defensezone, isdone_defensezone, rf_defensezone
 from game_wrappers.nhl94.nhl94_rf_general import isdone_general, init_general_v2, isdone_general_v2, rf_general, rf_general_v2
@@ -400,6 +401,7 @@ _reward_function_map = {
     "ScoreGoal": (init_attackzone, rf_scoregoal, isdone_scoregoal, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
     "ScoreGoalV2": (init_attackzone, rf_scoregoal_v2, isdone_scoregoal_v2, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
     "ScoreGoalV4": (init_attackzone, rf_scoregoal_v4, isdone_scoregoal_v4, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "Breakaway": (init_breakaway, rf_breakaway, isdone_breakaway, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
     "CreateOpp": (init_attackzone, rf_createopp, isdone_createopp, *MODEL_INPUT_FUNCTIONS, input_overide_createopp),
     "KeepPuck": (init_keeppuck, rf_keeppuck, isdone_keeppuck, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
     "DefenseZone": (init_defensezone, rf_defensezone, isdone_defensezone, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
