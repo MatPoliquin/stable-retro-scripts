@@ -342,6 +342,11 @@ def init_general(env, env_name):
 
 
 from game_wrappers.nhl94.nhl94_rf_breakaway import init_breakaway, isdone_breakaway, rf_breakaway
+from game_wrappers.nhl94.nhl94_rf_az_lostpuck import (
+    init_az_lostpuck,
+    isdone_az_lostpuck,
+    rf_az_lostpuck,
+)
 from game_wrappers.nhl94.nhl94_rf_createopp import input_overide_createopp, isdone_createopp, rf_createopp
 from game_wrappers.nhl94.nhl94_rf_defensezone import init_defensezone, isdone_defensezone, rf_defensezone
 from game_wrappers.nhl94.nhl94_rf_general import isdone_general, init_general_v2, isdone_general_v2, rf_general, rf_general_v2
@@ -395,6 +400,7 @@ _reward_function_map = {
     "GetPuckAZ": (init_getpuck_az, rf_getpuck, isdone_getpuck_az, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
     "GetPuckNZ": (init_getpuck_nz, rf_getpuck, isdone_getpuck_nz, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
     "GetPuckDZ": (init_getpuck_dz, rf_getpuck, isdone_getpuck_dz, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
+    "AZLostPuck": (init_az_lostpuck, rf_az_lostpuck, isdone_az_lostpuck, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
     "ScoreGoalCC": (init_attackzone, rf_scoregoal_cc, isdone_scoregoal_cc, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
     "CrossCreaseV2": (init_attackzone, rf_crosscrease_v2, isdone_crosscrease_v2, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
     "ScoreGoalOT": (init_attackzone, rf_scoregoal_ot, isdone_scoregoal_ot, *MODEL_INPUT_FUNCTIONS, input_overide_empty),
