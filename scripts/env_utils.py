@@ -23,7 +23,8 @@ def isMLP(name):
     return name == 'MlpPolicy' or name == 'MlpDropoutPolicy' or name == 'CombinedPolicy' \
           or name == 'AttentionMLPPolicy' or name == 'EntityAttentionPolicy' or name == 'HockeyMultiHeadPolicy' \
           or name == 'ResidualMlpPolicy' \
-          or name == 'HybridMambaPolicy' or name == 'GRUMlpPolicy' or name == 'ClassicAI'
+          or name == 'HybridMambaPolicy' or name == 'GRUMlpPolicy' \
+          or name == 'ClassicAI' or name == 'ClassicAIV2' or name == 'ClassicAIV3'
 
 
 def resolve_backend_action_type(args, num_players):

@@ -14,6 +14,8 @@ except Exception:
 from stable_baselines3 import PPO, A2C
 from torchsummary import summary
 from classic_ai import ClassicAIModel
+from classic_ai_v2 import ClassicAIV2Model
+from classic_ai_v3 import ClassicAIV3Model
 from models import CustomMlpPolicy, CustomPolicy, ViTPolicy, DartPolicy, AttentionMLPPolicy,\
     EntityAttentionPolicy, CustomCNN, CustomImpalaFeatureExtractor, CNNTransformer, HockeyMultiHeadPolicy, HybridMambaPolicy, GRUMlpPolicy, ResidualMlpPolicy
 from es import EvolutionStrategies
@@ -93,6 +95,12 @@ def init_model(output_path, player_model, player_alg, args, env, logger, hyperpa
 
     if args.nn == 'ClassicAI':
         return ClassicAIModel(args=args, env=env)
+
+    if args.nn == 'ClassicAIV2':
+        return ClassicAIV2Model(args=args, env=env)
+
+    if args.nn == 'ClassicAIV3':
+        return ClassicAIV3Model(args=args, env=env)
 
     size = args.nnsize
 

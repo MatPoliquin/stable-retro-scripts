@@ -48,7 +48,7 @@ class NHL94AISystem():
         self.num_models = 0
         for p in model_paths:
             should_init = (p != '')
-            if self.args.nn == 'ClassicAI' and i == 1:
+            if self.args.nn in ('ClassicAI', 'ClassicAIV2', 'ClassicAIV3') and i == 1:
                 should_init = True
 
             if should_init:
@@ -157,7 +157,7 @@ class NHL94AISystem():
 
         if self.num_models == 1:
             p1_actions = self.Predict(self.model_in_use, state, deterministic)
-            if self.args.nn != 'ClassicAI':
+            if self.args.nn not in ('ClassicAI', 'ClassicAIV2', 'ClassicAIV3'):
                 p1_actions[GameConsts.INPUT_MODE] = 0
             p1_actions = [p1_actions]
         elif self.models[1] and self.models[2]:

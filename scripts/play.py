@@ -127,7 +127,7 @@ class NHL94Player:
 
         if self.args.mode != 'player_vs_game':
             self.ai_sys = games.wrappers.ai_sys(self.args, self.p1_env, self.logger)
-            if self.args.nn == 'ClassicAI' or self.args.model_1 != '' or self.args.model_2 != '':
+            if self.args.nn in ('ClassicAI', 'ClassicAIV2', 'ClassicAIV3') or self.args.model_1 != '' or self.args.model_2 != '':
                 models = [self.args.model_1, self.args.model_2]
                 self.ai_sys.SetModels(models)
 
@@ -219,7 +219,7 @@ class NHL94Player:
 
 def main(argv):
     args = parse_cmdline(argv[1:])
-    if args.nn == 'ClassicAI' and args.env in ('NHL941on1-Genesis-v0', 'NHL942on2-Genesis-v0', 'NHL94-Genesis-v0') and not args.rf:
+    if args.nn in ('ClassicAI', 'ClassicAIV2', 'ClassicAIV3') and args.env in ('NHL941on1-Genesis-v0', 'NHL942on2-Genesis-v0', 'NHL94-Genesis-v0') and not args.rf:
         args.rf = 'PostPlay'
     args.hyperparams_dict = resolve_hyperparams_for_model(load_hyperparams(
         args.hyperparams,

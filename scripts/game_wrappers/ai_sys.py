@@ -20,7 +20,7 @@ class AISys():
 
     def SetModels(self, model_paths):
         should_init = model_paths[0] is not None and model_paths[0] != ''
-        if self.args.nn == 'ClassicAI':
+        if self.args.nn in ('ClassicAI', 'ClassicAIV2', 'ClassicAIV3'):
             should_init = True
 
         if should_init:

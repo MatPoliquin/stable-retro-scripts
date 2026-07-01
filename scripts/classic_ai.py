@@ -145,7 +145,7 @@ class ClassicAIModel:
             self._one_timer_shot_frames = 0
 
         if self._should_switch_player(team, controlled, puck, opponents):
-            action[GameConsts.INPUT_A] = 1
+            action[GameConsts.INPUT_B] = 1
             self._switch_cooldown = self.SWITCH_COOLDOWN_FRAMES
             self._last_decision = "switch_to_interceptor"
             return self._finalize(action)
@@ -748,13 +748,13 @@ class ClassicAIModel:
         if distance_to_puck > self.POKE_DISTANCE:
             return False
 
+        carrier = self._opponent_puck_carrier(opponents)
+        if carrier is None:
+            return False
+
         puck_ahead = self._is_point_in_front(controlled, self._x(puck), self._y(puck), self.POKE_AHEAD_DISTANCE)
         if puck_ahead:
             return True
-
-        carrier = self._opponent_puck_carrier(opponents)
-        if carrier is None:
-            return distance_to_puck <= 10
 
         return self._distance_between(controlled, carrier) <= 18
 

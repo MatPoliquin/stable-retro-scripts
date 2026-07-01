@@ -95,7 +95,7 @@ def rf_scoregoal_ot(state):
     rew = 0.0
 
     if controlled_player.one_timer_lane_good:
-        rew = max(rew, 1.0)
+        rew = max(rew, 0.2)
 
     if controlled_player.clear_shot_lane:
         rew = max(rew, 0.1)
@@ -110,10 +110,12 @@ def rf_scoregoal_ot(state):
         rew = max(rew, 0.2)
 
     if t1.stats.onetimer > t1.last_stats.onetimer:
-        rew = max(rew, 0.1)
+       rew = max(rew, 0.1)
+
+    rew -= 0.1
 
     if t1.stats.score > t1.last_stats.score:
-        rew = 1.0
+        rew = 10.0
 
     return rew
 
