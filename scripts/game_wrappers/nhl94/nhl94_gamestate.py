@@ -676,6 +676,9 @@ class NHL94GameState():
         return target_points[0] if target_points else None
 
     def _get_clear_shot_lane_target(self, shooter: Player, team: Team, opponents: Team) -> tuple[int, int] | None:
+        if not self._is_in_front_of_attacking_goal_line(shooter, team):
+            return None
+
         shot_start = (shooter.x, shooter.y)
 
         for target_point in self._shot_target_points_for_player(shooter, team, opponents):
