@@ -691,7 +691,13 @@ class NHL94GameState():
         radius = self._goalie_shot_collision_radius(goalie)
         return self._line_intersects_circle(shot_start, target_point, (goalie.x, goalie.y), radius)
 
+    def _is_in_front_of_attacking_goal_line(self, shooter: Player, team: Team) -> bool:
+        return self._normalized_attack_y(shooter, team) < GameConsts.P2_NET_Y
+
     def _get_open_net_shot_target(self, shooter: Player, team: Team, opponents: Team) -> tuple[int, int] | None:
+        if not self._is_in_front_of_attacking_goal_line(shooter, team):
+            return None
+
         shot_start = (shooter.x, shooter.y)
 
         for target_point in self._shot_target_points_for_player(shooter, team, opponents):
