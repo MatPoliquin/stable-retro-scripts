@@ -18,7 +18,7 @@
     "frame_skip": 10,
     "sticky_actions": false,
     "sticky_action_prob": 0.25,
-    "clip_reward": true
+    "clip_reward": false
   },
   "model_overrides": {
     "ResidualMlpPolicy": {
@@ -49,36 +49,36 @@
       }
     },
     "GRUMlpPolicy": {
-      "learning_rate": 0.0003,
-      "batch_size": 64,
-      "n_epochs": 10,
+      "learning_rate": 0.00025,
+      "batch_size": 128,
+      "n_epochs": 8,
       "gae_lambda": 0.95,
-      "features_dim": 256,
+      "features_dim": 384,
       "net_arch": {
-        "pi": [128, 128],
-        "vf": [128, 128]
+        "pi": [256, 256],
+        "vf": [256, 256]
       },
       "gru_mlp": {
-        "features_dim": 256,
-        "hidden_dim": 128,
+        "features_dim": 384,
+        "hidden_dim": 256,
         "gru_layers": 2
       }
     }
   },
   "model_input": {
-    "schema_version": 1,
+    "schema_version": 2,
     "strict": true,
     "groups": {
-      "controlled_player": ["x", "y", "vx", "vy", "ori_x", "ori_y", "clear_shot_lane", "open_net_shot"],
-      "teammate": ["rel_controlled_x", "rel_controlled_y", "rel_controlled_vx", "rel_controlled_vy", "ori_x", "ori_y", "dist_to_controlled", "passing_lane_clear", "clear_shot_lane", "open_net_shot"],
-      "opponent": ["rel_controlled_x", "rel_controlled_y", "rel_controlled_vx", "rel_controlled_vy", "ori_x", "ori_y", "dist_to_controlled_opp", "clear_shot_lane", "open_net_shot"],
-      "puck": ["x", "y", "rel_controlled_x", "rel_controlled_y", "rel_controlled_vx", "rel_controlled_vy", "dist_to_controlled"],
-      "goalie": ["x", "y"],
+      "friendly_player": ["x", "y", "vx", "vy", "rel_puck_x", "rel_puck_y", "rel_puck_vx", "rel_puck_vy", "dist_to_puck", "ori_x", "ori_y", "is_controlled", "has_puck", "passing_lane_clear", "one_timer_lane_good", "clear_shot_lane", "open_net_shot", "is_one_timer", "is_breakaway", "is_falling", "anim_frame", "has_anim"],
+      "friendly_goalie": ["x", "y", "vx", "vy", "rel_puck_x", "rel_puck_y", "rel_puck_vx", "rel_puck_vy", "dist_to_puck", "is_controlled", "has_puck", "is_pad_stack", "is_dive", "anim_frame", "has_anim"],
+      "opponent_player": ["x", "y", "vx", "vy", "rel_puck_x", "rel_puck_y", "rel_puck_vx", "rel_puck_vy", "dist_to_puck", "ori_x", "ori_y", "has_puck", "passing_lane_clear", "one_timer_lane_good", "clear_shot_lane", "open_net_shot", "is_one_timer", "is_breakaway", "is_falling", "anim_frame", "has_anim"],
+      "opponent_goalie": ["x", "y", "vx", "vy", "rel_puck_x", "rel_puck_y", "rel_puck_vx", "rel_puck_vy", "dist_to_puck", "has_puck", "is_pad_stack", "is_dive", "anim_frame", "has_anim"],
+      "puck": ["x", "y", "vx", "vy"],
       "goalie_stats": ["team1_glove_left", "team1_glove_right", "team1_stick_left", "team1_stick_right", "team1_puck_control", "team1_agility", "team1_speed", "team1_passing", "team1_endurance", "team1_weight", "team2_glove_left", "team2_glove_right", "team2_stick_left", "team2_stick_right", "team2_puck_control", "team2_agility", "team2_speed", "team2_passing", "team2_endurance", "team2_weight"],
-      "possession": ["team1_player_haspuck", "team2_goalie_haspuck"],
-      "net": ["y", "left", "right", "rel_controlled_y", "rel_controlled_left", "rel_controlled_right"],
+      "possession": ["team1_player_haspuck", "team1_goalie_haspuck", "team2_player_haspuck", "team2_goalie_haspuck", "team1_has_puck", "team2_has_puck", "puck_loose"],
+      "net": ["y", "left", "right", "depth", "rel_puck_y", "rel_puck_left", "rel_puck_right"],
       "buttons": ["up", "down", "left", "right", "b", "c", "slapshot_frames_held"],
-      "hidden_state": ["controlled_player.is_one_timer", "controlled_player.is_breakaway", "controlled_player.is_falling", "controlled_player.anim_frame", "controlled_player.has_anim", "teammate.is_one_timer", "teammate.one_timer_lane_good", "opponent_goalie.is_pad_stack", "opponent_goalie.is_dive", "opponent_goalie.anim_frame", "engine.shot_mode_active", "engine.shot_taken", "engine.in_close_top_shelf", "engine.one_timer_collision_mode", "engine.breakaway_context", "engine.controlled_is_shooter", "engine.goalie_box_small", "engine.pass_dir", "engine.pass_speed"]
+      "hidden_state": ["engine.shot_mode_active", "engine.shot_taken", "engine.in_close_top_shelf", "engine.one_timer_collision_mode", "engine.breakaway_context", "engine.controlled_is_shooter", "engine.goalie_box_small", "engine.pass_dir", "engine.pass_speed"]
     }
   }
 }

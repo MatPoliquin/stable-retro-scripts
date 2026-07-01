@@ -43,6 +43,8 @@ class Player:
     dist_to_controlled: float = 0.0  # New: Distance to controlled player
     dist_to_controlled_opp: float = 0.0  # New: Distance to controlled opponent player
     dist_to_puck: float = 0.0  # New: Distance to puck
+    is_controlled: float = 0.0
+    has_puck: float = 0.0
     passing_lane_clear: bool = False
     one_timer_lane_good: bool = False
     clear_shot_lane: bool = False
@@ -52,6 +54,7 @@ class Player:
     is_falling: float = 0.0
     is_pad_stack: float = 0.0
     is_dive: float = 0.0
+    has_anim: float = 0.0
 
     def debug_print(self, prefix="Player"):
         print(f"{prefix} - x: {self.x}, y: {self.y}, vx: {self.vx}, vy: {self.vy}, "
@@ -64,6 +67,7 @@ class Player:
             f"  dist_to_controlled: {self.dist_to_controlled:.1f}, "
             f"dist_to_controlled_opp: {self.dist_to_controlled_opp:.1f}, "
             f"dist_to_puck: {self.dist_to_puck:.1f}\n"
+            f"  controlled: {self.is_controlled}, has_puck: {self.has_puck}\n"
             f"  one_timer: {self.is_one_timer}, breakaway: {self.is_breakaway}, "
             f"falling: {self.is_falling}, pad_stack: {self.is_pad_stack}, dive: {self.is_dive}\n"
             f"  passing_lane_clear: {self.passing_lane_clear}, "
@@ -232,6 +236,7 @@ class Team():
         player.is_falling = 1.0 if player.state_flags & (1 << 5) else 0.0
         player.is_pad_stack = 1.0 if player.anim in self.PAD_STACK_ANIMS else 0.0
         player.is_dive = 1.0 if player.anim == self.DIVE_ANIM else 0.0
+        player.has_anim = 1.0 if player.anim != 0 else 0.0
 
         nz_net_left: tuple = (0.0, 0.0)        # Normalized absolute left post
         nz_net_right: tuple = (0.0, 0.0)       # Normalized absolute right post
@@ -406,6 +411,15 @@ class Team():
             # Normalize distances
             self.nz_players[p].dist_to_controlled = self.players[p].dist_to_controlled / GameConsts.MAX_PLAYER_X
             self.nz_players[p].dist_to_puck = self.players[p].dist_to_puck / GameConsts.MAX_PUCK_X
+            self.nz_players[p].is_controlled = 1.0 if self.control == p + 1 else 0.0
+            self.nz_players[p].has_puck = float(self.players[p].has_puck)
+            self.nz_players[p].is_one_timer = self.players[p].is_one_timer
+            self.nz_players[p].is_breakaway = self.players[p].is_breakaway
+            self.nz_players[p].is_falling = self.players[p].is_falling
+            self.nz_players[p].is_pad_stack = self.players[p].is_pad_stack
+            self.nz_players[p].is_dive = self.players[p].is_dive
+            self.nz_players[p].anim_frame = min(abs(self.players[p].anim_frame) / 32.0, 1.0)
+            self.nz_players[p].has_anim = self.players[p].has_anim
 
         self.nz_goalie.x = self.goalie.x / GameConsts.MAX_PLAYER_X
         self.nz_goalie.y = self.goalie.y / GameConsts.MAX_PLAYER_Y
@@ -424,6 +438,15 @@ class Team():
         # Normalize distances for goalie
         self.nz_goalie.dist_to_controlled = self.goalie.dist_to_controlled / GameConsts.MAX_PLAYER_X
         self.nz_goalie.dist_to_puck = self.goalie.dist_to_puck / GameConsts.MAX_PUCK_X
+        self.nz_goalie.is_controlled = 1.0 if self.control == 0 else 0.0
+        self.nz_goalie.has_puck = float(self.goalie.has_puck)
+        self.nz_goalie.is_one_timer = self.goalie.is_one_timer
+        self.nz_goalie.is_breakaway = self.goalie.is_breakaway
+        self.nz_goalie.is_falling = self.goalie.is_falling
+        self.nz_goalie.is_pad_stack = self.goalie.is_pad_stack
+        self.nz_goalie.is_dive = self.goalie.is_dive
+        self.nz_goalie.anim_frame = min(abs(self.goalie.anim_frame) / 32.0, 1.0)
+        self.nz_goalie.has_anim = self.goalie.has_anim
 
         self.nz_goalie_stats.glove_left = self.goalie_stats.glove_left / GameConsts.MAX_GOALIE_GLOVE_LEFT
         self.nz_goalie_stats.glove_right = self.goalie_stats.glove_right / GameConsts.MAX_GOALIE_RATING
@@ -536,6 +559,38 @@ class NHL94GameState():
         self.engine.breakaway_context = 1.0 if self.engine.word_ffc2fa & (1 << 4) else 0.0
         self.engine.controlled_is_shooter = 1.0 if self.engine.shot_player == self.team1.controlled_scnum() else 0.0
         self.engine.goalie_box_small = 1.0 if self.engine.goalie_chk_body <= 0xC else 0.0
+
+    def _clear_possession_flags(self) -> None:
+        for team in [self.team1, self.team2]:
+            for player in team.players:
+                player.has_puck = 0.0
+            team.goalie.has_puck = 0.0
+
+    def _set_possession_flag_from_owner(self) -> bool:
+        puck_owner = self.engine.puck_owner
+        for team in [self.team1, self.team2]:
+            if team.owns_scnum(puck_owner):
+                player = team.get_player_by_scnum(puck_owner)
+                if player is not None:
+                    player.has_puck = 1.0
+                    return True
+        return False
+
+    def _set_possession_flag_from_stars(self) -> None:
+        for team in [self.team1, self.team2]:
+            if team.goalie_haspuck:
+                team.goalie.has_puck = 1.0
+                return
+
+            for player in team.players:
+                if team.has_puck(player.x, player.y):
+                    player.has_puck = 1.0
+                    return
+
+    def _update_possession_flags(self) -> None:
+        self._clear_possession_flags()
+        if not self._set_possession_flag_from_owner():
+            self._set_possession_flag_from_stars()
 
     # Flip the variables
     def Flip(self):
@@ -965,6 +1020,7 @@ class NHL94GameState():
         self.team1.begin_frame(info, self.puck.x, self.puck.y, self.puck.vx, self.puck.vy)
         self.team2.begin_frame(info, self.puck.x, self.puck.y, self.puck.vx, self.puck.vy)
         self._update_engine_state(info)
+        self._update_possession_flags()
 
         self.update_nets()
 

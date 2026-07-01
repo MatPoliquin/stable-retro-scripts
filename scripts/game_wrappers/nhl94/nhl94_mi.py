@@ -1,10 +1,12 @@
 """NHL94 model input helpers.
 
-The current wrapper uses a single observation layout: relative skater features,
-current button state, and decoded shot / goalie state.
+The wrapper uses fixed roster slots with absolute and puck-relative entity
+features. Control and possession are represented as per-entity flags.
 """
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+
+from game_wrappers.nhl94.nhl94_const import GameConsts
 
 
 FeatureList = List[float]
@@ -25,69 +27,100 @@ GOALIE_STAT_FIELDS = [
     "weight",
 ]
 
+BASE_SKATER_FIELDS = [
+    "x",
+    "y",
+    "vx",
+    "vy",
+    "rel_puck_x",
+    "rel_puck_y",
+    "rel_puck_vx",
+    "rel_puck_vy",
+    "dist_to_puck",
+    "ori_x",
+    "ori_y",
+    "has_puck",
+    "passing_lane_clear",
+    "one_timer_lane_good",
+    "clear_shot_lane",
+    "open_net_shot",
+    "is_one_timer",
+    "is_breakaway",
+    "is_falling",
+    "anim_frame",
+    "has_anim",
+]
+
+FRIENDLY_SKATER_FIELDS = [
+    *BASE_SKATER_FIELDS[:11],
+    "is_controlled",
+    *BASE_SKATER_FIELDS[11:],
+]
+OPPONENT_SKATER_FIELDS = BASE_SKATER_FIELDS
+
+BASE_GOALIE_FIELDS = [
+    "x",
+    "y",
+    "vx",
+    "vy",
+    "rel_puck_x",
+    "rel_puck_y",
+    "rel_puck_vx",
+    "rel_puck_vy",
+    "dist_to_puck",
+    "has_puck",
+    "is_pad_stack",
+    "is_dive",
+    "anim_frame",
+    "has_anim",
+]
+
+FRIENDLY_GOALIE_FIELDS = [
+    *BASE_GOALIE_FIELDS[:9],
+    "is_controlled",
+    *BASE_GOALIE_FIELDS[9:],
+]
+OPPONENT_GOALIE_FIELDS = BASE_GOALIE_FIELDS
+
+ENGINE_FIELDS = [
+    "engine.shot_mode_active",
+    "engine.shot_taken",
+    "engine.in_close_top_shelf",
+    "engine.one_timer_collision_mode",
+    "engine.breakaway_context",
+    "engine.controlled_is_shooter",
+    "engine.goalie_box_small",
+    "engine.pass_dir",
+    "engine.pass_speed",
+]
+
 DEFAULT_MODEL_INPUT_GROUPS = {
-    "controlled_player": ["x", "y", "vx", "vy", "ori_x", "ori_y", "clear_shot_lane", "open_net_shot"],
-    "teammate": [
-        "rel_controlled_x",
-        "rel_controlled_y",
-        "rel_controlled_vx",
-        "rel_controlled_vy",
-        "ori_x",
-        "ori_y",
-        "dist_to_controlled",
-        "passing_lane_clear",
-        "clear_shot_lane",
-        "open_net_shot",
-    ],
-    "opponent": [
-        "rel_controlled_x",
-        "rel_controlled_y",
-        "rel_controlled_vx",
-        "rel_controlled_vy",
-        "ori_x",
-        "ori_y",
-        "dist_to_controlled_opp",
-        "clear_shot_lane",
-        "open_net_shot",
-    ],
+    "friendly_player": FRIENDLY_SKATER_FIELDS,
+    "friendly_goalie": FRIENDLY_GOALIE_FIELDS,
+    "opponent_player": OPPONENT_SKATER_FIELDS,
+    "opponent_goalie": OPPONENT_GOALIE_FIELDS,
     "puck": [
         "x",
         "y",
-        "rel_controlled_x",
-        "rel_controlled_y",
-        "rel_controlled_vx",
-        "rel_controlled_vy",
-        "dist_to_controlled",
+        "vx",
+        "vy",
     ],
-    "goalie": ["x", "y"],
     "goalie_stats": [
         *(f"team1_{field_name}" for field_name in GOALIE_STAT_FIELDS),
         *(f"team2_{field_name}" for field_name in GOALIE_STAT_FIELDS),
     ],
-    "possession": ["team1_player_haspuck", "team2_goalie_haspuck"],
-    "net": ["y", "left", "right", "rel_controlled_y", "rel_controlled_left", "rel_controlled_right"],
-    "buttons": ["up", "down", "left", "right", "b", "c", "slapshot_frames_held"],
-    "hidden_state": [
-        "controlled_player.is_one_timer",
-        "controlled_player.is_breakaway",
-        "controlled_player.is_falling",
-        "controlled_player.anim_frame",
-        "controlled_player.has_anim",
-        "teammate.is_one_timer",
-        "teammate.one_timer_lane_good",
-        "opponent_goalie.is_pad_stack",
-        "opponent_goalie.is_dive",
-        "opponent_goalie.anim_frame",
-        "engine.shot_mode_active",
-        "engine.shot_taken",
-        "engine.in_close_top_shelf",
-        "engine.one_timer_collision_mode",
-        "engine.breakaway_context",
-        "engine.controlled_is_shooter",
-        "engine.goalie_box_small",
-        "engine.pass_dir",
-        "engine.pass_speed",
+    "possession": [
+        "team1_player_haspuck",
+        "team1_goalie_haspuck",
+        "team2_player_haspuck",
+        "team2_goalie_haspuck",
+        "team1_has_puck",
+        "team2_has_puck",
+        "puck_loose",
     ],
+    "net": ["y", "left", "right", "depth", "rel_puck_y", "rel_puck_left", "rel_puck_right"],
+    "buttons": ["up", "down", "left", "right", "b", "c", "slapshot_frames_held"],
+    "hidden_state": ENGINE_FIELDS,
 }
 
 
@@ -95,28 +128,24 @@ def _attr(name: str) -> FieldGetter:
     return lambda game_state, source: getattr(source, name)
 
 
-CONTROLLED_PLAYER_FIELD_GETTERS: Dict[str, FieldGetter] = {
-    field_name: _attr(field_name) for field_name in DEFAULT_MODEL_INPUT_GROUPS["controlled_player"]
+SKATER_FIELD_GETTERS: Dict[str, FieldGetter] = {
+    field_name: _attr(field_name) for field_name in FRIENDLY_SKATER_FIELDS
 }
-TEAMMATE_FIELD_GETTERS: Dict[str, FieldGetter] = {
-    field_name: _attr(field_name) for field_name in DEFAULT_MODEL_INPUT_GROUPS["teammate"]
-}
-OPPONENT_FIELD_GETTERS: Dict[str, FieldGetter] = {
-    field_name: _attr(field_name) for field_name in DEFAULT_MODEL_INPUT_GROUPS["opponent"]
+GOALIE_FIELD_GETTERS: Dict[str, FieldGetter] = {
+    field_name: _attr(field_name) for field_name in FRIENDLY_GOALIE_FIELDS
 }
 PUCK_FIELD_GETTERS: Dict[str, FieldGetter] = {
     "x": lambda game_state, source: game_state.nz_puck.x,
     "y": lambda game_state, source: game_state.nz_puck.y,
-    "rel_controlled_x": lambda game_state, source: source.rel_puck_x,
-    "rel_controlled_y": lambda game_state, source: source.rel_puck_y,
-    "rel_controlled_vx": lambda game_state, source: source.rel_puck_vx,
-    "rel_controlled_vy": lambda game_state, source: source.rel_puck_vy,
-    "dist_to_controlled": lambda game_state, source: source.dist_to_puck,
+    "vx": lambda game_state, source: game_state.nz_puck.vx,
+    "vy": lambda game_state, source: game_state.nz_puck.vy,
 }
-GOALIE_FIELD_GETTERS: Dict[str, FieldGetter] = {
-    "x": lambda game_state, source: game_state.team2.nz_goalie.x,
-    "y": lambda game_state, source: game_state.team2.nz_goalie.y,
-}
+
+
+def _team_entity_has_puck(team) -> bool:
+    return bool(team.goalie.has_puck or any(player.has_puck for player in team.players))
+
+
 GOALIE_STATS_FIELD_GETTERS: Dict[str, FieldGetter] = {
     **{
         f"team1_{field_name}": (lambda game_state, source, name=field_name: getattr(game_state.team1.nz_goalie_stats, name))
@@ -129,15 +158,24 @@ GOALIE_STATS_FIELD_GETTERS: Dict[str, FieldGetter] = {
 }
 POSSESSION_FIELD_GETTERS: Dict[str, FieldGetter] = {
     "team1_player_haspuck": lambda game_state, source: game_state.team1.nz_player_haspuck,
+    "team1_goalie_haspuck": lambda game_state, source: game_state.team1.nz_goalie_haspuck,
+    "team2_player_haspuck": lambda game_state, source: game_state.team2.nz_player_haspuck,
     "team2_goalie_haspuck": lambda game_state, source: game_state.team2.nz_goalie_haspuck,
+    "team1_has_puck": lambda game_state, source: float(_team_entity_has_puck(game_state.team1)),
+    "team2_has_puck": lambda game_state, source: float(_team_entity_has_puck(game_state.team2)),
+    "puck_loose": lambda game_state, source: float(
+        not _team_entity_has_puck(game_state.team1)
+        and not _team_entity_has_puck(game_state.team2)
+    ),
 }
 NET_FIELD_GETTERS: Dict[str, FieldGetter] = {
     "y": lambda game_state, source: game_state.team2.nz_net.y,
     "left": lambda game_state, source: game_state.team2.nz_net.left,
     "right": lambda game_state, source: game_state.team2.nz_net.right,
-    "rel_controlled_y": lambda game_state, source: game_state.team2.nz_net.rel_controlled_y,
-    "rel_controlled_left": lambda game_state, source: game_state.team2.nz_net.rel_controlled_left,
-    "rel_controlled_right": lambda game_state, source: game_state.team2.nz_net.rel_controlled_right,
+    "depth": lambda game_state, source: game_state.team2.nz_net.depth,
+    "rel_puck_y": lambda game_state, source: (game_state.team2.net.y - game_state.puck.y) / GameConsts.MAX_PUCK_Y,
+    "rel_puck_left": lambda game_state, source: (game_state.team2.net.left - game_state.puck.x) / GameConsts.MAX_PUCK_X,
+    "rel_puck_right": lambda game_state, source: (game_state.team2.net.right - game_state.puck.x) / GameConsts.MAX_PUCK_X,
 }
 BUTTON_FIELD_GETTERS: Dict[str, FieldGetter] = {
     "up": lambda game_state, source: float(game_state.action[0]),
@@ -151,11 +189,11 @@ BUTTON_FIELD_GETTERS: Dict[str, FieldGetter] = {
 
 
 MODEL_INPUT_FIELD_GETTERS: Dict[str, Dict[str, FieldGetter]] = {
-    "controlled_player": CONTROLLED_PLAYER_FIELD_GETTERS,
-    "teammate": TEAMMATE_FIELD_GETTERS,
-    "opponent": OPPONENT_FIELD_GETTERS,
+    "friendly_player": SKATER_FIELD_GETTERS,
+    "friendly_goalie": GOALIE_FIELD_GETTERS,
+    "opponent_player": SKATER_FIELD_GETTERS,
+    "opponent_goalie": GOALIE_FIELD_GETTERS,
     "puck": PUCK_FIELD_GETTERS,
-    "goalie": GOALIE_FIELD_GETTERS,
     "goalie_stats": GOALIE_STATS_FIELD_GETTERS,
     "possession": POSSESSION_FIELD_GETTERS,
     "net": NET_FIELD_GETTERS,
@@ -222,13 +260,12 @@ def _append_fields(
 def init_model(num_players: int, model_input_config: ModelInputConfig = None) -> int:
     """Return the size of the canonical scalar observation vector."""
     groups = _normalize_model_input_config(model_input_config)
-    teammate_count = max(num_players - 1, 0)
     return (
-        len(groups["controlled_player"])
-        + (teammate_count * len(groups["teammate"]))
-        + (num_players * len(groups["opponent"]))
+        (num_players * len(groups["friendly_player"]))
+        + len(groups["friendly_goalie"])
+        + (num_players * len(groups["opponent_player"]))
+        + len(groups["opponent_goalie"])
         + len(groups["puck"])
-        + len(groups["goalie"])
         + len(groups["goalie_stats"])
         + len(groups["possession"])
         + len(groups["net"])
@@ -237,30 +274,22 @@ def init_model(num_players: int, model_input_config: ModelInputConfig = None) ->
     )
 
 
-def _controlled_player_index(team) -> int:
-    return max(0, team.control - 1) if team.control > 0 else 0
-
-
 def _base_features(game_state, model_input_config: ModelInputConfig) -> FeatureList:
     groups = _normalize_model_input_config(model_input_config)
     t1 = game_state.team1
     t2 = game_state.team2
-    controlled_idx = _controlled_player_index(t1)
-    controlled_player = t1.nz_players[controlled_idx]
     features: FeatureList = []
 
-    _append_fields(features, game_state, controlled_player, "controlled_player", groups["controlled_player"])
+    for index in range(game_state.numPlayers):
+        _append_fields(features, game_state, t1.nz_players[index], "friendly_player", groups["friendly_player"])
+
+    _append_fields(features, game_state, t1.nz_goalie, "friendly_goalie", groups["friendly_goalie"])
 
     for index in range(game_state.numPlayers):
-        if index == controlled_idx:
-            continue
-        _append_fields(features, game_state, t1.nz_players[index], "teammate", groups["teammate"])
+        _append_fields(features, game_state, t2.nz_players[index], "opponent_player", groups["opponent_player"])
 
-    for index in range(game_state.numPlayers):
-        _append_fields(features, game_state, t2.nz_players[index], "opponent", groups["opponent"])
-
-    _append_fields(features, game_state, controlled_player, "puck", groups["puck"])
-    _append_fields(features, game_state, t2.nz_goalie, "goalie", groups["goalie"])
+    _append_fields(features, game_state, t2.nz_goalie, "opponent_goalie", groups["opponent_goalie"])
+    _append_fields(features, game_state, None, "puck", groups["puck"])
     _append_fields(features, game_state, None, "goalie_stats", groups["goalie_stats"])
     _append_fields(features, game_state, None, "possession", groups["possession"])
     _append_fields(features, game_state, t2.nz_net, "net", groups["net"])
@@ -275,34 +304,8 @@ def _button_features(game_state, model_input_config: ModelInputConfig) -> Featur
 
 
 def _all_hidden_state_features(game_state) -> Dict[str, float]:
-    t1 = game_state.team1
-    t2 = game_state.team2
     engine = game_state.engine
-
-    controlled_player = t1.get_controlled_player()
-    opponent_goalie = t2.goalie
-    controlled_idx = t1.control - 1 if t1.control > 0 else -1
-
-    teammate_one_timer = 0.0
-    teammate_one_timer_good = 0.0
-    for index, player in enumerate(t1.players):
-        if index == controlled_idx:
-            continue
-        teammate_one_timer = max(teammate_one_timer, player.is_one_timer)
-        if player.one_timer_lane_good:
-            teammate_one_timer_good = 1.0
-
     return {
-        "controlled_player.is_one_timer": controlled_player.is_one_timer,
-        "controlled_player.is_breakaway": controlled_player.is_breakaway,
-        "controlled_player.is_falling": controlled_player.is_falling,
-        "controlled_player.anim_frame": min(abs(controlled_player.anim_frame) / 32.0, 1.0),
-        "controlled_player.has_anim": float(controlled_player.anim != 0),
-        "teammate.is_one_timer": teammate_one_timer,
-        "teammate.one_timer_lane_good": teammate_one_timer_good,
-        "opponent_goalie.is_pad_stack": opponent_goalie.is_pad_stack,
-        "opponent_goalie.is_dive": opponent_goalie.is_dive,
-        "opponent_goalie.anim_frame": min(abs(opponent_goalie.anim_frame) / 32.0, 1.0),
         "engine.shot_mode_active": engine.shot_mode_active,
         "engine.shot_taken": engine.shot_taken,
         "engine.in_close_top_shelf": engine.in_close_top_shelf,
