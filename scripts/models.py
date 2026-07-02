@@ -319,6 +319,7 @@ class TemporalHybridExtractorBase(BaseFeaturesExtractor):
         observation_space,
         features_dim=256,
         temporal_dim=128,
+        spatial_hidden_dim=128,
     ):
         super().__init__(observation_space, features_dim)
 
@@ -330,12 +331,13 @@ class TemporalHybridExtractorBase(BaseFeaturesExtractor):
 
         self.seq_len, self.input_dim = observation_space.shape
         self.temporal_dim = temporal_dim
+        self.spatial_hidden_dim = spatial_hidden_dim
 
         self.spatial_encoder = nn.Sequential(
-            nn.Linear(self.input_dim, 128),
-            nn.LayerNorm(128),
+            nn.Linear(self.input_dim, self.spatial_hidden_dim),
+            nn.LayerNorm(self.spatial_hidden_dim),
             nn.ReLU(),
-            nn.Linear(128, temporal_dim),
+            nn.Linear(self.spatial_hidden_dim, temporal_dim),
             nn.LayerNorm(temporal_dim),
             nn.ReLU(),
         )
@@ -389,6 +391,7 @@ class HybridMambaMLPExtractor(TemporalHybridExtractorBase):
         observation_space,
         features_dim=256,
         mamba_dim=128,
+        spatial_hidden_dim=128,
         d_state=64,
         d_conv=4,
         expand=2,
@@ -401,6 +404,7 @@ class HybridMambaMLPExtractor(TemporalHybridExtractorBase):
             observation_space=observation_space,
             features_dim=features_dim,
             temporal_dim=mamba_dim,
+            spatial_hidden_dim=spatial_hidden_dim,
         )
 
     def _build_temporal_model(self):
@@ -455,6 +459,7 @@ class GRUMlpExtractor(TemporalHybridExtractorBase):
         observation_space,
         features_dim=256,
         hidden_dim=128,
+        spatial_hidden_dim=128,
         gru_layers=2,
     ):
         self.gru_layers = gru_layers
@@ -462,6 +467,7 @@ class GRUMlpExtractor(TemporalHybridExtractorBase):
             observation_space=observation_space,
             features_dim=features_dim,
             temporal_dim=hidden_dim,
+            spatial_hidden_dim=spatial_hidden_dim,
         )
 
     def _build_temporal_model(self):

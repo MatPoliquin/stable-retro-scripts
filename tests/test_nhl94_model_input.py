@@ -171,6 +171,37 @@ class NHL94ModelInputTests(unittest.TestCase):
         loose_puck = set_model_input(_state(puck_owner=-1), config)
         self.assertEqual(loose_puck, (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0))
 
+    def test_dist_to_controlled_tracks_current_controller(self):
+        config = {
+            "schema_version": 2,
+            "strict": True,
+            "groups": {
+                "friendly_player": ["dist_to_controlled", "is_controlled"],
+                "friendly_goalie": [],
+                "opponent_player": [],
+                "opponent_goalie": [],
+                "puck": [],
+                "goalie_stats": [],
+                "possession": [],
+                "net": [],
+                "buttons": [],
+                "hidden_state": [],
+            },
+        }
+
+        player0_controlled = set_model_input(_state(team1_control_index=0), config)
+        player1_controlled = set_model_input(_state(team1_control_index=1), config)
+
+        self.assertEqual(player0_controlled[0], 0.0)
+        self.assertGreater(player0_controlled[2], 0.0)
+        self.assertEqual(player0_controlled[1], 1.0)
+        self.assertEqual(player0_controlled[3], 0.0)
+
+        self.assertGreater(player1_controlled[0], 0.0)
+        self.assertEqual(player1_controlled[2], 0.0)
+        self.assertEqual(player1_controlled[1], 0.0)
+        self.assertEqual(player1_controlled[3], 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()
