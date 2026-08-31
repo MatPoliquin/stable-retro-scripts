@@ -7,4 +7,5 @@
 - `stable-retro` is a sibling dependency used by this repo. Do not modify the separate `stable-retro` repo unless the task explicitly includes it.
 - For C++ changes, follow `.clang-format` and the `retro_ai_lib/` CMake workflow. Do not reference the legacy `ef_lib` path in docs, CI, or commands.
 - Preserve existing CLI flags, reward-function names, and state names because curricula, readmes, and saved model workflows depend on them.
+- Use Python 3.10 through 3.12. Install runtime dependencies from `requirements.txt`, contributor dependencies from `requirements-dev.txt`, and lint-only CI dependencies from `requirements-lint.txt`; do not replace these with ad hoc package installs.
 - When validating changes, prefer the repo's existing workflows: `pylint --rcfile=.pylintrc $(git ls-files '*.py')` for Python and the `retro_ai_lib` CMake build for C++ when libtorch/OpenCV are available.

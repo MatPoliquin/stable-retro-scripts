@@ -28,23 +28,35 @@ NHL94 (1 on 1)           |  Wrestlemania: The Arcade game |  Virtua Fighter 1
 Tested on Ubuntu 22.04/24.04 and Windows 11 WSL2 (Ubuntu 22.04 VM)
 
 Requires:
-*   Python 3.7 and up
+*   Python 3.10 through 3.12
 *   gymnasium
 *   stable-baselines3
 *   stable-retro (fork of gym-retro)
 
-```
+```bash
 sudo apt update
-sudo apt-get install python3 python3-pip python3.12-venv git zlib1g-dev libopenmpi-dev ffmpeg cmake libgl1-mesa-dev
+sudo apt-get install python3 python3-pip python3-venv git zlib1g-dev libopenmpi-dev ffmpeg cmake libgl1-mesa-dev
 
-python3 -m venv ~/vretro --system-site-packages
-source ~/vretro/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 
-git clone https://github.com/Farama-Foundation/stable-retro.git
-cd stable-retro
-pip3 install -e .
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+```
 
-pip3 install "stable_baselines3[extra]" pygame torchsummary opencv-python timm
+The manifest records minimum known-working versions and allows pip to select
+current compatible releases. To install lint tooling as well:
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+```
+
+If you need an editable `stable-retro` checkout for emulator development, clone
+the pinned release beside this repository and replace the installed wheel:
+
+```bash
+git clone --branch v1.0.1 --depth 1 https://github.com/Farama-Foundation/stable-retro.git ../stable-retro
+python3 -m pip install --no-deps -e ../stable-retro
 ```
 
 Windows WSL2 + Ubuntu 22.04 setup guide: https://www.youtube.com/watch?v=vPnJiUR21Og
