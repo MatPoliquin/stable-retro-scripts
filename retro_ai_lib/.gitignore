@@ -1,8 +1,0 @@
-libtorch/
-build/
-CMakeFiles/
-Debug/
-libtorch/
-win/
-*.zip
-.vscode/

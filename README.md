@@ -1,13 +1,11 @@
 ![pylint workflow](https://github.com/MatPoliquin/stable-retro-scripts/actions/workflows/pylint.yml/badge.svg)
-![clang workflow](https://github.com/MatPoliquin/stable-retro-scripts/actions/workflows/clang.yml/badge.svg)
-![testcpp workflow](https://github.com/MatPoliquin/stable-retro-scripts/actions/workflows/test-cpp.yml/badge.svg)
 
 # stable-retro scripts
 
 * Train models on retro games
 * Pit two models against each other on PvP retro games such as NHL94, Mortal Kombat or WWF Wrestlemania: The Arcade Game
 * Play against an improved AI opponent
-* Emulator Frontend library using Pytorch C++ to able to play with or against stable-retro models in apps like RetroArch
+* Export models for use in emulator frontends through [retro-ai-runtime](https://github.com/MatPoliquin/retro-ai-runtime)
 
 ### Supported models
 *   MLPs
@@ -87,11 +85,16 @@ python3 scripts/train_curriculum.py --curriculum curriculum/nhl94.json
 *   For NHL94 specific page click [here](./readmes/NHL94-README.md)
 *   For Wrestlemania the arcade game specific page click [here](./readmes/WWF-README.md)
 
-## retro ai lib
+## Emulator runtime
 
-C++ lib using Pytorch that runs models inside emulator frontends like retro arch to override player input. Which means you can play against a smarter opponent at NHL94 for example or let the AI play with you in COOP or play for you.
+The C++ inference library has moved to
+[retro-ai-runtime](https://github.com/MatPoliquin/retro-ai-runtime). It runs exported
+models inside emulator frontends such as RetroArch to control player input.
 
-See [README](./retro_ai_lib/README.md) for build and install instructions
+Training, evaluation, and [model export](./scripts/export_model.py) remain here.
+See the runtime repository for its source code, build instructions, and C++ tests.
+RetroArch-side integration remains in
+[RetroArchAI](https://github.com/MatPoliquin/RetroArchAI).
 
 Tutorial video:
 [![RetroArch and Pytorch](https://img.youtube.com/vi/hkOcxJvJVjk/0.jpg)](https://www.youtube.com/watch?v=hkOcxJvJVjk)
